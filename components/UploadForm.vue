@@ -687,7 +687,7 @@ const onSubmit = async () => {
     uploadStatus.value = $t('upload_form.uploading')
 
     if (!balance?.data?.value?.value || new BigNumber(balance.data.value.value.toString()).lt(arweaveFee.value)) {
-      throw new Error('INSUFFICIENT_BASE_ETH_BALANCE')
+      throw new Error(`INSUFFICIENT_BASE_ETH_BALANCE: NEED ${arweaveFee.value.toString()} ETH`)
     }
 
     if (!fileRecords.value.some(file => file.fileBlob)) {
