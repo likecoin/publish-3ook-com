@@ -129,7 +129,7 @@ async function getBundler ({
   const { IS_TESTNET } = useRuntimeConfig().public
   const bundlr = new WebIrys({
     network: IS_TESTNET ? 'devnet' : 'mainnet',
-    token: 'matic',
+    token: 'base-eth',
     wallet: {
       provider: p
     }
