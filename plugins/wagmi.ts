@@ -1,7 +1,6 @@
-import { WagmiPlugin } from '@wagmi/vue'
+import { WagmiPlugin, type Config } from '@wagmi/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { defineNuxtPlugin } from 'nuxt/app'
-import type { Config } from '@wagmi/core'
 
 import { createWagmiConfig } from '../utils/wagmi/config'
 
@@ -16,7 +15,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   nuxtApp.vueApp
     .use(WagmiPlugin, {
-      config: wagmiConfig
+      config: wagmiConfig as Config
     })
     .use(VueQueryPlugin, {})
 
@@ -26,9 +25,3 @@ export default defineNuxtPlugin((nuxtApp) => {
     }
   }
 })
-
-declare module '#app' {
-  interface NuxtApp {
-    $wagmiConfig: Config
-  }
-}

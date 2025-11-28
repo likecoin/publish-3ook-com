@@ -1,4 +1,4 @@
-import { http, createConfig } from '@wagmi/vue'
+import { http, createConfig, type Config, type CreateConnectorFn } from '@wagmi/core'
 import { base, baseSepolia } from '@wagmi/vue/chains'
 import { injected } from '@wagmi/vue/connectors'
 import { dedicatedWalletConnector } from '@likecoin/wagmi-connector'
@@ -13,7 +13,7 @@ export function createWagmiConfig ({
   customLogoURL?: string
   isServer?: boolean
   isTestnet?: boolean
-}) {
+}): Config {
   const chain = isTestnet ? baseSepolia : base
   return createConfig({
     chains: [chain],
@@ -23,21 +23,21 @@ export function createWagmiConfig ({
       ...(isServer
         ? []
         : [dedicatedWalletConnector({
-            chains: [chain],
-            options: {
-              apiKey,
-              accentColor: '#131313',
-              customHeaderText: '3ook.com',
-              customLogo: customLogoURL,
-              isDarkMode: false,
-              magicSdkConfiguration: {
-                network: {
-                  rpcUrl: chain.rpcUrls.default.http[0],
-                  chainId: chain.id
-                }
+          chains: [chain],
+          options: {
+            apiKey,
+            accentColor: '#131313',
+            customHeaderText: '3ook.com',
+            customLogo: customLogoURL,
+            isDarkMode: false,
+            magicSdkConfiguration: {
+              network: {
+                rpcUrl: chain.rpcUrls.default.http[0],
+                chainId: chain.id
               }
             }
-          })]),
+          }
+        }) as CreateConnectorFn]),
       injected()
     ],
     ssr: true,
@@ -50,6 +50,6 @@ export function createWagmiConfig ({
 
 declare module '@wagmi/vue' {
   interface Register {
-    config: ReturnType<typeof createWagmiConfig>
+    config: Config
   }
 }
