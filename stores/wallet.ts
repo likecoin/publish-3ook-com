@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { FetchError } from 'ofetch'
-import { useAccount, useConnect, useDisconnect, useSignMessage } from '@wagmi/vue'
+import { useConnection, useConnect, useDisconnect, useSignMessage } from '@wagmi/vue'
 import { base, baseSepolia } from '@wagmi/vue/chains'
 import { checksumAddress, UserRejectedRequestError } from 'viem'
 import type { Magic } from 'magic-sdk'
@@ -10,7 +10,7 @@ import { RegistrationModal } from '#components'
 export const useWalletStore = defineStore('wallet', () => {
   const { connectors, connectAsync: wagmiConnect, status } = useConnect()
   const { disconnectAsync: wagmiDisconnect } = useDisconnect()
-  const { address, isConnected, chain } = useAccount()
+  const { address, isConnected, chain } = useConnection()
   const { signMessageAsync } = useSignMessage()
   const bookstoreApiStore = useBookstoreApiStore()
   const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
