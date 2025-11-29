@@ -67,6 +67,7 @@ export default defineNuxtConfig({
   security: {
     headers: {
       crossOriginEmbedderPolicy: 'unsafe-none',
+      crossOriginOpenerPolicy: 'same-origin-allow-popups',
       contentSecurityPolicy: {
         'worker-src': ["'self'", 'blob:'],
         'img-src': ["'self'", 'data:', '*'],
@@ -141,6 +142,8 @@ exports.randomFillSync = randomFillSync`
       LIKE_EVM_NFT_TARGET_ADDRESS: process.env.LIKE_EVM_NFT_TARGET_ADDRESS,
 
       MAGIC_LINK_API_KEY: process.env.MAGIC_LINK_API_KEY,
+      MAGIC_LINK_CUSTOM_LOGO_URL: process.env.MAGIC_LINK_CUSTOM_LOGO_URL,
+      WALLET_CONNECT_PROJECT_ID: process.env.WALLET_CONNECT_PROJECT_ID,
 
       LIKE_NFT_CONTRACT_ADDRESS: process.env.LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
 
