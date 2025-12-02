@@ -64,6 +64,8 @@ export default defineNuxtConfig({
       : undefined
   },
 
+  sourcemap: { client: 'hidden' },
+
   security: {
     headers: {
       crossOriginEmbedderPolicy: 'unsafe-none',
