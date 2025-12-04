@@ -2,39 +2,97 @@ import { jwtDecode } from 'jwt-decode'
 
 const AUTH_SESSION_KEY = 'likecoin_nft_book_press_token'
 const POST_AUTH_REDIRECT_ROUTE_KEY = 'likecoin_nft_book_press_post_auth_redirect'
+const SHARED_COOKIE_DOMAIN = '.3ook.com'
+
+function getCookie (name: string): string | null {
+  try {
+    const cookies = document.cookie.split(';')
+    const cookie = cookies.find(c => c.trim().startsWith(`${name}=`))
+    if (cookie) {
+      return decodeURIComponent(cookie.split('=')[1])
+    }
+  } catch {}
+  return null
+}
+
+function setCookie (name: string, value: string, maxAge: number = 30 * 24 * 60 * 60) {
+  try {
+    const isProduction = window.location.hostname.includes('3ook.com')
+    const domain = isProduction ? SHARED_COOKIE_DOMAIN : ''
+    const domainAttr = domain ? `; domain=${domain}` : ''
+    const secureAttr = window.location.protocol === 'https:' ? '; secure' : ''
+
+    document.cookie = `${name}=${encodeURIComponent(value)}${domainAttr}; path=/; max-age=${maxAge}; samesite=lax${secureAttr}`
+  } catch (error) {
+    console.error('Failed to set cookie', error)
+  }
+}
+
+function deleteCookie (name: string) {
+  try {
+    const isProduction = window.location.hostname.includes('3ook.com')
+    const domain = isProduction ? SHARED_COOKIE_DOMAIN : ''
+    const domainAttr = domain ? `; domain=${domain}` : ''
+
+    document.cookie = `${name}=; path=/; max-age=0${domainAttr}`
+  } catch (error) {
+    console.error('Failed to delete cookie', error)
+  }
+}
 
 export function loadAuthSession () {
   try {
+    const cookieData = getCookie(AUTH_SESSION_KEY)
+    if (cookieData) {
+      const { wallet, token, intercomToken } = JSON.parse(cookieData)
+      if (token && wallet) {
+        if (window.localStorage) {
+          window.localStorage.setItem(AUTH_SESSION_KEY, cookieData)
+        }
+        return { wallet, token, intercomToken }
+      }
+    }
+
     if (window.localStorage) {
       const data = window.localStorage.getItem(AUTH_SESSION_KEY)
       if (data) {
         const { wallet, token, intercomToken } = JSON.parse(data)
-        return {
-          wallet,
-          token,
-          intercomToken
+        if (token && wallet) {
+          setCookie(AUTH_SESSION_KEY, data)
+          return { wallet, token, intercomToken }
         }
       }
     }
-  } catch {}
+  } catch (error) {
+    console.error('Failed to load auth session', error)
+  }
 
   return null
 }
 
 export function saveAuthSession (session: { wallet: string, token: string, intercomToken?: string }) {
   try {
-    if (!window.localStorage) { return }
+    const data = JSON.stringify(session)
+    setCookie(AUTH_SESSION_KEY, data)
 
-    window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
-  } catch {}
+    if (window.localStorage) {
+      window.localStorage.setItem(AUTH_SESSION_KEY, data)
+    }
+  } catch (error) {
+    console.error('Failed to save auth session', error)
+  }
 }
 
 export function clearAuthSession () {
   try {
-    if (!window.localStorage) { return }
+    deleteCookie(AUTH_SESSION_KEY)
 
-    window.localStorage.removeItem(AUTH_SESSION_KEY)
-  } catch {}
+    if (window.localStorage) {
+      window.localStorage.removeItem(AUTH_SESSION_KEY)
+    }
+  } catch (error) {
+    console.error('Failed to clear auth session', error)
+  }
 }
 
 export function setupPostAuthRedirect () {
