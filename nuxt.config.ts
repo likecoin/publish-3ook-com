@@ -86,7 +86,9 @@ export default defineNuxtConfig({
   },
   vite: {
     define: {
-      global: 'globalThis'
+      global: 'globalThis',
+      __SENTRY_DEBUG__: false,
+      __SENTRY_TRACING__: false
     },
     optimizeDeps: {
       include: ['eventemitter3']
