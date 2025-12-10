@@ -46,7 +46,7 @@
         </template>
 
         <template #footer>
-          <div class="flex justify-center items-center gap-4">
+          <div class="flex flex-col justify-center items-center gap-4">
             <span
               v-if="currentStripeAccount?.hasAccount && isStripeConnectReady"
               class="text-sm text-gray-500"

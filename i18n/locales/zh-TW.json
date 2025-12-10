@@ -658,7 +658,7 @@
   "user_settings.email_verification_instruction": "要啟用電子郵件通知，請驗證您的 Liker ID 電子郵件。",
   "user_settings.liker_id_email": "Liker ID 電子郵件",
   "user_settings.loading": "載入中",
-  "user_settings.login_to_stripe": "登入",
+  "user_settings.login_to_stripe": "進入 Stripe Connect 儀表板",
   "user_settings.payout_amount": "付款金額",
   "user_settings.payout_details": "付款詳情",
   "user_settings.payout_history": "銀行出金記錄",
