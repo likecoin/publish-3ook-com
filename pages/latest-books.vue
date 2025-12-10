@@ -68,14 +68,12 @@ const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
 const userStore = useUserStore()
 const stripeStore = useStripeStore()
 const bookstoreApiStore = useBookstoreApiStore()
-const walletStore = useWalletStore()
 
 const localeRoute = useLocaleRoute()
 const route = useRoute()
 
-const { wallet } = storeToRefs(walletStore)
 const { userLikerInfo } = storeToRefs(userStore)
-const { isAuthenticated } = storeToRefs(bookstoreApiStore)
+const { isAuthenticated, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const tabItems = computed(() => [
   { label: $t('latest_books.latest_releases'), key: 'latest' },
@@ -185,12 +183,12 @@ async function fetchBestSellersList () {
 }
 
 async function fetchUserStripeInfo () {
-  if (!wallet.value) {
+  if (!sessionWallet.value) {
     isStripeConnectReady.value = false
     return
   }
   try {
-    const stripeConnectStatus = await stripeStore.fetchStripeConnectStatusByWallet(wallet.value)
+    const stripeConnectStatus = await stripeStore.fetchStripeConnectStatusByWallet(sessionWallet.value)
     isStripeConnectReady.value = stripeConnectStatus?.isReady
   } catch (err) {
     // eslint-disable-next-line no-console

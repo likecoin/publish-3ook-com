@@ -202,7 +202,7 @@ const { wallet, signer } = storeToRefs(store)
 const { validateWalletConsistency } = store
 
 const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
+const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const nftStore = useNftStore()
 const { lazyFetchClassMetadataById } = nftStore
@@ -218,7 +218,7 @@ const error = ref({ message: '', actions: [] as any[] })
 const isLoading = ref(false)
 const classId = computed(() => route.params.classId as string)
 const paymentId = computed(() => route.query.payment_id as string)
-const ownerWallet = computed(() => route.query.owner_wallet as string || wallet.value)
+const ownerWallet = computed(() => route.query.owner_wallet as string || sessionWallet.value)
 const memo = ref($t('nft_book_form.default_memo'))
 const { messageCharCount, isLimitReached } = useMessageCharCount(memo, AUTHOR_MESSAGE_LIMIT)
 const { getNFTMetadata, getNFTOwner } = useNFTContractReader()
@@ -293,7 +293,7 @@ async function handleConfirmNFTId () {
       getNFTOwner(classId.value, firstNftId)
     ])
     const owner = ownerResult as string
-    if (!metadata || owner !== wallet.value) {
+    if (!metadata || owner !== sessionWallet.value) {
       validationError.value = $t('error.fetch_nft_metadata_failed')
       nftIds.value = []
       return

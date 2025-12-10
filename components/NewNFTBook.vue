@@ -247,7 +247,7 @@
                   <UIcon name="i-heroicons-wallet" class="text-gray-500" />
                   <span class="font-mono text-sm" v-text="stripeWallet" />
                   <UBadge
-                    v-if="stripeWallet === wallet"
+                    v-if="stripeWallet === sessionWallet"
                     variant="soft"
                     color="green"
                     size="xs"
@@ -318,7 +318,6 @@ import {
   MINIMAL_PRICE
 } from '~/constant'
 import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { useWalletStore } from '~/stores/wallet'
 import { useStripeStore } from '~/stores/stripe'
 import { useNftStore } from '~/stores/nft'
 import { escapeHtml, sanitizeHtml } from '~/utils/newClass'
@@ -326,13 +325,11 @@ import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
 
 const { LIKE_CO_API } = useRuntimeConfig().public
-const walletStore = useWalletStore()
 const bookstoreApiStore = useBookstoreApiStore()
 const stripeStore = useStripeStore()
-const { wallet } = storeToRefs(walletStore)
 const { newBookListing, updateEditionPrice, uploadSignImages } = bookstoreApiStore
 const { fetchStripeConnectStatusByWallet } = stripeStore
-const { token } = storeToRefs(bookstoreApiStore)
+const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const nftStore = useNftStore()
 
 const { getBalanceOf } = useNFTContractReader()
@@ -445,7 +442,7 @@ useSeoMeta({
 onMounted(async () => {
   try {
     isLoading.value = true
-    const balance = wallet.value ? (await getBalanceOf(classId.value as string, wallet.value)) : 0
+    const balance = sessionWallet.value ? (await getBalanceOf(classId.value as string, sessionWallet.value)) : 0
     ownedCount.value = Number(balance) || 0
 
     if (isEditMode.value || editionIndex.value !== undefined) {
@@ -455,7 +452,7 @@ onMounted(async () => {
         }
       })
       if (classResData) {
-        if (classResData?.ownerWallet !== wallet.value) {
+        if (classResData?.ownerWallet !== sessionWallet.value) {
           throw new Error('NOT_OWNER_OF_NFT_CLASS')
         }
 
@@ -505,11 +502,11 @@ onMounted(async () => {
       }
     }
 
-    if (!Object.keys(connectedWallets.value).length && wallet.value) {
+    if (!Object.keys(connectedWallets.value).length && sessionWallet.value) {
       try {
-        const { isReady } = await fetchStripeConnectStatusByWallet(wallet.value)
+        const { isReady } = await fetchStripeConnectStatusByWallet(sessionWallet.value)
         if (isReady) {
-          connectedWallets.value = { [wallet.value]: 100 }
+          connectedWallets.value = { [sessionWallet.value]: 100 }
         }
       } catch (e) {
         // eslint-disable-next-line no-console

@@ -503,13 +503,11 @@ const MAX_EDITION_COUNT = 2
 const AUTHOR_RESERVED_NFT_COUNT = 1
 
 const { CHAIN_EXPLORER_URL, BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
-const store = useWalletStore()
 const bookstoreApiStore = useBookstoreApiStore()
 const nftStore = useNftStore()
 const stripeStore = useStripeStore()
 const ordersStore = useOrdersStore()
-const { token } = storeToRefs(bookstoreApiStore)
-const { wallet } = storeToRefs(store)
+const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { ordersByClassIdMap } = storeToRefs(ordersStore)
 const { updateBookListingSetting, reduceListingPendingNFTCountById } = bookstoreApiStore
 const { lazyFetchClassMetadataById } = nftStore
@@ -554,7 +552,7 @@ const showRestockModal = ref(false)
 
 const nftClassName = computed(() => nftStore.getClassMetadataById(classId.value as string)?.name)
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
-const userIsOwner = computed(() => wallet.value && ownerWallet.value === wallet.value)
+const userIsOwner = computed(() => sessionWallet.value && ownerWallet.value === sessionWallet.value)
 const userCanSendNFT = computed(() => userIsOwner.value)
 const purchaseLinks = computed(() =>
   fromChannelInput.value
@@ -860,7 +858,7 @@ watch(isLoading, (newIsLoading) => {
   if (newIsLoading) { error.value = '' }
 })
 
-watch(wallet, async (newWallet) => {
+watch(sessionWallet, async (newWallet) => {
   if (newWallet) {
     await calculateStock()
   } else {
@@ -894,7 +892,7 @@ onMounted(async () => {
     const classStripeWallet = classConnectedWallets && Object.keys(classConnectedWallets)[0]
     if (classStripeWallet) {
       stripeConnectWallet.value = classStripeWallet
-      if (classStripeWallet !== wallet.value) {
+      if (classStripeWallet !== sessionWallet.value) {
         isUsingDefaultAccount.value = false
         try {
           await fetchStripeConnectStatusByWallet(classStripeWallet)
@@ -910,10 +908,10 @@ onMounted(async () => {
     tableOfContents.value = classTableOfContent
     await ordersStore.fetchOrdersByClassId([classId.value])
 
-    if (wallet.value) {
+    if (sessionWallet.value) {
       await calculateStock()
       try {
-        await fetchStripeConnectStatusByWallet(wallet.value)
+        await fetchStripeConnectStatusByWallet(sessionWallet.value)
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err)
@@ -929,7 +927,7 @@ onMounted(async () => {
 
 async function calculateStock () {
   const pendingNFTCount = classListingInfo.value.pendingNFTCount || 0
-  const count = await getBalanceOf(classId.value, wallet.value as string)
+  const count = await getBalanceOf(classId.value, sessionWallet.value as string)
   const manuallyAssignedNFTCount = prices.value
     .filter(price => !price.isAutoDeliver)
     .reduce((total, price) => total + (price.stock || 0), 0)
