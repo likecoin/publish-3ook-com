@@ -457,20 +457,10 @@ onMounted(async () => {
       if (classResData) {
         if (classResData?.ownerWallet !== wallet.value) {
           throw new Error('NOT_OWNER_OF_NFT_CLASS')
-        } else if (wallet.value) {
-          try {
-            if (classResData.connectedWallets) {
-              connectedWallets.value = classResData.connectedWallets
-            } else {
-              const { isReady } = await fetchStripeConnectStatusByWallet(wallet.value)
-              if (isReady) {
-                connectedWallets.value = { [wallet.value]: 100 }
-              }
-            }
-          } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error(err)
-          }
+        }
+
+        if (classResData.connectedWallets) {
+          connectedWallets.value = classResData.connectedWallets
         }
 
         if (editionIndex.value !== undefined) {
@@ -512,6 +502,18 @@ onMounted(async () => {
         }, 0)
       } else {
         throw new Error($t('errors.nft_class_not_found'))
+      }
+    }
+
+    if (!Object.keys(connectedWallets.value).length && wallet.value) {
+      try {
+        const { isReady } = await fetchStripeConnectStatusByWallet(wallet.value)
+        if (isReady) {
+          connectedWallets.value = { [wallet.value]: 100 }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
       }
     }
   } catch (e) {
