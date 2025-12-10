@@ -658,7 +658,7 @@
   "user_settings.email_verification_instruction": "To enable email notifications, please verify your Liker ID email.",
   "user_settings.liker_id_email": "Liker ID Email",
   "user_settings.loading": "Loading",
-  "user_settings.login_to_stripe": "Login to Stripe account",
+  "user_settings.login_to_stripe": "Go to Stripe account",
   "user_settings.payout_amount": "Payout Amount",
   "user_settings.payout_details": "Payout Details",
   "user_settings.payout_history": "Bank withdrawal records",
