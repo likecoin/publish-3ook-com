@@ -63,7 +63,7 @@
 import { storeToRefs } from 'pinia'
 const { t: $t } = useI18n()
 
-const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
+const { BOOK3_URL } = useRuntimeConfig().public
 
 const userStore = useUserStore()
 const stripeStore = useStripeStore()
@@ -175,8 +175,8 @@ onMounted(async () => {
 })
 
 async function fetchBookList () {
-  const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/list?chain=base&limit=100`)
-  latestBookList.value = (data as any)?.list || []
+  const data = await $fetch(`${BOOK3_URL}/api/store/products?tag=latest`)
+  latestBookList.value = (data as any)?.records || []
 }
 
 async function fetchBestSellersList () {
