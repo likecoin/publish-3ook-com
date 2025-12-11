@@ -118,9 +118,55 @@ export function useAuth () {
     }
   }
 
+  async function authenticateWithSignature (signature: {
+    signature: string,
+    message: any,
+    wallet: string,
+    signMethod: string,
+    expiresIn: string,
+  }) {
+    loginStatus.value = $t('auth_state.connecting')
+
+    try {
+      isAuthenticating.value = true
+
+      await authenticate(signature.wallet, signature)
+      if (window.Intercom && intercomToken.value) {
+        window.Intercom('update', {
+          intercom_user_jwt: intercomToken.value,
+          session_duration: 2592000000, // 30d
+          evm_wallet: signature.wallet
+        })
+      }
+      loginStatus.value = $t('auth_state.success')
+      try {
+        await fetchBookListing()
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err)
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      toast.add({
+        icon: 'i-heroicons-exclamation-circle',
+        title: (err as Error).toString(),
+        timeout: 0,
+        color: 'red',
+        ui: {
+          title: 'text-red-400 dark:text-red-400'
+        }
+      })
+    } finally {
+      isAuthenticating.value = false
+      loginStatus.value = ''
+    }
+  }
+
   return {
     isAuthenticating,
     onAuthenticate,
+    authenticateWithSignature,
     loginStatus
   }
 }
