@@ -42,7 +42,7 @@
       :ui="{ width: '!max-w-[348px]' }"
     >
       <LoginPanel
-        @connect="onAuthenticate"
+        @connect="authenticateByConnectorId"
       />
     </UModal>
     <WelcomeModal />
@@ -67,7 +67,7 @@ const bookstoreApiStore = useBookstoreApiStore()
 
 const { restoreAuthSession, fetchBookListing, clearSession } = bookstoreApiStore
 const { wallet, intercomToken, isAuthenticated } = storeToRefs(bookstoreApiStore)
-const { isAuthenticating, loginStatus, onAuthenticate } = useAuth()
+const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBySignature } = useAuth()
 const uiStore = useUIStore()
 const toast = useToast()
 
@@ -79,6 +79,7 @@ const isMobileMenuOpen = computed({
 })
 
 const route = useRoute()
+const router = useRouter()
 
 // NOTE: Close mobile menu on route change
 watch(
@@ -156,6 +157,30 @@ onMounted(async () => {
       // eslint-disable-next-line no-console
       console.error(error)
     }
+  } else if (route.query.auth) {
+    const { auth: payload, ...query } = route.query
+    if (typeof payload === 'string') {
+      try {
+        const {
+          signature,
+          message,
+          wallet,
+          signMethod,
+          expiresIn
+        } = JSON.parse(payload)
+        await authenticateBySignature({
+          signature,
+          message,
+          wallet,
+          signMethod,
+          expiresIn
+        })
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error occurs when authenticating with signature from query string', error)
+      }
+    }
+    router.replace({ query })
   }
 })
 
