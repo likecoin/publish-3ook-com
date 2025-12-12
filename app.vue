@@ -168,13 +168,15 @@ onMounted(async () => {
           signMethod,
           expiresIn
         } = JSON.parse(payload)
-        await authenticateBySignature({
-          signature,
-          message,
-          wallet,
-          signMethod,
-          expiresIn
-        })
+        if (signature && message && wallet) {
+          await authenticateBySignature({
+            signature,
+            message,
+            wallet,
+            signMethod,
+            expiresIn
+          })
+        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('An error occurred when authenticating with signature from query string', error)
