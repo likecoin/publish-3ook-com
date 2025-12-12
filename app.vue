@@ -161,8 +161,20 @@ onMounted(async () => {
     const { auth: payload, ...query } = route.query
     if (typeof payload === 'string') {
       try {
-        const signature = JSON.parse(payload)
-        await authenticateWithSignature(signature)
+        const {
+          signature,
+          message,
+          wallet,
+          signMethod,
+          expiresIn
+        } = JSON.parse(payload)
+        await authenticateWithSignature({
+          signature,
+          message,
+          wallet,
+          signMethod,
+          expiresIn
+        })
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('An error occurred when authenticating with signature from query string', error)
