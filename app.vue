@@ -42,7 +42,7 @@
       :ui="{ width: '!max-w-[348px]' }"
     >
       <LoginPanel
-        @connect="onAuthenticate"
+        @connect="authenticateByConnectorId"
       />
     </UModal>
     <WelcomeModal />
@@ -67,7 +67,7 @@ const bookstoreApiStore = useBookstoreApiStore()
 
 const { restoreAuthSession, fetchBookListing, clearSession } = bookstoreApiStore
 const { wallet, intercomToken, isAuthenticated } = storeToRefs(bookstoreApiStore)
-const { isAuthenticating, loginStatus, onAuthenticate, authenticateWithSignature } = useAuth()
+const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBySignature } = useAuth()
 const uiStore = useUIStore()
 const toast = useToast()
 
@@ -168,7 +168,7 @@ onMounted(async () => {
           signMethod,
           expiresIn
         } = JSON.parse(payload)
-        await authenticateWithSignature({
+        await authenticateBySignature({
           signature,
           message,
           wallet,
