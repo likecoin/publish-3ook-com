@@ -1,6 +1,25 @@
 import type { ISCNRegisterPayload } from './iscn.type'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
+function isValidImageUrl (urlString: string): boolean {
+  if (!urlString) { return false }
+
+  // Check that non-ASCII characters are percent-encoded
+  // URL should only contain ASCII characters (0-127)
+  for (let i = 0; i < urlString.length; i++) {
+    if (urlString.charCodeAt(i) > 127) {
+      return false
+    }
+  }
+
+  try {
+    const url = new URL(urlString)
+    return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'ar:' || url.protocol === 'ipfs:'
+  } catch {
+    return false
+  }
+}
+
 export function formatISCNTxPayload (payload: ISCNRegisterPayload): any {
   const {
     tagsString = '',
@@ -55,6 +74,8 @@ export function validateISCNForm (data: any, maxDescriptionLength = MAX_DESCRIPT
 
   if (!data.coverUrl) {
     errors.push('Please provide a cover image URL')
+  } else if (!isValidImageUrl(data.coverUrl)) {
+    errors.push('Cover image URL must be a valid URL with http://, https://, ar://, or ipfs:// protocol')
   }
 
   return errors
