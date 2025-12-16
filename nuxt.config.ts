@@ -148,6 +148,7 @@ exports.randomFillSync = randomFillSync`
       MAGIC_LINK_API_KEY: process.env.MAGIC_LINK_API_KEY,
       MAGIC_LINK_CUSTOM_LOGO_URL: process.env.MAGIC_LINK_CUSTOM_LOGO_URL,
       WALLET_CONNECT_PROJECT_ID: process.env.WALLET_CONNECT_PROJECT_ID,
+      CUSTOM_RPC_URL: process.env.CUSTOM_RPC_URL,
 
       LIKE_NFT_CONTRACT_ADDRESS: process.env.LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
 

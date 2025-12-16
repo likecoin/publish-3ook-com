@@ -7,12 +7,14 @@ export function createWagmiConfig ({
   apiKey,
   customLogoURL,
   walletConnectProjectId,
+  customRpcUrl,
   isServer = false,
   isTestnet = false
 }: {
   apiKey: string
   customLogoURL?: string
   walletConnectProjectId?: string
+  customRpcUrl?: string
   isServer?: boolean
   isTestnet?: boolean
 }): Config {
@@ -62,8 +64,8 @@ export function createWagmiConfig ({
     chains: [chain],
     connectors,
     transports: {
-      [base.id]: http(),
-      [baseSepolia.id]: http()
+      [base.id]: http(customRpcUrl),
+      [baseSepolia.id]: http(customRpcUrl)
     }
   })
 }
