@@ -6,15 +6,13 @@ function isValidImageUrl (urlString: string): boolean {
 
   // Check that non-ASCII characters are percent-encoded
   // URL should only contain ASCII characters (0-127)
-  for (let i = 0; i < urlString.length; i++) {
-    if (urlString.charCodeAt(i) > 127) {
-      return false
-    }
+  if (!/^[\x20-\x7E]+$/.test(urlString)) {
+    return false
   }
 
   try {
     const url = new URL(urlString)
-    return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'ar:' || url.protocol === 'ipfs:'
+    return ['http:', 'https:', 'ar:', 'ipfs:'].includes(url.protocol)
   } catch {
     return false
   }
