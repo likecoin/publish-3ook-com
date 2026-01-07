@@ -1,4 +1,4 @@
-# Copilot Instructions for publish-3ook-com
+# Copilot Instructions for likecoin/publish-3ook-com
 
 ## Repository Overview
 
@@ -220,8 +220,9 @@ Authentication uses Web3 wallets:
 **Solution**: Always use `NODE_OPTIONS=--max_old_space_size=8192` for build and generate commands.
 
 ### SVG Auto-Resize Issue
-**Known Issue**: QR code SVG generation requires manual viewBox attribute fix (see pages/batch-qrcode.vue:217).
-**Comment in code**: `// HACK: Add viewBox attribute to fix the auto resize of SVG`
+**Known Issue**: QR code SVG generation in batch QR code functionality requires manual viewBox attribute fix.
+**Location**: Found in batch QR code page with HACK comment: `// HACK: Add viewBox attribute to fix the auto resize of SVG`
+**Workaround**: The codebase includes a workaround that manually adds viewBox attributes to fix SVG auto-resize behavior.
 
 ### Sentry Warnings
 **Expected Behavior**: When building without SENTRY_AUTH_TOKEN environment variable, warnings appear about not creating releases or uploading source maps. This is expected in local development.
