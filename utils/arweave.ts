@@ -128,7 +128,7 @@ async function getBundler ({
   const p = await getProvider({ fileSize, ipfsHash, txHash, token })
   const { IS_TESTNET } = useRuntimeConfig().public
   const bundlr = new WebIrys({
-    network: IS_TESTNET ? 'devnet' : 'mainnet',
+    url: IS_TESTNET ? 'https://devnet.irysnetwork.com' : 'https://node1.irysnetwork.com',
     token: 'base-eth',
     wallet: {
       provider: p
