@@ -217,18 +217,29 @@ const formatLanguage = (language: string) => {
 }
 
 const getFileInfo = async (file: Blob) => {
-  const fileBytes = (await fileToArrayBuffer(file)) as ArrayBuffer
-  if (!fileBytes) {
+  try {
+    const fileBytes = (await fileToArrayBuffer(file)) as ArrayBuffer
+    if (!fileBytes) {
+      return null
+    }
+    const [fileSHA256, ipfsHash] = await Promise.all([
+      digestFileSHA256(fileBytes),
+      calculateIPFSHash(Buffer.from(fileBytes))
+    ])
+    return {
+      fileBytes,
+      fileSHA256,
+      ipfsHash
+    }
+  } catch (error) {
+    toast.add({
+      icon: 'i-heroicons-exclamation-circle',
+      title: $t('upload_form.error_during_upload'),
+      description: (error as Error).message || $t('upload_form.upload_error_occurred'),
+      timeout: 3000,
+      color: 'red'
+    })
     return null
-  }
-  const [fileSHA256, ipfsHash] = await Promise.all([
-    digestFileSHA256(fileBytes),
-    calculateIPFSHash(Buffer.from(fileBytes))
-  ])
-  return {
-    fileBytes,
-    fileSHA256,
-    ipfsHash
   }
 }
 
@@ -421,6 +432,13 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err)
+    toast.add({
+      icon: 'i-heroicons-exclamation-circle',
+      title: $t('upload_form.error_during_upload'),
+      description: (err as Error).message || $t('upload_form.epub_processing_error'),
+      timeout: 3000,
+      color: 'red'
+    })
   }
 }
 
@@ -489,6 +507,13 @@ const estimateArweaveFee = async (): Promise<void> => {
     arweaveFee.value = totalFee
   } catch (err) {
     console.error(err)
+    toast.add({
+      icon: 'i-heroicons-exclamation-circle',
+      title: $t('upload_form.error_during_upload'),
+      description: (err as Error).message || $t('upload_form.fee_estimation_error'),
+      timeout: 3000,
+      color: 'red'
+    })
   } finally {
     uploadStatus.value = ''
   }

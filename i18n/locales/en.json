@@ -627,6 +627,8 @@
   "upload_form.drag_files_here": "Drag files here to upload or ",
   "upload_form.drm_encrypt_disable": "Encrypt content & disable download",
   "upload_form.error_during_upload": "Error during file upload",
+  "upload_form.epub_processing_error": "Failed to process EPUB file",
+  "upload_form.fee_estimation_error": "Failed to estimate upload fees",
   "upload_form.file_size_suggestion": "Suggested file size: < 50 MB",
   "upload_form.loading": "Loading...",
   "upload_form.only_one_cover_image": "Only one cover image is allowed.",

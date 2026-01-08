@@ -627,6 +627,8 @@
   "upload_form.drag_files_here": "把檔案拖到此處上傳或",
   "upload_form.drm_encrypt_disable": "加密文本、禁止下載",
   "upload_form.error_during_upload": "檔案上傳期間發生錯誤",
+  "upload_form.epub_processing_error": "EPUB 檔案處理失敗",
+  "upload_form.fee_estimation_error": "上傳費用估算失敗",
   "upload_form.file_size_suggestion": "建議檔案大小: < 50 MB",
   "upload_form.loading": "載入中...",
   "upload_form.only_one_cover_image": "僅允許一張封面圖片。",
