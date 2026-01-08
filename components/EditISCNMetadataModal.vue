@@ -69,7 +69,7 @@ const walletStore = useWalletStore()
 const { wallet, signer } = storeToRefs(walletStore)
 const { validateWalletConsistency } = walletStore
 const { writeContractAsync } = useWriteContract()
-const { checkAndGrantUpdater, waitForTransactionReceipt } = useNFTContractWriter()
+const { checkAndGrantUpdater, assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 const { getNFTClassConfig } = useNFTContractReader()
 const { refreshBookMetadata } = useBookstoreApiStore()
 
@@ -242,7 +242,8 @@ async function handleSave () {
       classId: props.classId,
       wallet: wallet.value
     })
-    const txHash = await writeContractAsync({
+
+    const txParams = {
       address: props.classId as `0x${string}`,
       abi: LIKE_NFT_CLASS_ABI,
       functionName: 'update',
@@ -252,7 +253,14 @@ async function handleSave () {
         metadata: JSON.stringify(metadata),
         max_supply: DEFAULT_MAX_SUPPLY
       }]
+    }
+
+    await assertSufficientBalanceForTransaction({
+      wallet: wallet.value,
+      ...txParams
     })
+
+    const txHash = await writeContractAsync(txParams)
     const receipt = await waitForTransactionReceipt({ hash: txHash })
     console.log(receipt)
     if (!receipt || receipt.status !== 'success') { throw new Error('INVALID_RECEIPT') }

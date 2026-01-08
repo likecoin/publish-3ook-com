@@ -41,9 +41,10 @@ const {
 
 const { wallet, signer } = storeToRefs(walletStore)
 const { validateWalletConsistency } = walletStore
-const { assertPositiveWalletBalance, waitForTransactionReceipt } = useNFTContractWriter()
+const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 const { stripHtmlTags, formatLanguage } = useFileUpload()
 const { showErrorToast } = useToastComposable()
+const { t: $t } = useI18n()
 const { LIKE_NFT_CONTRACT_ADDRESS } = useRuntimeConfig().public
 
 const iscnFormData = ref({
@@ -185,14 +186,12 @@ const submitToISCN = async (): Promise<void> => {
       nft_meta_collection_description: 'NFT Book by Liker Land',
       recordTimestamp: new Date().toISOString()
     }
-    await assertPositiveWalletBalance({
-      wallet: wallet.value
-    })
     const salt = computeISCNSalt(wallet.value)
-    const txHash = await writeContractAsync({
+
+    const txParams = {
       address: LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
       abi: LIKE_NFT_ABI,
-      functionName: 'newBookNFT',
+      functionName: 'newBookNFT' as const,
       args: [
         salt,
         {
@@ -208,7 +207,14 @@ const submitToISCN = async (): Promise<void> => {
         },
         500
       ]
+    }
+
+    await assertSufficientBalanceForTransaction({
+      wallet: wallet.value,
+      ...txParams
     })
+
+    const txHash = await writeContractAsync(txParams)
     const receipt = await waitForTransactionReceipt({ hash: txHash })
     // eslint-disable-next-line no-console
     console.log(receipt)

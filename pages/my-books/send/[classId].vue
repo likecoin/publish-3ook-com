@@ -212,7 +212,7 @@ const localeRoute = useLocaleRoute()
 
 const { writeContractAsync } = useWriteContract()
 const { getBalanceOf, getTokenIdByOwnerIndex } = useNFTContractReader()
-const { assertPositiveWalletBalance, waitForTransactionReceipt } = useNFTContractWriter()
+const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 
 const error = ref({ message: '', actions: [] as any[] })
 const isLoading = ref(false)
@@ -415,10 +415,7 @@ async function onSendNFTStart () {
       await fetchNextNFTId(orderInfo.value.quantity)
     }
 
-    await assertPositiveWalletBalance({
-      wallet: wallet.value
-    })
-    const txHash = await writeContractAsync({
+    const txParams = {
       address: classId.value as any,
       abi: LIKE_NFT_CLASS_ABI,
       functionName: 'batchTransferWithMemo',
@@ -428,7 +425,14 @@ async function onSendNFTStart () {
         nftIds.value,
         Array(orderInfo.value.quantity).fill(memo.value)
       ]
+    }
+
+    await assertSufficientBalanceForTransaction({
+      wallet: wallet.value,
+      ...txParams
     })
+
+    const txHash = await writeContractAsync(txParams)
     const receipt = await waitForTransactionReceipt({ hash: txHash })
     if (receipt?.status === 'success') {
       await $fetch(`${LIKE_CO_API}/likernft/book/purchase/${classId.value}/sent/${paymentId.value}`,

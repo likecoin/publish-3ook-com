@@ -89,7 +89,7 @@ const {
   checkNFTClassIsBookNFT,
   getClassCurrentTokenId
 } = useNFTContractReader()
-const { checkAndGrantMinter, waitForTransactionReceipt } = useNFTContractWriter()
+const { checkAndGrantMinter, assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 
 const store = useWalletStore()
 const { wallet } = storeToRefs(store)
@@ -308,10 +308,11 @@ async function mintNFTs () {
       classId: classId.value,
       wallet: wallet.value
     })
-    const res = await writeContractAsync({
+
+    const txParams = {
       address: classId.value as `0x${string}`,
       abi: LIKE_NFT_CLASS_ABI,
-      functionName: 'safeMintWithTokenId',
+      functionName: 'safeMintWithTokenId' as const,
       args: [
         fromTokenId,
         Array(formState.mintCount).fill(wallet.value),
@@ -324,7 +325,14 @@ async function mintNFTs () {
           attributes: nft.metadata.attributes
         }))
       ]
+    }
+
+    await assertSufficientBalanceForTransaction({
+      wallet: wallet.value,
+      ...txParams
     })
+
+    const res = await writeContractAsync(txParams)
     const receipt = await waitForTransactionReceipt({ hash: res })
     // eslint-disable-next-line no-console
     console.log(receipt)

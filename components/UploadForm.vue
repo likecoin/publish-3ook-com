@@ -113,7 +113,7 @@ const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
 const store = useWalletStore()
 const { wallet, signer } = storeToRefs(store)
 const { validateWalletConsistency } = store
-const { waitForTransactionReceipt } = useNFTContractWriter()
+const { waitForTransactionReceipt, assertSufficientBalanceForTransfer } = useNFTContractWriter()
 const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
 const toast = useToast()
@@ -624,6 +624,12 @@ const sendArweaveFeeTx = async (record: any, memoIpfsOveride?: string): Promise<
     fileSize: record.fileBlob?.size || 0
   })
   try {
+    await assertSufficientBalanceForTransfer({
+      wallet: wallet.value,
+      to: arweaveFeeTargetAddress.value as `0x${string}`,
+      value: parseEther(arweaveFeeMap.value[record.ipfsHash] as string),
+      data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}` as `0x${string}`
+    })
     const transactionHash = await sendTransactionAsync({
       to: arweaveFeeTargetAddress.value as `0x${string}`,
       value: parseEther(arweaveFeeMap.value[record.ipfsHash] as string),
