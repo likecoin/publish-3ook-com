@@ -214,62 +214,54 @@ onMounted(async () => {
 async function exportPayoutData () {
   if (!payoutDataRows.value.length) { return }
 
-  const headers = [
-    $t('table.id'),
-    $t('table.created'),
-    $t('table.currency'),
-    $t('table.payout_amount'),
-    $t('table.status'),
-    $t('table.arrived')
+  const date = new Date().toISOString().split('T')[0]
+
+  const columns = [
+    { key: 'id', label: $t('table.id') },
+    { key: 'createdTs', label: $t('table.created') },
+    { key: 'currency', label: $t('table.currency') },
+    { key: 'amount', label: $t('table.payout_amount') },
+    { key: 'status', label: $t('table.status') },
+    { key: 'arrivalTs', label: $t('table.arrived') }
   ]
 
-  const rows = payoutDataRows.value.map((row: any) => [
-    `"${row.id}"`,
-    `"${row.createdTs}"`,
-    `"${row.currency}"`,
-    `"${row.amount}"`,
-    `"${row.status}"`,
-    `"${row.arrivalTs}"`
-  ])
+  const data = payoutDataRows.value.map((row: any) => ({
+    id: row.id,
+    createdTs: row.createdTs,
+    currency: row.currency,
+    amount: row.amount,
+    status: row.status,
+    arrivalTs: row.arrivalTs
+  }))
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((r: string[]) => r.join(','))
-  ].join('\n')
-
-  const date = new Date().toISOString().split('T')[0]
-  await downloadCSV(csvContent, `payout-details-${payoutId.value}-${date}.csv`)
+  await downloadCSV(data, columns, `payout-details-${payoutId.value}-${date}.csv`)
 }
 
 async function exportPayoutItems () {
   if (!payoutItemRows.value.length) { return }
 
-  const headers = [
-    $t('table.id'),
-    $t('table.created'),
-    $t('table.currency'),
-    $t('table.commission_amount'),
-    $t('common.description'),
-    $t('table.status'),
-    $t('table.metadata')
+  const date = new Date().toISOString().split('T')[0]
+
+  const columns = [
+    { key: 'commissionId', label: $t('table.id') },
+    { key: 'createdTs', label: $t('table.created') },
+    { key: 'currency', label: $t('table.currency') },
+    { key: 'amount', label: $t('table.commission_amount') },
+    { key: 'description', label: $t('common.description') },
+    { key: 'status', label: $t('table.status') },
+    { key: 'metadata', label: $t('table.metadata') }
   ]
 
-  const rows = payoutItemRows.value.map((row: any) => [
-    `"${row.commissionId}"`,
-    `"${row.createdTs}"`,
-    `"${row.currency}"`,
-    `"${row.amount}"`,
-    `"${(row.description || '').replace(/"/g, '""')}"`,
-    `"${row.status}"`,
-    `"${(row.metadata || '').replace(/"/g, '""')}"`
-  ])
+  const data = payoutItemRows.value.map((row: any) => ({
+    commissionId: row.commissionId,
+    createdTs: row.createdTs,
+    currency: row.currency,
+    amount: row.amount,
+    description: row.description || '',
+    status: row.status,
+    metadata: row.metadata || ''
+  }))
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((r: string[]) => r.join(','))
-  ].join('\n')
-
-  const date = new Date().toISOString().split('T')[0]
-  await downloadCSV(csvContent, `payout-items-${payoutId.value}-${date}.csv`)
+  await downloadCSV(data, columns, `payout-items-${payoutId.value}-${date}.csv`)
 }
 </script>

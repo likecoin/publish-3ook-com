@@ -36,13 +36,35 @@ export function downloadBlob (content: string, filename: string, contentType: st
 }
 
 /**
- * Download CSV content as a file with BOM for Excel compatibility with Chinese characters
+ * Download array of objects as CSV with BOM for Excel compatibility with Chinese characters
+ * @param data - Array of objects to export
+ * @param columns - Column definitions with key and display label
+ * @param filename - Output filename
  */
-export async function downloadCSV (content: string, filename: string) {
+export async function downloadCSV (
+  data: Record<string, any>[],
+  columns: { key: string; label: string }[],
+  filename: string
+) {
+  if (data.length === 0) {
+    return
+  }
+
   const { saveAs } = await import('file-saver')
+
+  // Map data to columns and use csv-stringify for proper escaping
+  const rows = data.map(row =>
+    columns.map(col => row[col.key] ?? '')
+  )
+
+  const csvContent = csvStringify(rows, {
+    header: true,
+    columns: columns.map(col => col.label)
+  })
+
   // Add BOM for Excel compatibility with Chinese characters
   const bom = '\uFEFF'
-  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
   saveAs(blob, filename)
 }
 

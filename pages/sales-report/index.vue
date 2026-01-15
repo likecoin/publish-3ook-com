@@ -257,62 +257,51 @@ async function loadPayoutHistory () {
 }
 
 async function exportCommissionHistory () {
-  const headers = [
-    $t('user_settings.timestamp'),
-    $t('user_settings.commission_type'),
-    $t('table.book_name'),
-    $t('user_settings.book_id'),
-    $t('user_settings.commission'),
-    $t('user_settings.currency'),
-    $t('user_settings.sale_amount')
+  const date = new Date().toISOString().split('T')[0]
+
+  const columns = [
+    { key: 'timestamp', label: $t('user_settings.timestamp') },
+    { key: 'type', label: $t('user_settings.commission_type') },
+    { key: 'bookName', label: $t('table.book_name') },
+    { key: 'classId', label: $t('user_settings.book_id') },
+    { key: 'amount', label: $t('user_settings.commission') },
+    { key: 'currency', label: $t('user_settings.currency') },
+    { key: 'amountTotal', label: $t('user_settings.sale_amount') }
   ]
 
-  const rows = commissionHistoryRows.value.map((row: any) => {
-    const bookName = nftStore.getClassMetadataById(row.classId)?.name || ''
-    return [
-      `"${row.timestamp}"`,
-      `"${row.type}"`,
-      `"${bookName.replace(/"/g, '""')}"`,
-      `"${row.classId}"`,
-      `"${row.amount}"`,
-      `"${row.currency}"`,
-      `"${row.amountTotal}"`
-    ]
-  })
+  const data = commissionHistoryRows.value.map((row: any) => ({
+    timestamp: row.timestamp,
+    type: row.type,
+    bookName: nftStore.getClassMetadataById(row.classId)?.name || '',
+    classId: row.classId,
+    amount: row.amount,
+    currency: row.currency,
+    amountTotal: row.amountTotal
+  }))
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((r: string[]) => r.join(','))
-  ].join('\n')
-
-  const date = new Date().toISOString().split('T')[0]
-  await downloadCSV(csvContent, `sales-commission-history-${date}.csv`)
+  await downloadCSV(data, columns, `sales-commission-history-${date}.csv`)
 }
 
 async function exportPayoutHistory () {
-  const headers = [
-    $t('user_settings.created'),
-    $t('user_settings.payout_amount'),
-    $t('user_settings.status'),
-    $t('user_settings.arrived'),
-    'ID'
+  const date = new Date().toISOString().split('T')[0]
+
+  const columns = [
+    { key: 'createdTs', label: $t('user_settings.created') },
+    { key: 'amount', label: $t('user_settings.payout_amount') },
+    { key: 'status', label: $t('user_settings.status') },
+    { key: 'arrivalTs', label: $t('user_settings.arrived') },
+    { key: 'id', label: 'ID' }
   ]
 
-  const rows = payoutHistoryRows.value.map((row: any) => [
-    `"${row.createdTs}"`,
-    `"${row.amount}"`,
-    `"${row.status}"`,
-    `"${row.arrivalTs}"`,
-    `"${row.id}"`
-  ])
+  const data = payoutHistoryRows.value.map((row: any) => ({
+    createdTs: row.createdTs,
+    amount: row.amount,
+    status: row.status,
+    arrivalTs: row.arrivalTs,
+    id: row.id
+  }))
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((r: string[]) => r.join(','))
-  ].join('\n')
-
-  const date = new Date().toISOString().split('T')[0]
-  await downloadCSV(csvContent, `sales-payout-history-${date}.csv`)
+  await downloadCSV(data, columns, `sales-payout-history-${date}.csv`)
 }
 
 </script>

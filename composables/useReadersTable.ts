@@ -1,4 +1,5 @@
 import { useOrdersStore } from '~/stores/orders'
+import { downloadCSV } from '~/utils/index'
 
 export function useReadersTable () {
   const { t } = useI18n()
@@ -170,41 +171,7 @@ export function useReadersTable () {
     return path.split('.').reduce((current, key) => current?.[key], obj)
   }
 
-  function escapeCSVCell (cell: any): string {
-    const cellStr = String(cell)
-    if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-      return `"${cellStr.replace(/"/g, '""')}"`
-    }
-    return cellStr
-  }
-
-  function generateCSVContent (headers: string[], rows: any[][]): string {
-    const csvRows = [
-      headers.join(','),
-      ...rows.map(row =>
-        row.map(cell => escapeCSVCell(cell)).join(',')
-      )
-    ]
-    return csvRows.join('\n')
-  }
-
-  function downloadCSV (content: string, filename: string) {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    URL.revokeObjectURL(url)
-  }
-
-  function exportToCSV (
+  async function exportToCSV (
     data: any[],
     columnConfig: { key: string; label: string; formatter?: (value: any) => string }[],
     filename?: string
@@ -213,21 +180,24 @@ export function useReadersTable () {
       return
     }
 
-    const headers = columnConfig.map(col => col.label)
-    const rows = data.map(row =>
-      columnConfig.map((col) => {
+    // Pre-process data with formatters and nested properties
+    const processedData = data.map((row) => {
+      const result: Record<string, any> = {}
+      columnConfig.forEach((col) => {
         const value = getNestedValue(row, col.key)
-        return col.formatter ? col.formatter(value) : value
+        result[col.label] = col.formatter ? col.formatter(value) : value
       })
-    )
+      return result
+    })
 
-    const csvContent = generateCSVContent(headers, rows)
+    // Use column labels as keys for the utility
+    const columns = columnConfig.map(col => ({ key: col.label, label: col.label }))
     const finalFilename = filename || `export_${new Date().toISOString().split('T')[0]}.csv`
 
-    downloadCSV(csvContent, finalFilename)
+    await downloadCSV(processedData, columns, finalFilename)
   }
 
-  function exportReadersToCSV () {
+  async function exportReadersToCSV () {
     if (!hasSelection.value) { return }
 
     const columnConfig = [
@@ -245,7 +215,7 @@ export function useReadersTable () {
     ]
 
     const filename = `readers_export_${new Date().toISOString().split('T')[0]}.csv`
-    exportToCSV(selectedRows.value, columnConfig, filename)
+    await exportToCSV(selectedRows.value, columnConfig, filename)
   }
 
   return {
