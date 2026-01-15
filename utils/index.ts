@@ -35,6 +35,17 @@ export function downloadBlob (content: string, filename: string, contentType: st
   pom.click()
 }
 
+/**
+ * Download CSV content as a file with BOM for Excel compatibility with Chinese characters
+ */
+export async function downloadCSV (content: string, filename: string) {
+  const { saveAs } = await import('file-saver')
+  // Add BOM for Excel compatibility with Chinese characters
+  const bom = '\uFEFF'
+  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' })
+  saveAs(blob, filename)
+}
+
 export function parseImageURLFromMetadata (image: string): string {
   const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
   if (!image) { return '' }

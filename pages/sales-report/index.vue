@@ -32,17 +32,27 @@
           v-text="$t('user_settings.commission_history')"
         />
 
-        <UTooltip
-          :text="$t('user_settings.commission_history.tooltip')"
-          :popper="{ placement: 'left' }"
-        >
+        <div class="flex gap-2">
           <UButton
-            icon="i-heroicons-arrow-path"
+            icon="i-heroicons-arrow-down-tray"
             variant="outline"
-            :disabled="isLoading"
-            @click="loadCommissionHistory"
-          />
-        </UTooltip>
+            :disabled="isLoading || !commissionHistoryRows.length"
+            @click="exportCommissionHistory"
+          >
+            {{ $t('common.export_csv', { length: commissionHistoryRows.length }) }}
+          </UButton>
+          <UTooltip
+            :text="$t('user_settings.commission_history.tooltip')"
+            :popper="{ placement: 'left' }"
+          >
+            <UButton
+              icon="i-heroicons-arrow-path"
+              variant="outline"
+              :disabled="isLoading"
+              @click="loadCommissionHistory"
+            />
+          </UTooltip>
+        </div>
       </template>
 
       <UTable
@@ -77,17 +87,27 @@
           v-text="$t('user_settings.payout_history')"
         />
 
-        <UTooltip
-          text="Refresh Status"
-          :popper="{ placement: 'left' }"
-        >
+        <div class="flex gap-2">
           <UButton
-            icon="i-heroicons-arrow-path"
+            icon="i-heroicons-arrow-down-tray"
             variant="outline"
-            :disabled="isLoading"
-            @click="loadPayoutHistory"
-          />
-        </UTooltip>
+            :disabled="isLoading || !payoutHistoryRows.length"
+            @click="exportPayoutHistory"
+          >
+            {{ $t('common.export_csv', { length: payoutHistoryRows.length }) }}
+          </UButton>
+          <UTooltip
+            text="Refresh Status"
+            :popper="{ placement: 'left' }"
+          >
+            <UButton
+              icon="i-heroicons-arrow-path"
+              variant="outline"
+              :disabled="isLoading"
+              @click="loadPayoutHistory"
+            />
+          </UTooltip>
+        </div>
       </template>
 
       <UTable
@@ -121,6 +141,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { downloadCSV } from '~/utils/index'
 
 const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
 const { t: $t } = useI18n()
@@ -233,6 +254,65 @@ async function loadPayoutHistory () {
   } finally {
     isLoading.value = false
   }
+}
+
+async function exportCommissionHistory () {
+  const headers = [
+    $t('user_settings.timestamp'),
+    $t('user_settings.commission_type'),
+    $t('table.book_name'),
+    $t('user_settings.book_id'),
+    $t('user_settings.commission'),
+    $t('user_settings.currency'),
+    $t('user_settings.sale_amount')
+  ]
+
+  const rows = commissionHistoryRows.value.map((row: any) => {
+    const bookName = nftStore.getClassMetadataById(row.classId)?.name || ''
+    return [
+      `"${row.timestamp}"`,
+      `"${row.type}"`,
+      `"${bookName.replace(/"/g, '""')}"`,
+      `"${row.classId}"`,
+      `"${row.amount}"`,
+      `"${row.currency}"`,
+      `"${row.amountTotal}"`
+    ]
+  })
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((r: string[]) => r.join(','))
+  ].join('\n')
+
+  const date = new Date().toISOString().split('T')[0]
+  await downloadCSV(csvContent, `sales-commission-history-${date}.csv`)
+}
+
+async function exportPayoutHistory () {
+  const headers = [
+    $t('user_settings.created'),
+    $t('user_settings.payout_amount'),
+    $t('user_settings.status'),
+    $t('user_settings.arrived'),
+    'ID'
+  ]
+
+  const rows = payoutHistoryRows.value.map((row: any) => [
+    `"${row.createdTs}"`,
+    `"${row.amount}"`,
+    `"${row.status}"`,
+    `"${row.arrivalTs}"`,
+    `"${row.id}"`
+  ])
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((r: string[]) => r.join(','))
+  ].join('\n')
+
+  const date = new Date().toISOString().split('T')[0]
+  await downloadCSV(csvContent, `sales-payout-history-${date}.csv`)
 }
 
 </script>
