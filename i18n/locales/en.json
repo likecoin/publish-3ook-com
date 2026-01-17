@@ -287,6 +287,7 @@
   "nft_book_form.auto_delivery": "Auto delivery",
   "nft_book_form.auto_delivery_memo": "Preset message (optional)",
   "nft_book_form.autograph_image": "Autograph image",
+  "nft_book_form.autograph_image_uploaded": "An autograph image has been uploaded. Upload a new file to replace it.",
   "nft_book_form.autograph_requirements": "PNG files only, max 1MB, recommended size 600 x 200",
   "nft_book_form.buyer_message": "Buyer message 💬",
   "nft_book_form.connect_wallet": "Go to settings",
