@@ -291,6 +291,7 @@
   "nft_book_form.auto_delivery": "自動發書",
   "nft_book_form.auto_delivery_memo": "預設留言（可留空）",
   "nft_book_form.autograph_image": "簽名圖（可留空）",
+  "nft_book_form.autograph_image_uploaded": "已上傳簽名圖，上傳新檔案將會覆蓋原有的簽名圖。",
   "nft_book_form.autograph_requirements": "僅限 png 圖檔，檔案大小不超過 1MB，建議尺寸為 600 x 200",
   "nft_book_form.buyer_message": "讀者留言 💬",
   "nft_book_form.connect_wallet": "前往設定",
