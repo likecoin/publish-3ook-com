@@ -1,5 +1,7 @@
 import { useWriteContract } from '@wagmi/vue'
 import { readContract, getBalance, waitForTransactionReceipt as wagmiWaitForTransactionReceipt, estimateGas, getGasPrice } from '@wagmi/vue/actions'
+import { encodeFunctionData } from 'viem'
+import type { Abi, EstimateGasParameters } from 'viem'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { sleep } from '~/utils'
 
@@ -83,14 +85,19 @@ export const useNFTContractWriter = () => {
   const assertSufficientBalanceForTransaction = async (params: {
     wallet: string
     address: `0x${string}`
-    abi: any
+    abi: Abi
     functionName: string
-    args?: any
+    args?: unknown[]
     value?: bigint
   }) => {
+    const data = encodeFunctionData({
+      abi: params.abi,
+      functionName: params.functionName,
+      args: params.args
+    })
     await assertSufficientBalanceForTx({
       wallet: params.wallet,
-      tx: { address: params.address, abi: params.abi, functionName: params.functionName, args: params.args, value: params.value },
+      tx: { to: params.address, data, value: params.value },
       value: params.value
     })
   }
@@ -125,7 +132,7 @@ export const useNFTContractWriter = () => {
 
   const assertSufficientBalanceForTx = async (params: {
     wallet: string
-    tx: Record<string, unknown>
+    tx: EstimateGasParameters
     value?: bigint
   }) => {
     const { wallet, tx, value } = params

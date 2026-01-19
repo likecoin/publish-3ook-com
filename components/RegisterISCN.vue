@@ -44,7 +44,6 @@ const { validateWalletConsistency } = walletStore
 const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 const { stripHtmlTags, formatLanguage } = useFileUpload()
 const { showErrorToast } = useToastComposable()
-const { t: $t } = useI18n()
 const { LIKE_NFT_CONTRACT_ADDRESS } = useRuntimeConfig().public
 
 const iscnFormData = ref({
