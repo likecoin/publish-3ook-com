@@ -26,6 +26,19 @@
       />
     </UFormGroup>
 
+    <UFormGroup
+      :label="$t('iscn_form.description_full')"
+      class="flex-1 text-left"
+      :hint="`${(formData.descriptionFull || '').length}/${MAX_DESCRIPTION_FULL_LENGTH}`"
+      :error="descriptionFullError"
+    >
+      <UTextarea
+        v-model="formData.descriptionFull"
+        :placeholder="$t('iscn_form.enter_iscn_description_full')"
+        autoresize
+      />
+    </UFormGroup>
+
     <div class="grid grid-cols-3 gap-4">
       <UFormGroup :label="$t('form.isbn')">
         <UInput v-model="formData.isbn" :placeholder="$t('form.enter_isbn')" />
@@ -244,7 +257,7 @@
 import type { ISCNFormData } from '~/utils/iscn.type'
 import type { FileRecord } from '~/components/UploadForm.vue'
 
-import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH } from '~/constant/index'
+import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
 import { useFileUpload } from '~/composables/useFileUpload'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
@@ -277,6 +290,14 @@ const descriptionError = computed(() => {
     return 'Description is required'
   } else if (desc.length > MAX_DESCRIPTION_LENGTH) {
     return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH })
+  }
+  return ''
+})
+
+const descriptionFullError = computed(() => {
+  const desc = formData.value.descriptionFull || ''
+  if (desc.length > MAX_DESCRIPTION_FULL_LENGTH) {
+    return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
   }
   return ''
 })

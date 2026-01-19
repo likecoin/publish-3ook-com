@@ -34,6 +34,16 @@
       />
     </UFormGroup>
 
+    <UFormGroup v-if="iscnData?.contentMetadata?.descriptionFull" :label="$t('iscn_form.description_full')">
+      <UTextarea
+        :model-value="iscnData?.contentMetadata?.descriptionFull"
+        :readonly="true"
+        variant="none"
+        :padded="false"
+        autoresize
+      />
+    </UFormGroup>
+
     <slot name="actions">
       <UButton
         v-if="showEditButton"
@@ -49,6 +59,7 @@ interface ISCNData {
   contentMetadata?: {
     name?: string
     description?: string
+    descriptionFull?: string
   }
 }
 

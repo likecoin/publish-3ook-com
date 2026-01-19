@@ -83,6 +83,7 @@ export function useISCN ({
     '@type': iscnFormData.value.type,
     name: iscnFormData.value.title,
     description: iscnFormData.value.description,
+    descriptionFull: iscnFormData.value.descriptionFull || undefined,
     author: iscnFormData.value.author.name,
     authorDescription: iscnFormData.value.author.description,
     license:
