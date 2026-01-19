@@ -74,3 +74,5 @@ export const licenseOptions = [
 export const MAX_DESCRIPTION_LENGTH = 1000
 export const MAX_DESCRIPTION_FULL_LENGTH = 5000
 export const MAX_ALTERNATIVE_HEADLINE_LENGTH = 200
+
+export const PUBLISH_GUIDE_URL = 'https://docs.3ook.com/zh-TW/collections/14176162-出版'

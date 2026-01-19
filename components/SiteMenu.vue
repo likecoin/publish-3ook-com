@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { PUBLISH_GUIDE_URL } from '~/constant'
 const { t: $t } = useI18n()
 
 const localeRoute = useLocaleRoute()
@@ -69,7 +70,7 @@ const items = computed(() => {
           {
             label: $t('menu.publisher_guide'),
             icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-            to: 'https://docs.3ook.com/zh-TW/collections/14176162-出版',
+            to: PUBLISH_GUIDE_URL,
             target: '_blank'
           },
           {
@@ -140,7 +141,7 @@ const items = computed(() => {
         {
           label: $t('menu.publisher_guide'),
           icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-          to: 'https://docs.3ook.com/zh-TW/collections/14176162-出版',
+          to: PUBLISH_GUIDE_URL,
           target: '_blank'
         },
         {

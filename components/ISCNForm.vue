@@ -354,7 +354,7 @@ const descriptionError = computed(() => {
 const descriptionFullError = computed(() => {
   const desc = formData.value.descriptionFull || ''
   if (desc.length > MAX_DESCRIPTION_FULL_LENGTH) {
-    return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
+    return $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
   }
   return ''
 })

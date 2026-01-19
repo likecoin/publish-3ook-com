@@ -14,6 +14,16 @@
           {{ $t('common.select_file') }}
         </UButton>
         <p class="text-xs text-gray-500 mt-2" v-text="$t('upload_form.file_size_suggestion')" />
+        <a
+          :href="PUBLISH_GUIDE_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-xs text-primary-500 hover:text-primary-600 mt-2 flex items-center gap-1"
+          @click.stop
+        >
+          <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4" />
+          {{ $t('upload_form.help_link') }}
+        </a>
         <input
           ref="imageFile"
           type="file"
@@ -89,6 +99,53 @@
         />
       </div>
     </UModal>
+    <UModal
+      v-model="showValidationWarning"
+      :ui="{
+        base: 'p-4 gap-4'
+      }"
+    >
+      <div class="space-y-4">
+        <div class="flex items-start gap-3">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div class="space-y-2">
+            <h3 class="font-semibold text-gray-900">
+              {{ $t('upload_form.validation_error') }}
+            </h3>
+            <p class="text-gray-600">
+              {{ validationErrorMessage }}
+            </p>
+            <p class="text-sm text-gray-500 whitespace-pre-line">
+              {{ $t('upload_form.valid_combinations') }}
+            </p>
+            <a
+              :href="PUBLISH_GUIDE_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm text-primary-500 hover:text-primary-600 flex items-center gap-1"
+            >
+              <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4" />
+              {{ $t('upload_form.help_link') }}
+            </a>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <UButton
+            variant="outline"
+            color="gray"
+            @click="showValidationWarning = false; pendingSubmitAfterConfirm = false"
+          >
+            {{ $t('upload_form.fix_files') }}
+          </UButton>
+          <UButton
+            color="yellow"
+            @click="confirmProceedAnyway"
+          >
+            {{ $t('upload_form.proceed_anyway') }}
+          </UButton>
+        </div>
+      </div>
+    </UModal>
   </div>
 </template>
 
@@ -106,6 +163,7 @@ import {
 } from '~/utils/arweave'
 import { useWalletStore } from '~/stores/wallet'
 import { useBookstoreApiStore } from '~/stores/book-store-api'
+import { PUBLISH_GUIDE_URL } from '~/constant'
 const { t: $t } = useI18n()
 
 const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
@@ -166,6 +224,9 @@ const isEncryptEBookData = ref(props.defaultEncrypted)
 
 const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
 const uploadStatus = ref('')
+const showValidationWarning = ref(false)
+const validationErrorMessage = ref('')
+const pendingSubmitAfterConfirm = ref(false)
 const balance = useBalance({
   address: wallet.value
 })
@@ -706,7 +767,7 @@ const setEbookCoverFromImages = async () => {
   }
 }
 
-const onSubmit = async () => {
+const onSubmitInternal = async () => {
   try {
     if (!signer.value) {
       await validateWalletConsistency()
@@ -790,7 +851,79 @@ const onSubmit = async () => {
   emit('submit', uploadFileData)
 }
 
+const validateFiles = (): { valid: boolean; error?: string } => {
+  const pdfFiles = fileRecords.value.filter(
+    file => file.fileType === 'application/pdf'
+  )
+  const epubFiles = fileRecords.value.filter(
+    file => file.fileType === 'application/epub+zip'
+  )
+  const coverFiles = fileRecords.value.filter((file) => {
+    return file.fileType?.startsWith('image/')
+  })
+  const manualCoverFiles = coverFiles.filter((file) => {
+    return !(file.fileName?.endsWith('_cover.jpeg'))
+  })
+
+  if (epubFiles.length === 0 && pdfFiles.length === 0) {
+    return {
+      valid: false,
+      error: $t('upload_form.missing_ebook_file')
+    }
+  }
+
+  if (pdfFiles.length > 1) {
+    return {
+      valid: false,
+      error: $t('upload_form.too_many_pdfs')
+    }
+  }
+
+  if (manualCoverFiles.length > 1) {
+    return {
+      valid: false,
+      error: $t('upload_form.only_one_cover_image')
+    }
+  }
+
+  if (pdfFiles.length > 0 && coverFiles.length === 0) {
+    return {
+      valid: false,
+      error: $t('upload_form.missing_cover_for_pdf')
+    }
+  }
+
+  if (epubFiles.length > 0 && coverFiles.length === 0) {
+    return {
+      valid: false,
+      error: $t('upload_form.missing_cover_for_epub')
+    }
+  }
+
+  return { valid: true }
+}
+
+const confirmProceedAnyway = async () => {
+  showValidationWarning.value = false
+  if (pendingSubmitAfterConfirm.value) {
+    pendingSubmitAfterConfirm.value = false
+    await onSubmitInternal()
+  }
+}
+
+const onSubmit = async () => {
+  const validation = validateFiles()
+  if (!validation.valid) {
+    validationErrorMessage.value = validation.error || ''
+    showValidationWarning.value = true
+    pendingSubmitAfterConfirm.value = true
+    return
+  }
+  await onSubmitInternal()
+}
+
 defineExpose({
-  onSubmit
+  onSubmit,
+  validateFiles
 })
 </script>
