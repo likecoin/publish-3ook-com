@@ -28,7 +28,7 @@
           <div class="flex items-center gap-2">
             <h3 class="font-bold font-mono" v-text="nftClassName || classId" />
             <ULink
-              :to="`${BOOK3_URL}/store/${classId}`"
+              :to="affiliationLink"
               class="flex items-center"
               target="_blank"
             >
@@ -37,6 +37,13 @@
                 size="xl"
               />
             </ULink>
+            <UButton
+              icon="i-heroicons-document-duplicate"
+              variant="ghost"
+              color="gray"
+              size="xs"
+              @click="copyToClipboard(affiliationLink)"
+            />
           </div>
           <UButton
             color="gray"
@@ -493,7 +500,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { getPortfolioURL, downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink } from '~/utils'
+import { getPortfolioURL, downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink, copyToClipboard } from '~/utils'
 import { shortenWalletAddress } from '~/utils/cosmos'
 import { getApiEndpoints } from '~/constant/api'
 import { useOrdersStore } from '~/stores/orders'
@@ -517,6 +524,8 @@ const { getBalanceOf } = useNFTContractReader()
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const toast = useToast()
+const userStore = useUserStore()
+const { userLikerInfo } = storeToRefs(userStore)
 
 const error = ref('')
 const isLoading = ref(false)
@@ -551,6 +560,13 @@ const stockBalance = ref(-99)
 const showRestockModal = ref(false)
 
 const nftClassName = computed(() => nftStore.getClassMetadataById(classId.value as string)?.name)
+const affiliationLink = computed(() => {
+  const baseUrl = `${BOOK3_URL}/store/${classId.value}`
+  if (userLikerInfo.value?.user) {
+    return `${baseUrl}?from=@${userLikerInfo.value.user}`
+  }
+  return baseUrl
+})
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
 const userIsOwner = computed(() => sessionWallet.value && ownerWallet.value === sessionWallet.value)
 const userCanSendNFT = computed(() => userIsOwner.value)
