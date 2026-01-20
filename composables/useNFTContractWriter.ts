@@ -1,6 +1,6 @@
 import { useWriteContract } from '@wagmi/vue'
 import { readContract, getBalance, waitForTransactionReceipt as wagmiWaitForTransactionReceipt, estimateGas, getGasPrice } from '@wagmi/vue/actions'
-import { encodeFunctionData } from 'viem'
+import { encodeFunctionData, formatEther } from 'viem'
 import type { Abi, EstimateGasParameters } from 'viem'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { sleep } from '~/utils'
@@ -11,11 +11,16 @@ export const useNFTContractWriter = () => {
   const { t: $t } = useI18n()
   const toast = useToast()
 
-  const showGasFeeError = (walletAddress: string) => {
+  const showGasFeeError = (walletAddress: string, currentBalance: bigint, neededBalance: bigint) => {
+    const currentBalanceFormatted = formatEther(currentBalance)
+    const neededBalanceFormatted = formatEther(neededBalance)
     toast.add({
       icon: 'i-heroicons-exclamation-circle',
       title: $t('errors.insufficient_gas_fee'),
-      description: $t('errors.insufficient_gas_fee_description'),
+      description: $t('errors.insufficient_gas_fee_description', {
+        currentBalance: currentBalanceFormatted,
+        neededBalance: neededBalanceFormatted
+      }),
       timeout: 0,
       color: 'orange',
       actions: [
@@ -24,7 +29,9 @@ export const useNFTContractWriter = () => {
           click: () => {
             if (window.Intercom) {
               window.Intercom('showNewMessage', $t('errors.insufficient_gas_fee_support_message', {
-                walletAddress
+                walletAddress,
+                currentBalance: currentBalanceFormatted,
+                neededBalance: neededBalanceFormatted
               }))
             }
           }
@@ -157,7 +164,7 @@ export const useNFTContractWriter = () => {
     const totalRequired = requiredBalance + (value ?? 0n)
 
     if (balance.value < totalRequired) {
-      showGasFeeError(wallet)
+      showGasFeeError(wallet, balance.value, totalRequired)
       throw new Error('INSUFFICIENT_GAS_FEE_BALANCE')
     }
 
