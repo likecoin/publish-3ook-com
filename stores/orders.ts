@@ -139,7 +139,11 @@ export const useOrdersStore = defineStore('orders', () => {
 
   async function lazyFetchOrdersByClassId (classIds: string[], force = false) {
     if (!force && allOrders.value.length > 0) {
-      return allOrders.value
+      const fetchedClassIds = new Set(allOrders.value.map(order => order.classId))
+      const hasAllClassIds = classIds.every(id => fetchedClassIds.has(id))
+      if (hasAllClassIds) {
+        return allOrders.value
+      }
     }
     return await fetchOrdersByClassId(classIds)
   }
