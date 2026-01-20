@@ -128,8 +128,15 @@
 
     <!-- Content Fingerprints -->
     <div class="flex flex-col border p-4 rounded-lg gap-4">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-medium" v-text="$t('iscn_form.content_fingerprint')" />
+      <div class="flex flex-col gap-2 mb-4">
+        <div class="flex justify-between items-center">
+          <h3 class="font-medium" v-text="$t('iscn_form.content_fingerprint')" />
+        </div>
+        <p
+          v-if="hasContentFingerprintChanged"
+          class="text-sm text-amber-600 dark:text-amber-400"
+          v-text="$t('iscn_form.content_fingerprint_not_saved')"
+        />
       </div>
       <div
         v-for="(fingerprint, index) in formData.contentFingerprints"
@@ -254,6 +261,7 @@
 </template>
 
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import type { ISCNFormData } from '~/utils/iscn.type'
 import type { FileRecord } from '~/components/UploadForm.vue'
 
@@ -275,6 +283,43 @@ const fileRecords = ref<FileRecord[]>([])
 const uploadStatus = ref('')
 
 const formData = defineModel<ISCNFormData>({ required: true })
+
+const initialFormDataSnapshot = ref<string>('')
+
+const hasContentFingerprintChanged = computed(() => {
+  if (!initialFormDataSnapshot.value) { return false }
+  try {
+    const initial = JSON.parse(initialFormDataSnapshot.value)
+    const currentFingerprints = JSON.stringify(formData.value.contentFingerprints)
+    const initialFingerprints = JSON.stringify(initial.contentFingerprints)
+    return currentFingerprints !== initialFingerprints
+  } catch {
+    return false
+  }
+})
+
+const hasUnsavedChanges = computed(() => {
+  if (!initialFormDataSnapshot.value) { return false }
+  return JSON.stringify(formData.value) !== initialFormDataSnapshot.value
+})
+
+useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
+  if (hasUnsavedChanges.value) {
+    e.preventDefault()
+    e.returnValue = $t('unsaved_changes_warning')
+    return $t('unsaved_changes_warning')
+  }
+})
+
+onBeforeRouteLeave(() => {
+  if (hasUnsavedChanges.value) {
+    return window.confirm($t('unsaved_changes_warning'))
+  }
+})
+
+nextTick(() => {
+  initialFormDataSnapshot.value = JSON.stringify(formData.value)
+})
 
 const hasFiles = computed(() => {
   return fileRecords.value?.length > 0
