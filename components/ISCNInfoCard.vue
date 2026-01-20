@@ -25,6 +25,15 @@
       />
     </UFormGroup>
 
+    <UFormGroup v-if="iscnData?.contentMetadata?.alternativeHeadline" :label="$t('iscn_form.subtitle')">
+      <UInput
+        :model-value="iscnData?.contentMetadata?.alternativeHeadline"
+        :readonly="true"
+        variant="none"
+        :padded="false"
+      />
+    </UFormGroup>
+
     <UFormGroup :label="$t('common.description')">
       <UInput
         :model-value="iscnData?.contentMetadata?.description"
@@ -60,6 +69,7 @@ interface ISCNData {
     name?: string
     description?: string
     descriptionFull?: string
+    alternativeHeadline?: string
   }
 }
 

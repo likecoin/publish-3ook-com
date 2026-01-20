@@ -84,6 +84,7 @@ export function useISCN ({
     name: iscnFormData.value.title,
     description: iscnFormData.value.description,
     descriptionFull: iscnFormData.value.descriptionFull || undefined,
+    alternativeHeadline: iscnFormData.value.alternativeHeadline || undefined,
     author: iscnFormData.value.author.name,
     authorDescription: iscnFormData.value.author.description,
     license:

@@ -23,6 +23,7 @@ export interface ISCNFormData {
   title: string
   description: string
   descriptionFull?: string
+  alternativeHeadline?: string
   isbn: string
   publisher: string
   publicationDate: string

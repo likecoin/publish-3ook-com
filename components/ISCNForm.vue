@@ -13,6 +13,18 @@
     </UFormGroup>
 
     <UFormGroup
+      :label="$t('iscn_form.subtitle')"
+      class="flex-1 text-left"
+      :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
+      :error="alternativeHeadlineError"
+    >
+      <UInput
+        v-model="formData.alternativeHeadline"
+        :placeholder="$t('iscn_form.enter_subtitle')"
+      />
+    </UFormGroup>
+
+    <UFormGroup
       :label="$t('common.description')"
       class="flex-1 text-left"
       :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
@@ -257,7 +269,7 @@
 import type { ISCNFormData } from '~/utils/iscn.type'
 import type { FileRecord } from '~/components/UploadForm.vue'
 
-import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
+import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH } from '~/constant/index'
 import { useFileUpload } from '~/composables/useFileUpload'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
@@ -298,6 +310,14 @@ const descriptionFullError = computed(() => {
   const desc = formData.value.descriptionFull || ''
   if (desc.length > MAX_DESCRIPTION_FULL_LENGTH) {
     return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
+  }
+  return ''
+})
+
+const alternativeHeadlineError = computed(() => {
+  const headline = formData.value.alternativeHeadline || ''
+  if (headline.length > MAX_ALTERNATIVE_HEADLINE_LENGTH) {
+    return $t('validation.text_cannot_exceed', { max: MAX_ALTERNATIVE_HEADLINE_LENGTH })
   }
   return ''
 })
