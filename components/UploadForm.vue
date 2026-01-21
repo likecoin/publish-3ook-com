@@ -61,7 +61,14 @@
                   </p>
                 </div>
               </td>
-              <td>
+              <td class="flex items-center gap-2">
+                <UIcon
+                  v-if="fileRecords[index]?.hasValidationIssues"
+                  name="i-heroicons-exclamation-triangle"
+                  class="w-5 h-5 text-yellow-500 cursor-help"
+                  :title="$t('upload_form.epub_has_issues')"
+                  @click="showEpubIssuesForFile(fileRecords[index])"
+                />
                 <UIcon
                   name="i-heroicons-trash"
                   class="cursor-pointer text-red-500"
@@ -140,6 +147,44 @@
         </template>
       </UCard>
     </UModal>
+    <UModal v-model="showEpubValidationModal">
+      <UCard :ui="{ body: { base: 'space-y-2' }, footer: { base: 'flex justify-end gap-2' } }">
+        <template #header>
+          <div class="flex items-center gap-3">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-yellow-500 flex-shrink-0" />
+            <h3 class="font-semibold text-gray-900">
+              {{ $t('upload_form.epub_validation_title') }}
+            </h3>
+          </div>
+          <p class="text-sm text-gray-500 mt-2">
+            {{ $t('upload_form.epub_validation_notice') }}
+          </p>
+        </template>
+        <div class="max-h-[300px] overflow-y-auto space-y-2 text-sm">
+          <div v-if="epubValidationErrors" class="text-red-600">
+            <p class="font-semibold mb-1">
+              {{ $t('upload_form.epub_validation_errors') }}:
+            </p>
+            <pre class="whitespace-pre-wrap text-xs">{{ epubValidationErrors }}</pre>
+          </div>
+          <div v-if="epubValidationWarnings" class="text-yellow-600">
+            <p class="font-semibold mb-1">
+              {{ $t('upload_form.epub_validation_warnings') }}:
+            </p>
+            <pre class="whitespace-pre-wrap text-xs">{{ epubValidationWarnings }}</pre>
+          </div>
+        </div>
+        <template #footer>
+          <UButton
+            color="gray"
+            variant="ghost"
+            @click="showEpubValidationModal = false"
+          >
+            {{ $t('auth_state.close') }}
+          </UButton>
+        </template>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -185,6 +230,9 @@ export interface FileRecord {
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
+  validationErrors?: string;
+  validationWarnings?: string;
+  hasValidationIssues?: boolean;
 }
 
 interface epubMetadata {
@@ -222,6 +270,9 @@ const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
 const pendingSubmitAfterConfirm = ref(false)
 const canProceedAnyway = ref(true)
+const showEpubValidationModal = ref(false)
+const epubValidationErrors = ref('')
+const epubValidationWarnings = ref('')
 
 const computedFormClasses = computed(() => [
   'block',
@@ -343,6 +394,16 @@ const onFileUpload = async (event: Event) => {
               fileBlob: file
             }
             if (fileRecord.fileType === 'application/epub+zip') {
+              const validation = await validateEpub(fileBytes)
+              if (validation.hasIssues) {
+                fileRecord.validationErrors = validation.errors
+                fileRecord.validationWarnings = validation.warnings
+                fileRecord.hasValidationIssues = true
+
+                epubValidationErrors.value = validation.errors
+                epubValidationWarnings.value = validation.warnings
+                showEpubValidationModal.value = true
+              }
               await processEPub({ buffer: fileBytes, file })
             } else if (fileRecord.fileType?.startsWith('image/')) {
               let emptyCoverMetadata = epubMetadataList.value.find(
@@ -398,6 +459,47 @@ const onFileUpload = async (event: Event) => {
     }
     uploadStatus.value = ''
     emit('fileReady', fileRecords.value)
+  }
+}
+
+const validateEpub = async (buffer: ArrayBuffer): Promise<{ errors: string, warnings: string, hasIssues: boolean }> => {
+  try {
+    const { EpubCheck } = await import('@likecoin/epubcheck-ts')
+    const result = await EpubCheck.validate(new Uint8Array(buffer))
+
+    const errorMessages = result.messages
+      .filter(msg => msg.severity === 'error' || msg.severity === 'fatal')
+      .map((msg) => {
+        let location = ''
+        if (msg.location) {
+          location = ` (${msg.location.path}${msg.location.line ? ':' + msg.location.line : ''})`
+        }
+        return `• ${msg.message}${location}`
+      })
+      .join('\n')
+
+    const warningMessages = result.messages
+      .filter(msg => msg.severity === 'warning')
+      .map((msg) => {
+        let location = ''
+        if (msg.location) {
+          location = ` (${msg.location.path}${msg.location.line ? ':' + msg.location.line : ''})`
+        }
+        return `• ${msg.message}${location}`
+      })
+      .join('\n')
+
+    return {
+      errors: errorMessages,
+      warnings: warningMessages,
+      hasIssues: !!(errorMessages || warningMessages)
+    }
+  } catch (error) {
+    return {
+      errors: (error as Error).message || $t('upload_form.epub_validation_failed'),
+      warnings: '',
+      hasIssues: true
+    }
   }
 }
 
@@ -492,6 +594,14 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
       timeout: 3000,
       color: 'red'
     })
+  }
+}
+
+const showEpubIssuesForFile = (fileRecord: FileRecord) => {
+  if (fileRecord.validationErrors || fileRecord.validationWarnings) {
+    epubValidationErrors.value = fileRecord.validationErrors || ''
+    epubValidationWarnings.value = fileRecord.validationWarnings || ''
+    showEpubValidationModal.value = true
   }
 }
 
