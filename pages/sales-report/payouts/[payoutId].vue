@@ -118,7 +118,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { downloadCSV } from '~/utils/index'
+import { downloadCSV, convertDecimalToAmount, formatCurrency } from '~/utils/index'
 
 const { t: $t } = useI18n()
 
@@ -219,20 +219,21 @@ async function exportPayoutData () {
   const columns = [
     { key: 'id', label: $t('table.id') },
     { key: 'createdTs', label: $t('table.created') },
-    { key: 'currency', label: $t('table.currency') },
     { key: 'amount', label: $t('table.payout_amount') },
+    { key: 'currency', label: $t('table.currency') },
     { key: 'status', label: $t('table.status') },
     { key: 'arrivalTs', label: $t('table.arrived') }
   ]
 
-  const data = payoutDataRows.value.map((row: any) => ({
-    id: row.id,
-    createdTs: row.createdTs,
-    currency: row.currency,
-    amount: row.amount,
-    status: row.status,
-    arrivalTs: row.arrivalTs
-  }))
+  const { id, createdTs, amount, currency, status, arrivalTs } = payoutData.value
+  const data = [{
+    id,
+    createdTs: new Date(createdTs * 1000).toLocaleString(),
+    currency: formatCurrency(currency),
+    amount: convertDecimalToAmount(amount, currency),
+    status,
+    arrivalTs: arrivalTs ? new Date(arrivalTs * 1000).toLocaleString() : ''
+  }]
 
   await downloadCSV(data, columns, `payout-details-${payoutId.value}-${date}.csv`)
 }
@@ -245,21 +246,21 @@ async function exportPayoutItems () {
   const columns = [
     { key: 'commissionId', label: $t('table.id') },
     { key: 'createdTs', label: $t('table.created') },
-    { key: 'currency', label: $t('table.currency') },
     { key: 'amount', label: $t('table.commission_amount') },
+    { key: 'currency', label: $t('table.currency') },
     { key: 'description', label: $t('common.description') },
     { key: 'status', label: $t('table.status') },
     { key: 'metadata', label: $t('table.metadata') }
   ]
 
-  const data = payoutItemRows.value.map((row: any) => ({
+  const data = payoutItemDetails.value.map((row: any) => ({
     commissionId: row.commissionId,
-    createdTs: row.createdTs,
-    currency: row.currency,
-    amount: row.amount,
+    createdTs: new Date(row.createdTs * 1000).toLocaleString(),
+    currency: formatCurrency(row.currency),
+    amount: convertDecimalToAmount(row.amount, row.currency),
     description: row.description || '',
     status: row.status,
-    metadata: row.metadata || ''
+    metadata: row.metadata ? JSON.stringify(row.metadata, null, 2) : ''
   }))
 
   await downloadCSV(data, columns, `payout-items-${payoutId.value}-${date}.csv`)

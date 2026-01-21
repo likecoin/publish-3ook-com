@@ -141,7 +141,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { downloadCSV } from '~/utils/index'
+import { downloadCSV, convertDecimalToAmount } from '~/utils/index'
 
 const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
 const { t: $t } = useI18n()
@@ -265,18 +265,29 @@ async function exportCommissionHistory () {
     { key: 'bookName', label: $t('table.book_name') },
     { key: 'classId', label: $t('user_settings.book_id') },
     { key: 'amount', label: $t('user_settings.commission') },
-    { key: 'currency', label: $t('user_settings.currency') },
-    { key: 'amountTotal', label: $t('user_settings.sale_amount') }
+    { key: 'amountTotal', label: $t('user_settings.sale_amount') },
+    { key: 'currency', label: $t('user_settings.currency') }
   ]
 
-  const data = commissionHistoryRows.value.map((row: any) => ({
-    timestamp: row.timestamp,
-    type: row.type,
+  const data = commissionHistory.value.map((row: any) => ({
+    timestamp: new Date(row.timestamp).toLocaleString(),
+    type: (() => {
+      let type = row.type
+      switch (type) {
+        case 'connectedWallet':
+          type = 'royalties'
+          break
+        case 'channelCommission':
+          type = 'channel'
+          break
+      }
+      return type
+    })(),
     bookName: nftStore.getClassMetadataById(row.classId)?.name || '',
     classId: row.classId,
-    amount: row.amount,
-    currency: row.currency,
-    amountTotal: row.amountTotal
+    amount: convertDecimalToAmount(row.amount, row.currency),
+    currency: formatCurrency(row.currency),
+    amountTotal: convertDecimalToAmount(row.amountTotal, row.currency)
   }))
 
   await downloadCSV(data, columns, `sales-commission-history-${date}.csv`)
@@ -293,11 +304,11 @@ async function exportPayoutHistory () {
     { key: 'id', label: 'ID' }
   ]
 
-  const data = payoutHistoryRows.value.map((row: any) => ({
-    createdTs: row.createdTs,
-    amount: row.amount,
+  const data = payoutHistory.value.map((row: any) => ({
+    createdTs: new Date(row.createdTs * 1000).toLocaleString(),
+    amount: convertDecimalToAmount(row.amount, row.currency),
     status: row.status,
-    arrivalTs: row.arrivalTs,
+    arrivalTs: row.arrivalTs ? new Date(row.arrivalTs * 1000).toLocaleString() : '',
     id: row.id
   }))
 

@@ -174,6 +174,12 @@ export function formatCurrency (currency: string) {
 }
 
 export function formatNumberWithCurrency (valueInDecimal: number, currency: string) {
+  const value = convertDecimalToAmount(valueInDecimal, currency)
+  const suffix = currency ? ` ${formatCurrency(currency)}` : ''
+  return `${value.toLocaleString('en-US')}${suffix}`
+}
+
+export function convertDecimalToAmount (valueInDecimal: number, currency: string) {
   let value = 0
   switch (currency) {
     case 'usdc':
@@ -184,8 +190,7 @@ export function formatNumberWithCurrency (valueInDecimal: number, currency: stri
       value = valueInDecimal / 100
       break
   }
-  const suffix = currency ? ` ${formatCurrency(currency)}` : ''
-  return `${value.toLocaleString('en-US')}${suffix}`
+  return value
 }
 
 export function validateChannelId (channelId: string) {
