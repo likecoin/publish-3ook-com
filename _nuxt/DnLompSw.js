@@ -1,0 +1,14 @@
+import{n as f,Y as h,t as l,p as g,O as n,s as u}from"./PJ-On66a.js";(function(){try{var e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{};e.SENTRY_RELEASE={id:"cdb28808ba31a63ec59d06aa6920a5844f88ac9b"}}catch{}})();try{(function(){var e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},r=new e.Error().stack;r&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[r]="b6ae5e0d-772d-406e-8fa4-909becb1aa77",e._sentryDebugIdIdentifier="sentry-dbid-b6ae5e0d-772d-406e-8fa4-909becb1aa77")})()}catch{}var c=Object.defineProperty,y=Object.getOwnPropertyDescriptor,o=(e,r,d,i)=>{for(var a=i>1?void 0:i?y(r,d):r,s=e.length-1,p;s>=0;s--)(p=e[s])&&(a=(i?p(r,d,a):p(a))||a);return i&&a&&c(r,d,a),a};let t=class extends f{constructor(){super(...arguments),this.size="1em",this.weight="regular",this.color="currentColor",this.mirrored=!1}render(){var e;return h`<svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="${this.size}"
+      height="${this.size}"
+      fill="${this.color}"
+      viewBox="0 0 256 256"
+      transform=${this.mirrored?"scale(-1, 1)":null}
+    >
+      ${t.weightsMap.get((e=this.weight)!=null?e:"regular")}
+    </svg>`}};t.weightsMap=new Map([["thin",l`<path d="M210.83,98.83l-80,80a4,4,0,0,1-5.66,0l-80-80a4,4,0,0,1,5.66-5.66L128,170.34l77.17-77.17a4,4,0,1,1,5.66,5.66Z"/>`],["light",l`<path d="M212.24,100.24l-80,80a6,6,0,0,1-8.48,0l-80-80a6,6,0,0,1,8.48-8.48L128,167.51l75.76-75.75a6,6,0,0,1,8.48,8.48Z"/>`],["regular",l`<path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>`],["bold",l`<path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"/>`],["fill",l`<path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,48,88H208a8,8,0,0,1,5.66,13.66Z"/>`],["duotone",l`<path d="M208,96l-80,80L48,96Z" opacity="0.2"/><path d="M215.39,92.94A8,8,0,0,0,208,88H48a8,8,0,0,0-5.66,13.66l80,80a8,8,0,0,0,11.32,0l80-80A8,8,0,0,0,215.39,92.94ZM128,164.69,67.31,104H188.69Z"/>`]]);t.styles=g`
+    :host {
+      display: contents;
+    }
+  `;o([n({type:String,reflect:!0})],t.prototype,"size",2);o([n({type:String,reflect:!0})],t.prototype,"weight",2);o([n({type:String,reflect:!0})],t.prototype,"color",2);o([n({type:Boolean,reflect:!0})],t.prototype,"mirrored",2);t=o([u("ph-caret-down")],t);export{t as PhCaretDown};
