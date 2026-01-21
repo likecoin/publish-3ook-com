@@ -99,50 +99,45 @@
         />
       </div>
     </UModal>
-    <UModal
-      v-model="showValidationWarning"
-      :ui="{
-        base: 'p-4 gap-4',
-        body: 'flex items-start gap-3',
-        footer: 'flex justify-end gap-2'
-      }"
-    >
-      <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
-      <div class="space-y-2">
-        <h3 class="font-semibold text-gray-900">
-          {{ $t('upload_form.validation_error') }}
-        </h3>
-        <p class="text-gray-600">
-          {{ validationErrorMessage }}
-        </p>
-        <p class="text-sm text-gray-500 whitespace-pre-line">
-          {{ $t('upload_form.valid_combinations') }}
-        </p>
-        <a
-          :href="PUBLISH_GUIDE_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-sm text-primary-500 hover:text-primary-600 flex items-center gap-1"
-        >
-          <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4" />
-          {{ $t('upload_form.help_link') }}
-        </a>
-      </div>
-      <template #footer>
-        <UButton
-          variant="outline"
-          color="gray"
-          @click="showValidationWarning = false; pendingSubmitAfterConfirm = false"
-        >
-          {{ $t('upload_form.fix_files') }}
-        </UButton>
-        <UButton
-          color="yellow"
-          @click="confirmProceedAnyway"
-        >
-          {{ $t('upload_form.proceed_anyway') }}
-        </UButton>
-      </template>
+    <UModal v-model="showValidationWarning">
+      <UCard :ui="{ body: { base: 'flex items-start gap-3' }, footer: { base: 'flex justify-end gap-2' } }">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-900">
+            {{ $t('upload_form.validation_error') }}
+          </h3>
+          <p class="text-gray-600">
+            {{ validationErrorMessage }}
+          </p>
+          <p class="text-sm text-gray-500 whitespace-pre-line">
+            {{ $t('upload_form.valid_combinations') }}
+          </p>
+          <a
+            :href="PUBLISH_GUIDE_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm text-primary-500 hover:text-primary-600 flex items-center gap-1"
+          >
+            <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4" />
+            {{ $t('upload_form.help_link') }}
+          </a>
+        </div>
+        <template #footer>
+          <UButton
+            variant="outline"
+            color="gray"
+            @click="showValidationWarning = false; pendingSubmitAfterConfirm = false"
+          >
+            {{ $t('upload_form.fix_files') }}
+          </UButton>
+          <UButton
+            color="yellow"
+            @click="confirmProceedAnyway"
+          >
+            {{ $t('upload_form.proceed_anyway') }}
+          </UButton>
+        </template>
+      </UCard>
     </UModal>
   </div>
 </template>
