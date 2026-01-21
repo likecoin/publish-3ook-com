@@ -1,1 +1,0 @@
-{"version":3,"file":"BKGLkfJb.js","sources":["../../../components/PageContainer.vue"],"sourcesContent":["<template>\n  <main class=\"flex flex-col\">\n    <slot />\n  </main>\n</template>\n"],"names":["_hoisted_1","_openBlock","_createElementBlock","_renderSlot","_ctx"],"mappings":"6mBACQA,EAAA,CAAA,MAAM,eAAe,kBAA3B,OAAAC,EAAA,EAAAC,EAEO,OAFPF,EAEO,CADLG,EAAQC,EAAA,OAAA,SAAA"}
