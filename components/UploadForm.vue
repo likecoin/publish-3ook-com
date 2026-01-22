@@ -131,6 +131,7 @@
             {{ $t('upload_form.fix_files') }}
           </UButton>
           <UButton
+            v-if="canProceedAnyway"
             color="yellow"
             @click="confirmProceedAnyway"
           >
@@ -220,6 +221,7 @@ const uploadStatus = ref('')
 const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
 const pendingSubmitAfterConfirm = ref(false)
+const canProceedAnyway = ref(true)
 const balance = useBalance({
   address: wallet.value
 })
@@ -844,7 +846,7 @@ const onSubmitInternal = async () => {
   emit('submit', uploadFileData)
 }
 
-const validateFiles = (): { valid: boolean; error?: string } => {
+const validateFiles = (): { valid: boolean; error?: string; canProceedAnyway?: boolean } => {
   const pdfFiles = fileRecords.value.filter(
     file => file.fileType === 'application/pdf'
   )
@@ -882,14 +884,16 @@ const validateFiles = (): { valid: boolean; error?: string } => {
   if (pdfFiles.length > 0 && coverFiles.length === 0) {
     return {
       valid: false,
-      error: $t('upload_form.missing_cover_for_pdf')
+      error: $t('upload_form.missing_cover_for_pdf'),
+      canProceedAnyway: false
     }
   }
 
   if (epubFiles.length > 0 && coverFiles.length === 0) {
     return {
       valid: false,
-      error: $t('upload_form.missing_cover_for_epub')
+      error: $t('upload_form.missing_cover_for_epub'),
+      canProceedAnyway: false
     }
   }
 
@@ -908,6 +912,7 @@ const onSubmit = async () => {
   const validation = validateFiles()
   if (!validation.valid) {
     validationErrorMessage.value = validation.error || ''
+    canProceedAnyway.value = validation.canProceedAnyway !== false
     showValidationWarning.value = true
     pendingSubmitAfterConfirm.value = true
     return
