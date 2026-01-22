@@ -28,6 +28,7 @@
       />
       <ISCNForm
         v-else
+        ref="iscnFormRef"
         v-model="iscnFormData"
       />
       <template #footer>
@@ -57,6 +58,7 @@ import { useWalletStore } from '~/stores/wallet'
 import { useISCN } from '~/composables/useISCN'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
+import type ISCNForm from '~/components/ISCNForm.vue'
 
 // eslint-disable-next-line func-call-spacing
 const emit = defineEmits<{
@@ -82,6 +84,7 @@ const showOpenModal = defineModel<boolean>('modelValue')
 const classData = ref({} as any)
 const isSaving = ref(false)
 const isISCNLoading = ref(false)
+const iscnFormRef = ref<InstanceType<typeof ISCNForm> | null>(null)
 
 const iscnFormData = ref({
   type: 'Book',
@@ -268,6 +271,7 @@ async function handleSave () {
       title: 'ISCN updated successfully',
       color: 'blue'
     })
+    iscnFormRef.value?.resetSnapshot()
     await nftStore.fetchClassMetadataById(props.classId)
     await refreshBookMetadata(props.classId)
     emit('iscnUpdated', {

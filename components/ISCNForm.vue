@@ -329,8 +329,16 @@ onBeforeRouteLeave(() => {
   }
 })
 
-nextTick(() => {
+function resetSnapshot () {
   initialFormDataSnapshot.value = JSON.stringify(formData.value)
+}
+
+nextTick(() => {
+  resetSnapshot()
+})
+
+defineExpose({
+  resetSnapshot
 })
 
 const hasFiles = computed(() => {
