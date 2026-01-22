@@ -706,6 +706,7 @@ async function onSubmit () {
       }
 
       await uploadSignImages(form, classId.value)
+      hasExistingSignatureImage.value = true
     }
     emit('submit')
   } catch (error) {
