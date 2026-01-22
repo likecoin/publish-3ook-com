@@ -146,8 +146,8 @@
 import { storeToRefs } from 'pinia'
 import ePub from 'epubjs'
 import { BigNumber } from 'bignumber.js'
-import { useSendTransaction, useBalance } from '@wagmi/vue'
-import { parseEther, formatUnits } from 'viem'
+import { useSendTransaction } from '@wagmi/vue'
+import { parseEther } from 'viem'
 import { encryptDataWithAES } from '~/utils/encryption'
 import { fileToArrayBuffer, digestFileSHA256, calculateIPFSHash, sleep } from '~/utils/index'
 import {
@@ -220,9 +220,6 @@ const uploadStatus = ref('')
 const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
 const pendingSubmitAfterConfirm = ref(false)
-const balance = useBalance({
-  address: wallet.value
-})
 
 const computedFormClasses = computed(() => [
   'block',
@@ -769,10 +766,6 @@ const onSubmitInternal = async () => {
       throw new Error('SIGNER_NOT_INITED')
     }
     uploadStatus.value = $t('upload_form.uploading')
-
-    if (!balance?.data?.value?.value || new BigNumber(formatUnits(balance.data.value.value, balance.data.value.decimals)).lt(arweaveFee.value)) {
-      throw new Error(`INSUFFICIENT_BASE_ETH_BALANCE: NEED ${arweaveFee.value.toString()} ETH`)
-    }
 
     if (!fileRecords.value.some(file => file.fileBlob)) {
       throw new Error('NO_FILE_TO_UPLOAD')
