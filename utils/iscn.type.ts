@@ -1,6 +1,7 @@
 export interface ISCNRegisterPayload {
   name: string;
   description: string;
+  descriptionFull?: string;
   tagsString: string;
   url: string;
   license: string;

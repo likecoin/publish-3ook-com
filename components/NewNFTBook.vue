@@ -343,6 +343,7 @@ const { newBookListing, updateEditionPrice, uploadSignImages } = bookstoreApiSto
 const { fetchStripeConnectStatusByWallet } = stripeStore
 const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const nftStore = useNftStore()
+const { refreshBookMetadata } = useBookstoreApiStore()
 
 const { getBalanceOf } = useNFTContractReader()
 
@@ -715,6 +716,7 @@ async function onSubmit () {
 }
 
 async function submitNewClass () {
+  let data
   try {
     if (!classId.value) {
       throw new Error($t('errors.nft_class_id_required'))
@@ -728,7 +730,7 @@ async function submitNewClass () {
 
     isLoading.value = true
 
-    const data = await lazyFetchClassMetadataById(classId.value)
+    data = await lazyFetchClassMetadataById(classId.value)
     const collectionId = data?.nft_meta_collection_id || ''
     if (
       !collectionId.includes('nft_book') &&
@@ -756,6 +758,9 @@ async function submitNewClass () {
     console.error(errorData)
     error.value = errorData
   } finally {
+    if (data?.descriptionFull) {
+      await refreshBookMetadata(classId.value)
+    }
     isLoading.value = false
   }
 }
