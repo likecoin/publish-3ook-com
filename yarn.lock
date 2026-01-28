@@ -1769,10 +1769,10 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.4.0"
 
-"@likecoin/epubcheck-ts@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.0.tgz#afb425aeb615995006693e00719aae8009984399"
-  integrity sha512-lha+8BDQ7ihAnSFtIcoD2PNSmHrgd1n2gHBeY8SpSmQ93r2+WTwzuTugbx/fKmg0RLw84vZUojzUI3UWbQbhZQ==
+"@likecoin/epubcheck-ts@^0.3.1":
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.1.tgz#c720add4432d2dc26f81276c4d06661c74798578"
+  integrity sha512-4QyP0k+1u/7sJ3OaKcNczIAsijuSJJL7/IWSs5woa3bMmUjHs7qLyBiZ890qard5ULprCsWpnhA61jy7rTBubQ==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
