@@ -76,3 +76,4 @@ export const MAX_DESCRIPTION_FULL_LENGTH = 5000
 export const MAX_ALTERNATIVE_HEADLINE_LENGTH = 200
 
 export const PUBLISH_GUIDE_URL = 'https://docs.3ook.com/zh-TW/collections/14176162-出版'
+export const AFFILIATION_GUIDE_URL = 'https://docs.3ook.com/zh-TW/articles/13515071-%E5%A6%82%E4%BD%95%E5%8A%A0%E5%85%A5-3ook-com-%E6%9B%B8%E5%BA%97%E6%8E%A8%E5%BB%A3%E8%A8%88%E5%8A%83'

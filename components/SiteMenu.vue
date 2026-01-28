@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { PUBLISH_GUIDE_URL } from '~/constant'
+import { PUBLISH_GUIDE_URL, AFFILIATION_GUIDE_URL } from '~/constant'
 const { t: $t } = useI18n()
 
 const localeRoute = useLocaleRoute()
@@ -71,6 +71,12 @@ const items = computed(() => {
             label: $t('menu.publisher_guide'),
             icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
             to: PUBLISH_GUIDE_URL,
+            target: '_blank'
+          },
+          {
+            label: $t('menu.affiliation_guide'),
+            icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
+            to: AFFILIATION_GUIDE_URL,
             target: '_blank'
           },
           {
@@ -142,6 +148,12 @@ const items = computed(() => {
           label: $t('menu.publisher_guide'),
           icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
           to: PUBLISH_GUIDE_URL,
+          target: '_blank'
+        },
+        {
+          label: $t('menu.affiliation_guide'),
+          icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
+          to: AFFILIATION_GUIDE_URL,
           target: '_blank'
         },
         {
