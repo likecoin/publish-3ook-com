@@ -121,6 +121,7 @@
                     <UInput
                       v-model="p.autoMemo"
                       :placeholder="$t('nft_book_form.memo_placeholder')"
+                      :disabled="p.deliveryMethod === 'manual'"
                     />
                   </UFormGroup>
 
