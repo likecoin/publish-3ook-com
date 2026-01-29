@@ -89,25 +89,53 @@
         </template>
       </UTabs>
     </UCard>
+
+    <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+      <ULink
+        :to="authorPromoFormUrl"
+        target="_blank"
+        class="underline"
+      >
+        {{ $t('my_books.author_promo_form') }}
+      </ULink>
+    </div>
   </PageBody>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { useNftStore } from '~/stores/nft'
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const { t: $t } = useI18n()
 const bookstoreApiStore = useBookstoreApiStore()
 const nftStore = useNftStore()
-const { listingList: bookList, moderatedBookList, token } = storeToRefs(bookstoreApiStore)
+const { listingList: bookList, moderatedBookList, token, wallet } = storeToRefs(bookstoreApiStore)
+const likerStore = useLikerStore()
+const { getLikerInfoByWallet } = storeToRefs(likerStore)
+const stripeStore = useStripeStore()
+const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
 const { lazyFetchClassMetadataById } = nftStore
 const { fetchBookListing, fetchModeratedBookList } = bookstoreApiStore
 
 const error = ref('')
 const isLoading = ref(false)
+
+const authorPromoFormUrl = computed(() => {
+  const likerInfo = getLikerInfoByWallet.value(wallet.value || '')
+  const stripeStatus = getStripeConnectStatusByWallet.value(wallet.value || '')
+  const likerId = likerInfo?.user || ''
+  const evmWallet = wallet.value || ''
+  const email = stripeStatus?.email || ''
+  const baseUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdiV9jIUFcDjoFoLtz6KMmq1YRFjU7uXR7ka36JKhVespsP6w/viewform'
+  const params = new URLSearchParams({
+    usp: 'pp_url',
+    'entry.1466422015': likerId,
+    'entry.1252262934': evmWallet,
+    'entry.1672981182': email
+  })
+  return `${baseUrl}?${params.toString()}`
+})
 
 useSeoMeta({
   title: () => $t('seo_titles.book_listing_management'),
@@ -227,9 +255,13 @@ watch(tableRowsPerPage, () => {
 })
 
 onMounted(async () => {
-  const promises = [fetchBookListing()]
+  const promises: Promise<unknown>[] = [fetchBookListing()]
   if (token.value) {
     promises.push(fetchModeratedBookList())
+  }
+  if (wallet.value) {
+    promises.push(likerStore.lazyFetchLikerInfoByWallet(wallet.value))
+    promises.push(stripeStore.fetchStripeConnectStatusByWallet(wallet.value))
   }
   await Promise.all(promises)
 
