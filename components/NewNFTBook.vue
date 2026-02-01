@@ -283,6 +283,14 @@
                 />
               </div>
             </UFormGroup>
+
+            <UFormGroup v-if="props.isNewClassPage" :label="$t('form.table_of_content')">
+              <UTextarea
+                v-model="tableOfContents"
+                :rows="8"
+                placeholder="- Chapter 1&#10;- Chapter 2&#10;  - Section 2.1"
+              />
+            </UFormGroup>
           </div>
         </template>
       </UCard>
@@ -335,6 +343,7 @@ import { useStripeStore } from '~/stores/stripe'
 import { useNftStore } from '~/stores/nft'
 import { escapeHtml, sanitizeHtml } from '~/utils/newClass'
 import { getApiEndpoints } from '~/constant/api'
+import { getUploadFileData } from '~/utils/uploadFile'
 const { t: $t } = useI18n()
 
 const { LIKE_CO_API } = useRuntimeConfig().public
@@ -368,6 +377,7 @@ const classId = computed(() => {
 const nextPriceIndex = ref(1)
 const hideDownload = ref(false)
 const isAllowCustomPrice = ref(true)
+const tableOfContents = ref(getUploadFileData()?.epubMetadata?.tableOfContents || '')
 
 const prices = ref<any[]>([
   {
@@ -749,7 +759,8 @@ async function submitNewClass () {
       prices: p,
       mustClaimToView: true,
       enableCustomMessagePage: shouldEnableCustomMessagePage,
-      hideDownload: hideDownload.value
+      hideDownload: hideDownload.value,
+      tableOfContents: tableOfContents.value || undefined
     })
   } catch (err) {
     const errorData = (err as any).data || err

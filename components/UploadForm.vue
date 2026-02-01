@@ -245,6 +245,7 @@ interface epubMetadata {
   thumbnailIpfsHash?: string | null;
   thumbnailArweaveId?: string | null;
   coverData?: string | null;
+  tableOfContents?: string;
 }
 
 const props = defineProps({
@@ -518,6 +519,19 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
       epubMetadata.author = metadata.creator
       epubMetadata.language = formatLanguage(metadata.language)
       epubMetadata.description = metadata.description
+    }
+
+    // Get table of contents
+    if (book.navigation?.toc?.length) {
+      const tocToMarkdown = (items: any[], indent = 0): string => {
+        return items.map((item) => {
+          const prefix = ' '.repeat(indent * 2) + '- '
+          const line = prefix + (item.label?.trim() || '')
+          const subLines = item.subitems?.length ? tocToMarkdown(item.subitems, indent + 1) : ''
+          return subLines ? line + '\n' + subLines : line
+        }).join('\n')
+      }
+      epubMetadata.tableOfContents = tocToMarkdown(book.navigation.toc)
     }
 
     // Get tags

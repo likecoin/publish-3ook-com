@@ -452,6 +452,14 @@
                 />
               </div>
             </UCard>
+
+            <UFormGroup :label="$t('form.table_of_content')">
+              <UTextarea
+                v-model="tableOfContents"
+                :rows="8"
+                placeholder="- Chapter 1&#10;- Chapter 2&#10;  - Section 2.1"
+              />
+            </UFormGroup>
           </div>
           <div class="flex items-center justify-center w-full mt-4">
             <UButton

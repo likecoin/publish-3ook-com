@@ -9,6 +9,7 @@ export interface UploadFileData {
     tags: string[]
     thumbnailArweaveId: string
     thumbnailIpfsHash: string
+    tableOfContents?: string
   }
   fileRecords: Array<{
     fileName: string

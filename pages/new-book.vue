@@ -224,7 +224,6 @@ const handleIscnSubmit = async (res: { iscnId: string, txHash: string }) => {
   if (newIscnId) {
     await navigateTo(localeRoute({ query: { iscn_id: newIscnId } }), { replace: true })
   }
-  clearUploadFileData()
   step.value = 2
   await nextTick()
   iscnId.value = newIscnId
@@ -241,6 +240,7 @@ const handleMintNFTSubmit = async (res: any) => {
 }
 
 const handleNewBookSubmit = async () => {
+  clearUploadFileData()
   await navigateTo(localeRoute({ name: 'my-books' }))
 }
 
