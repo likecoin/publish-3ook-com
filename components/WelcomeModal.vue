@@ -52,7 +52,6 @@
 </template>
 
 <script setup lang="ts">
-import { appendUTMParamsToURL } from '~/utils/index'
 const { show: showModal, close: onClose } = useOneTimePopup('welcomePopup:v3')
 const { LIKECOIN_V3_BOOK_MIGRATION_SITE_URL } = useRuntimeConfig().public
 const { t: $t } = useI18n()

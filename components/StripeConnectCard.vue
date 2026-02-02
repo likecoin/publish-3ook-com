@@ -136,10 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-
 import { LIKE_ADDRESS_REGEX } from '~/constant'
-import { useStripeStore } from '~/stores/stripe'
 const localeRoute = useLocaleRoute()
 const { t: $t } = useI18n()
 

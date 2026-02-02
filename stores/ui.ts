@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-
 export const useUIStore = defineStore('ui', () => {
   const isSiteMenuOpen = ref(false)
 

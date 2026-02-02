@@ -22,15 +22,8 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { useWriteContract } from '@wagmi/vue'
-import { getUploadFileData } from '~/utils/uploadFile'
-import { useFileUpload } from '~/composables/useFileUpload'
-import { useWalletStore } from '~/stores/wallet'
-
-import { useISCN } from '~/composables/useISCN'
 import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
-import { useToastComposable } from '~/composables/useToast'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 
 const walletStore = useWalletStore()

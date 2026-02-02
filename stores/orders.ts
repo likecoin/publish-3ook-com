@@ -1,7 +1,3 @@
-import { defineStore, storeToRefs } from 'pinia'
-import { fetchBookOrders } from '~/utils/api'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-
 export interface ReaderData {
   readerEmail: string
   readerWallet?: string

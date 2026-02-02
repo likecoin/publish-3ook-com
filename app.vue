@@ -55,10 +55,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { useUIStore } from '~/stores/ui'
 const { t: $t } = useI18n()
 
 const { SITE_URL } = useRuntimeConfig().public

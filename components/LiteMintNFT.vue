@@ -73,12 +73,7 @@
 
 <script setup lang="ts">
 import { useWriteContract } from '@wagmi/vue'
-import { storeToRefs } from 'pinia'
 import { NFT_DEFAULT_MINT_AMOUNT, NFT_DEFAULT_RESTOCK_AMOUNT } from '~/constant'
-
-import { useWalletStore } from '~/stores/wallet'
-import { useToastComposable } from '~/composables/useToast'
-
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 
 const { t: $t } = useI18n()

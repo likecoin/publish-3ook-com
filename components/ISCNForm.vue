@@ -274,11 +274,9 @@
 
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
-import type { ISCNFormData } from '~/utils/iscn.type'
 import type { FileRecord } from '~/components/UploadForm.vue'
 
 import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH } from '~/constant/index'
-import { useFileUpload } from '~/composables/useFileUpload'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
 

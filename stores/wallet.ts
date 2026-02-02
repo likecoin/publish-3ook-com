@@ -1,10 +1,8 @@
-import { defineStore } from 'pinia'
 import { FetchError } from 'ofetch'
 import { useConnection, useConnect, useDisconnect, useSignMessage } from '@wagmi/vue'
 import { base, baseSepolia } from '@wagmi/vue/chains'
 import { checksumAddress, UserRejectedRequestError } from 'viem'
 import type { Magic } from 'magic-sdk'
-import { clearUploadFileData } from '~/utils/uploadFile'
 import { RegistrationModal } from '#components'
 
 export const useWalletStore = defineStore('wallet', () => {

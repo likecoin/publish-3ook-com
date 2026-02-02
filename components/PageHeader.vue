@@ -18,7 +18,6 @@
 </template>
 
 <script setup lang="ts">
-import { useUIStore } from '~/stores/ui'
 const { toggleSiteMenuOpen } = useUIStore()
 
 const { isNavigationCollapsed } = useAppLayout()

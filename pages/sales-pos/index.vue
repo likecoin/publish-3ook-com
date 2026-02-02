@@ -317,8 +317,6 @@
 
 <script setup lang="ts">
 import type { DropdownItem } from '#ui/types'
-
-import { useNftStore } from '~/stores/nft'
 const { t: $t } = useI18n()
 
 const route = useRoute()

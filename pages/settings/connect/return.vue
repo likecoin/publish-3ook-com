@@ -64,9 +64,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-
 const { LIKE_CO_API } = useRuntimeConfig().public
 
 const localeRoute = useLocaleRoute()

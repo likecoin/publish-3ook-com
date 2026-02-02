@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-
 import type { FetchLikerInfoResult } from '../utils/api'
 
 export const useLikerStore = defineStore('liker', () => {

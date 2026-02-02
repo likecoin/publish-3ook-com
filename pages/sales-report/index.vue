@@ -140,9 +140,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { downloadCSV, convertDecimalToAmount } from '~/utils/index'
-
 const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
 const { t: $t } = useI18n()
 

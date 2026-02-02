@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
 
 export const useBookstoreApiStore = defineStore('book-api', () => {

@@ -68,8 +68,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-
 const { LIKE_CO_API } = useRuntimeConfig().public
 const { t: $t } = useI18n()
 

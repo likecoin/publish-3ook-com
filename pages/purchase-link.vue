@@ -398,13 +398,7 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-
 import { AFFILIATION_CHANNEL_DEFAULT, AFFILIATION_CHANNELS } from '~/constant'
-
-import { useLikerStore } from '~/stores/liker'
-import { useStripeStore } from '~/stores/stripe'
-import { useUserStore } from '~/stores/user'
 
 const { LIKE_CO_API, SITE_URL } = useRuntimeConfig().public
 const likerStore = useLikerStore()

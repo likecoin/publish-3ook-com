@@ -68,11 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import type { FileRecord } from '~/components/UploadForm.vue'
-import { useWalletStore } from '~/stores/wallet'
-import { clearUploadFileData, setUploadFileData } from '~/utils/uploadFile'
-import { useToastComposable } from '~/composables/useToast'
 const { t: $t } = useI18n()
 
 const walletStore = useWalletStore()

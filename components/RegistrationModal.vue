@@ -70,8 +70,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits, defineProps, withDefaults } from 'vue'
-
 const { t: $t } = useI18n()
 
 interface RegistrationModalProps {

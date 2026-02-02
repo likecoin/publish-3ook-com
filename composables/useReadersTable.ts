@@ -1,6 +1,3 @@
-import { useOrdersStore } from '~/stores/orders'
-import { downloadCSV } from '~/utils/index'
-
 export function useReadersTable () {
   const { t } = useI18n()
 

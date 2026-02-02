@@ -1,8 +1,3 @@
-import { defineStore, storeToRefs } from 'pinia'
-
-import { useBookstoreApiStore } from './book-store-api'
-import { useLikerStore } from './liker'
-
 export const useUserStore = defineStore('user', () => {
   const { LIKE_CO_API } = useRuntimeConfig().public
 

@@ -499,11 +499,8 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { getPortfolioURL, downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink, copyToClipboard } from '~/utils'
-import { shortenWalletAddress } from '~/utils/cosmos'
 import { getApiEndpoints } from '~/constant/api'
-import { useOrdersStore } from '~/stores/orders'
 const { t: $t } = useI18n()
 
 const MAX_EDITION_COUNT = 2

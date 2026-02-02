@@ -116,9 +116,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { downloadCSV, convertDecimalToAmount, formatCurrency } from '~/utils/index'
 
 const { t: $t } = useI18n()
 

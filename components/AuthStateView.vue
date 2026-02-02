@@ -29,7 +29,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 const { t: $t } = useI18n()
 
 const store = useWalletStore()

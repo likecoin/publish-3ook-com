@@ -189,19 +189,14 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import ePub from 'epubjs'
 import { BigNumber } from 'bignumber.js'
 import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
-import { encryptDataWithAES } from '~/utils/encryption'
-import { fileToArrayBuffer, digestFileSHA256, calculateIPFSHash, sleep } from '~/utils/index'
 import {
   estimateBundlrFilePrice,
   uploadSingleFileToBundlr
 } from '~/utils/arweave'
-import { useWalletStore } from '~/stores/wallet'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
 import { PUBLISH_GUIDE_URL } from '~/constant'
 const { t: $t } = useI18n()
 

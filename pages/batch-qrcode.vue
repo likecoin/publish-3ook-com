@@ -103,8 +103,6 @@
 
 <script setup lang="ts">
 import { parse as csvParse } from 'csv-parse/sync'
-
-import { getQRCodeOptions, DEFAULT_QR_CODE_ICON } from '~/utils/qrcode'
 const { t: $t } = useI18n()
 
 const CSV_HEADER = 'key,url'

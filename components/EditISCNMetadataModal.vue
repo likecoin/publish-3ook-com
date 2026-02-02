@@ -50,12 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { useWriteContract } from '@wagmi/vue'
-import { useNftStore } from '~/stores/nft'
-import { formatISCNTxPayload, validateISCNForm } from '~/utils/iscn'
-import { useWalletStore } from '~/stores/wallet'
-import { useISCN } from '~/composables/useISCN'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type ISCNForm from '~/components/ISCNForm.vue'

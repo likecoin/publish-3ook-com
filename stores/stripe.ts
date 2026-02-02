@@ -1,7 +1,3 @@
-import { defineStore, storeToRefs } from 'pinia'
-
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-
 interface StripeConnectStatus {
   hasAccount: boolean
   isReady: boolean

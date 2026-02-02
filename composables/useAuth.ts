@@ -1,8 +1,3 @@
-import { storeToRefs } from 'pinia'
-import { useWalletStore } from '~/stores/wallet'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { SIGN_AUTHORIZATION_PERMISSIONS } from '~/utils/auth'
-
 export function useAuth () {
   const bookstoreApiStore = useBookstoreApiStore()
   const store = useWalletStore()

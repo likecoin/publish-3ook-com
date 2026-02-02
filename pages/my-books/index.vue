@@ -103,8 +103,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const { t: $t } = useI18n()

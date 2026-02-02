@@ -3,8 +3,6 @@
 </template>
 
 <script setup lang="ts">
-import { useNftStore } from '~/stores/nft'
-
 const nftStore = useNftStore()
 
 const props = defineProps({

@@ -185,13 +185,8 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { useWriteContract } from '@wagmi/vue'
-import { useBookstoreApiStore } from '~/stores/book-store-api'
-import { useWalletStore } from '~/stores/wallet'
-import { useNftStore } from '~/stores/nft'
 import { parseImageURLFromMetadata } from '~/utils'
-import { useMessageCharCount } from '~/composables/useMessageCharCount'
 import { AUTHOR_MESSAGE_LIMIT } from '~/constant'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 

@@ -38,7 +38,6 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { PUBLISH_GUIDE_URL, AFFILIATION_GUIDE_URL } from '~/constant'
 const { t: $t } = useI18n()
 

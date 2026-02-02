@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-
 export const useNftStore = defineStore('nft', () => {
   const { LIKE_CO_API } = useRuntimeConfig().public
   const classMetadataByIdMap = ref({} as Record<string, any>)
