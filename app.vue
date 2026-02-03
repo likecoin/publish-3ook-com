@@ -1,7 +1,7 @@
 <template>
   <div>
     <MaintenancePage v-if="isShowMaintenancePage" />
-    <NuxtLayout v-else>
+    <NuxtLayout v-show="!isShowMaintenancePage">
       <NuxtPage class="grow overflow-y-auto" />
     </NuxtLayout>
 
