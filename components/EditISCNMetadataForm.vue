@@ -79,7 +79,8 @@ const iscnFormData = ref<ISCNFormData>({
   language: '',
   bookInfoUrl: '',
   tags: [],
-  coverUrl: ''
+  coverUrl: '',
+  genre: ''
 })
 
 const iscnChainData = ref({} as any)
@@ -145,7 +146,8 @@ watch(
           language: metadata.inLanguage || '',
           bookInfoUrl: metadata.url || '',
           tags,
-          coverUrl: metadata.thumbnailUrl || metadata.image || ''
+          coverUrl: metadata.thumbnailUrl || metadata.image || '',
+          genre: metadata.genre || ''
         }
       } catch (error) {
         console.error('Error fetching ISCN data:', error)

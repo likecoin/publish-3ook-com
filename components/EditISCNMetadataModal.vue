@@ -99,7 +99,8 @@ const iscnFormData = ref({
   language: '',
   bookInfoUrl: '',
   tags: [],
-  coverUrl: ''
+  coverUrl: '',
+  genre: ''
 })
 
 const iscnChainData = ref({} as any)
@@ -164,7 +165,8 @@ watchEffect(async () => {
           language: metadata.inLanguage || '',
           bookInfoUrl: metadata.url || '',
           tags,
-          coverUrl: metadata.thumbnailUrl || ''
+          coverUrl: metadata.thumbnailUrl || '',
+          genre: metadata.genre || ''
         }
       }
     } catch (error) {

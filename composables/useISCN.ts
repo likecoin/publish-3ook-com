@@ -103,6 +103,7 @@ export function useISCN ({
     url: iscnFormData.value.bookInfoUrl,
     tagsString: iscnFormData.value.tags?.join(', ') || '',
     thumbnailUrl: iscnFormData.value.coverUrl,
+    genre: iscnFormData.value.genre || undefined,
     potentialAction: formattedPotentialActionList.value,
     attributes: getAttributes(iscnFormData.value)
   }))

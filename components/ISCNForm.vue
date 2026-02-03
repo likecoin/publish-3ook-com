@@ -79,6 +79,14 @@
         />
       </UFormField>
 
+      <UFormField :label="$t('form.genre')">
+        <USelect
+          v-model="formData.genre"
+          :items="bookCategoryOptions"
+          :placeholder="$t('iscn_form.select_genre')"
+        />
+      </UFormField>
+
       <UFormField
         required
         :label="$t('form.cover_image')"
@@ -272,7 +280,7 @@
 import { useEventListener } from '@vueuse/core'
 import type { FileRecord } from '~/components/UploadForm.vue'
 
-import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH } from '~/constant/index'
+import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH, BOOK_CATEGORIES } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
 
@@ -282,6 +290,11 @@ const downloadTypeOptions = [
   { label: 'Image', value: 'image' },
   { label: 'Other', value: 'other' }
 ]
+
+const bookCategoryOptions = BOOK_CATEGORIES.map(cat => ({
+  label: $t(cat.i18nKey),
+  value: cat.value as string
+}))
 
 const shouldShowUploadModal = ref(false)
 const uploadFormRef = ref()

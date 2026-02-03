@@ -44,4 +44,5 @@ export interface ISCNFormData {
   bookInfoUrl: string
   tags: string[]
   coverUrl: string
+  genre: string
 }

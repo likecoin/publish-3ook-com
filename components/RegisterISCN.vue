@@ -63,7 +63,8 @@ const iscnFormData = ref({
   language: '',
   bookInfoUrl: '',
   tags: [],
-  coverUrl: ''
+  coverUrl: '',
+  genre: ''
 })
 
 const uploadStatus = ref('')
