@@ -350,7 +350,7 @@ const descriptionError = computed(() => {
   } else if (desc.length > MAX_DESCRIPTION_LENGTH) {
     return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH })
   }
-  return ''
+  return false
 })
 
 const descriptionFullError = computed(() => {
@@ -358,7 +358,7 @@ const descriptionFullError = computed(() => {
   if (desc.length > MAX_DESCRIPTION_FULL_LENGTH) {
     return $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
   }
-  return ''
+  return false
 })
 
 const alternativeHeadlineError = computed(() => {
@@ -366,7 +366,7 @@ const alternativeHeadlineError = computed(() => {
   if (headline.length > MAX_ALTERNATIVE_HEADLINE_LENGTH) {
     return $t('validation.text_cannot_exceed', { max: MAX_ALTERNATIVE_HEADLINE_LENGTH })
   }
-  return ''
+  return false
 })
 
 const isContentFingerprintsEncrypted = computed(() => {
