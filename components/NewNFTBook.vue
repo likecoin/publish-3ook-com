@@ -50,9 +50,8 @@
               <UFormField
                 :label="$t('nft_book_form.unit_price_label')"
               >
-                <USelectMenu
+                <USelect
                   v-model="p.price"
-                  class="w-full"
                   :items="USD_PRICING_OPTIONS"
                   value-key="value"
                 />
