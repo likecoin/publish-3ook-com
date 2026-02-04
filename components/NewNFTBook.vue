@@ -52,6 +52,7 @@
               >
                 <USelect
                   v-model="p.price"
+                  class="w-full"
                   :items="USD_PRICING_OPTIONS"
                   value-key="value"
                 />
