@@ -18,18 +18,17 @@
 
     <template v-if="isStripeConnectChecked">
       <div class="flex flex-col gap-[24px]">
+        <URadioGroup
+          v-model="accountType"
+          :items="[
+            { label: $t('stripe_connect.use_my_account'), value: 'default' },
+            { label: $t('stripe_connect.use_another_account'), value: 'other' },
+          ]"
+          :disabled="!!props.shouldDisableSetting"
+          orientation="vertical"
+        />
         <div class="grid grid-cols-2 gap-[8px] w-full">
           <div class="flex flex-col w-full">
-            <URadio
-              v-model="isUsingDefaultAccount"
-              class="w-[50%]"
-              :value="true"
-              :disabled="!!props.shouldDisableSetting"
-            >
-              <template #label>
-                <div>{{ $t('stripe_connect.use_my_account') }}</div>
-              </template>
-            </URadio>
             <div
               v-if="defaultAccountConnectStatus.isReady"
               class="flex flex-col items-start w-full"
@@ -61,15 +60,6 @@
           </div>
 
           <div class="flex flex-col w-full">
-            <URadio
-              v-model="isUsingDefaultAccount"
-              :value="false"
-              :disabled="!!props.shouldDisableSetting"
-            >
-              <template #label>
-                <span>{{ $t('stripe_connect.use_another_account') }}</span>
-              </template>
-            </URadio>
             <div class="flex flex-col mt-[14px] w-[80%]">
               <UInput
                 v-model="inputWallet"
@@ -168,6 +158,11 @@ const props = defineProps({
 const emit = defineEmits<{
   (e: 'save', wallet: string | undefined): void;
 }>()
+
+const accountType = computed({
+  get: () => isUsingDefaultAccount.value ? 'default' : 'other',
+  set: (val: string) => { isUsingDefaultAccount.value = val === 'default' }
+})
 
 const inputWallet = ref('')
 const stripeConnectInputError = ref('')

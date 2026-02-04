@@ -60,52 +60,34 @@
                 :label="$t('nft_book_form.copies_label')"
               >
                 <div class="flex flex-col gap-2">
-                  <!-- Auto Delivery Block -->
-                  <div
-                    class="border-2 rounded-lg p-4 cursor-pointer transition-all duration-200"
-                    :class="p.deliveryMethod === 'auto' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-                    @click="p.deliveryMethod = 'auto'"
-                  >
-                    <URadio
+                  <div class="flex items-center gap-2">
+                    <URadioGroup
                       v-model="p.deliveryMethod"
-                      value="auto"
-                      :name="`deliveryMethod-${index}`"
-                      :label="$t('nft_book_form.unlimited')"
+                      :items="[
+                        { label: $t('nft_book_form.unlimited'), value: 'auto' },
+                        { label: $t('nft_book_form.limited'), value: 'manual' },
+                      ]"
+                      orientation="vertical"
                     />
+                    <UTooltip
+                      v-if="p.deliveryMethod === 'manual'"
+                      :text="$t('nft_book_form.manual_delivery_tooltip')"
+                    >
+                      <UIcon name="i-heroicons-question-mark-circle" />
+                    </UTooltip>
                   </div>
 
-                  <!-- Manual Delivery Block -->
-                  <div
-                    class="border-2 rounded-lg p-4 cursor-pointer transition-all duration-200"
-                    :class="p.deliveryMethod === 'manual' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-                    @click="handleManualDeliveryClick(index)"
-                  >
-                    <div class="flex items-center gap-2 mb-3">
-                      <URadio
-                        v-model="p.deliveryMethod"
-                        value="manual"
-                        :name="`deliveryMethod-${index}`"
-                        :label="$t('nft_book_form.limited')"
+                  <div v-if="p.deliveryMethod === 'manual'" class="space-y-3">
+                    <UFormField :label="$t('nft_book_form.stock')">
+                      <UInput
+                        v-model="p.stock"
+                        type="number"
+                        step="1"
+                        :min="1"
+                        :max="maxSupply"
+                        placeholder="100"
                       />
-                      <UTooltip
-                        :text="$t('nft_book_form.manual_delivery_tooltip')"
-                      >
-                        <UIcon name="i-heroicons-question-mark-circle" />
-                      </UTooltip>
-                    </div>
-
-                    <div class="space-y-3">
-                      <UFormField :label="$t('nft_book_form.stock')">
-                        <UInput
-                          v-model="p.stock"
-                          type="number"
-                          step="1"
-                          :min="1"
-                          :max="maxSupply"
-                          placeholder="100"
-                        />
-                      </UFormField>
-                    </div>
+                    </UFormField>
                   </div>
                 </div>
               </UFormField>
@@ -806,12 +788,6 @@ async function addNewEdition () {
   } finally {
     isLoading.value = false
   }
-}
-
-function handleManualDeliveryClick (index: number) {
-  const price = prices.value[index]
-  price.deliveryMethod = 'manual'
-  price.enableCustomMessagePage = true
 }
 
 function navigateToSettings () {
