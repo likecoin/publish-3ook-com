@@ -545,12 +545,6 @@ watch(isAllowCustomPrice, (newValue: boolean) => {
   })
 })
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) {
-    error.value = ''
-  }
-})
-
 watch(classId, async (newClassId) => {
   if (newClassId) {
     const data = await lazyFetchClassMetadataById(newClassId as string)
