@@ -641,7 +641,7 @@ const handleDeleteFile = (index: number) => {
 
 const estimateArweaveFee = async (): Promise<void> => {
   try {
-    uploadStatus.value = $t('upload_form.loading')
+    uploadStatus.value = $t('upload_form.estimating_fees')
     const results = []
     for (const record of fileRecords.value) {
       await sleep(100)
@@ -717,6 +717,7 @@ const submitToArweave = async (record: FileRecord): Promise<void> => {
 
   if (shouldEncrypt) {
     if (!record.encryptedIpfsHash) {
+      uploadStatus.value = $t('upload_form.encrypting')
       const { rawEncryptedKeyAsBase64, combinedArrayBuffer } =
         await encryptDataWithAES({ data: arrayBuffer })
       const encryptedBuffer = Buffer.from(combinedArrayBuffer)
@@ -794,7 +795,7 @@ const sendArweaveFeeTx = async (record: any, memoIpfsOveride?: string): Promise<
   if (!arweaveFeeMap.value[record.ipfsHash]) {
     throw new Error('ARWEAVE_FEE_NOT_SET')
   }
-  uploadStatus.value = $t('upload_form.signing')
+  uploadStatus.value = $t('upload_form.checking_balance')
   const memo = JSON.stringify({
     ipfs: memoIpfsOveride || record.ipfsHash,
     fileSize: record.fileBlob?.size || 0
@@ -806,11 +807,13 @@ const sendArweaveFeeTx = async (record: any, memoIpfsOveride?: string): Promise<
       value: parseEther(arweaveFeeMap.value[record.ipfsHash] as string),
       data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}` as `0x${string}`
     })
+    uploadStatus.value = $t('upload_form.waiting_signature')
     const transactionHash = await sendTransactionAsync({
       to: arweaveFeeTargetAddress.value as `0x${string}`,
       value: parseEther(arweaveFeeMap.value[record.ipfsHash] as string),
       data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}`
     })
+    uploadStatus.value = $t('upload_form.waiting_confirmation')
     const receipt = await waitForTransactionReceipt({ hash: transactionHash })
     if (!receipt || receipt.status !== 'success') { throw new Error('INVALID_RECEIPT') }
     if (transactionHash) {
@@ -903,12 +906,14 @@ const onSubmitInternal = async () => {
         file => file.fileType === 'application/epub+zip'
       )
     ) {
+      uploadStatus.value = $t('upload_form.preparing_cover')
       await setEbookCoverFromImages()
     }
 
     for (let i = 0; i < fileRecords.value.length; i += 1) {
       const record = fileRecords.value[i]
       if (record) {
+        uploadStatus.value = $t('upload_form.processing_file', { index: i + 1, total: fileRecords.value.length })
         await submitToArweave(record)
       }
     }
