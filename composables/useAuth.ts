@@ -49,12 +49,15 @@ export function useAuth () {
     loginStatus.value = $t('auth_state.connecting')
 
     try {
-      isAuthenticating.value = true
       setupPostAuthRedirect()
+
+      bookstoreApiStore.closeLoginPanel()
 
       if (!wallet.value) {
         connectResult = await connect(connectorId)
       }
+
+      isAuthenticating.value = true
       if (!wallet.value) {
         return
       }
