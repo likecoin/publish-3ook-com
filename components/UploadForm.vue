@@ -626,7 +626,7 @@ const estimateArweaveFee = async (): Promise<void> => {
         ipfsHash: (isEbook && isEncryptEBookData.value) ? undefined : record.ipfsHash
       })
       results.push({
-        ...(priceResult as ArweaveEstimate),
+        ...priceResult,
         ipfsHash: record.ipfsHash
       })
     }

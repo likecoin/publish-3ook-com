@@ -1,4 +1,5 @@
 import { getApiEndpoints } from '~/constant/api'
+import type { ArweaveEstimate } from '~/types'
 
 class Provider {
   pubKey: Buffer | null = null
@@ -147,9 +148,9 @@ export async function estimateBundlrFilePrice ({
 }: {
   fileSize: number
   ipfsHash?: string
-}) {
+}): Promise<ArweaveEstimate> {
   const apiEndpoints = getApiEndpoints()
-  const data = await $fetch(apiEndpoints.API_POST_ARWEAVE_V2_ESTIMATE, {
+  const data = await $fetch<ArweaveEstimate>(apiEndpoints.API_POST_ARWEAVE_V2_ESTIMATE, {
     method: 'POST',
     body: {
       fileSize,

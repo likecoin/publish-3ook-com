@@ -24,22 +24,15 @@
 </template>
 
 <script setup lang="ts">
-import { useWriteContract } from '@wagmi/vue'
-import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
-import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { ISCNFormData } from '~/utils/iscn.type'
 
 const walletStore = useWalletStore()
-const {
-  LIKE_EVM_NFT_TARGET_ADDRESS
-} = useRuntimeConfig().public
 
 const { wallet, signer } = storeToRefs(walletStore)
 const { validateWalletConsistency } = walletStore
-const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
+const { createNFTClass } = useNFTClassCreator()
 const { stripHtmlTags, formatLanguage, getFileType } = useFileUploadLocal()
 const { showErrorToast } = useToastComposable()
-const { LIKE_NFT_CONTRACT_ADDRESS } = useRuntimeConfig().public
 
 const iscnFormData = ref<ISCNFormData>({
   type: 'Book',
@@ -71,9 +64,6 @@ const iscnFormData = ref<ISCNFormData>({
 const uploadStatus = ref('')
 const error = ref('')
 const emit = defineEmits(['handleSubmit', 'submit', 'formValidChange'])
-
-const { payload, computeISCNSalt } = useISCN({ iscnFormData })
-const { writeContractAsync } = useWriteContract()
 
 const formError = computed(() => validateISCNForm(iscnFormData.value))
 
@@ -172,54 +162,7 @@ const submitToISCN = async (): Promise<void> => {
 
   try {
     uploadStatus.value = 'signing'
-    const contentMetadata = formatISCNTxPayload(payload.value)
-    const metadata = {
-      ...contentMetadata,
-      name: contentMetadata.name,
-      description: contentMetadata.description,
-      symbol: 'BOOK',
-      image: contentMetadata?.thumbnailUrl || '',
-      external_link: contentMetadata?.url || '',
-      nft_meta_collection_id: 'nft_book',
-      nft_meta_collection_name: 'NFT Book',
-      nft_meta_collection_description: 'NFT Book by Liker Land',
-      recordTimestamp: new Date().toISOString()
-    }
-    const salt = computeISCNSalt(wallet.value)
-
-    const txParams = {
-      address: LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
-      abi: LIKE_NFT_ABI,
-      functionName: 'newBookNFT' as const,
-      args: [
-        salt,
-        {
-          creator: wallet.value,
-          updaters: [wallet.value, LIKE_EVM_NFT_TARGET_ADDRESS],
-          minters: [wallet.value, LIKE_EVM_NFT_TARGET_ADDRESS],
-          config: {
-            name: metadata.name,
-            symbol: 'BOOK',
-            metadata: JSON.stringify(metadata),
-            max_supply: DEFAULT_MAX_SUPPLY
-          }
-        },
-        500
-      ]
-    }
-
-    await assertSufficientBalanceForTransaction({
-      wallet: wallet.value,
-      ...txParams
-    })
-
-    const txHash = await writeContractAsync(txParams)
-    const receipt = await waitForTransactionReceipt({ hash: txHash })
-    // eslint-disable-next-line no-console
-    console.log(receipt)
-    if (!receipt || receipt.status !== 'success') { throw new Error('INVALID_RECEIPT') }
-    if (!receipt.logs?.[0]?.address) { throw new Error('INVALID_CLASS_ID') }
-    const classId = receipt.logs[0].address
+    const { classId, txHash } = await createNFTClass({ iscnFormData })
     uploadStatus.value = 'success'
     emit('submit', {
       iscnId: classId,

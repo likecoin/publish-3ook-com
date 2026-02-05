@@ -72,20 +72,17 @@
 </template>
 
 <script setup lang="ts">
-import { useWriteContract } from '@wagmi/vue'
 import type { ISCNData } from '~/types'
 import { NFT_DEFAULT_MINT_AMOUNT, NFT_DEFAULT_RESTOCK_AMOUNT } from '~/constant'
-import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
+import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 
 const { t: $t } = useI18n()
-const { writeContractAsync } = useWriteContract()
 const {
   getClassOwner,
   getClassMetadata,
-  checkNFTClassIsBookNFT,
-  getClassCurrentTokenId
+  checkNFTClassIsBookNFT
 } = useNFTContractReader()
-const { checkAndGrantMinter, assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
+const { mintNFT } = useNFTMinter()
 
 const store = useWalletStore()
 const { wallet } = storeToRefs(store)
@@ -280,12 +277,14 @@ async function mintNFTs () {
     if (!wallet.value) { return }
     if (!nftMintDefaultData.value) { throw new Error($t('errors.no_mint_data')) }
     const defaultMetadata = nftMintDefaultData.value.metadata
-    const nfts = [...Array(formState.mintCount).keys()].map((i) => {
+    const { BOOK3_URL } = useRuntimeConfig().public
+
+    const buildTokenMetadata = (index: number, fromTokenId: bigint): NFTTokenMetadata => {
       const {
         image: dataImage,
         metadata: dataMetadataString,
         ...otherData
-      } = nftMintListData?.value?.[i] || {}
+      } = nftMintListData?.value?.[index] || {}
       const dataMetadata = JSON.parse(dataMetadataString || '{}')
       const data = { ...defaultMetadata, ...dataMetadata }
       if (dataImage) { data.image = dataImage }
@@ -299,46 +298,19 @@ async function mintNFTs () {
         }
       })
       return {
-        id: -1,
-        metadata: data
+        image: data.image,
+        external_url: `${BOOK3_URL}/store/${classId.value}/${Number(fromTokenId) + index}`,
+        description: `Copy #${Number(fromTokenId) + index} of ${data.name}`,
+        name: `${data.name} #${Number(fromTokenId) + index}`,
+        attributes: data.attributes
       }
-    })
-    const fromTokenId = await getClassCurrentTokenId(classId.value)
-    const { BOOK3_URL } = useRuntimeConfig().public
-    await checkAndGrantMinter({
-      classId: classId.value,
-      wallet: wallet.value
-    })
-
-    const txParams = {
-      address: classId.value as `0x${string}`,
-      abi: LIKE_NFT_CLASS_ABI,
-      functionName: 'safeMintWithTokenId' as const,
-      args: [
-        fromTokenId,
-        Array(formState.mintCount).fill(wallet.value),
-        Array(formState.mintCount).fill(''),
-        nfts.map((nft, index) => JSON.stringify({
-          image: nft.metadata.image,
-          external_url: `${BOOK3_URL}/store/${classId.value}/${Number(fromTokenId) + index}`,
-          description: `Copy #${Number(fromTokenId) + index} of ${nft.metadata.name}`,
-          name: `${nft.metadata.name} #${Number(fromTokenId) + index}`,
-          attributes: nft.metadata.attributes
-        }))
-      ]
     }
 
-    await assertSufficientBalanceForTransaction({
-      wallet: wallet.value,
-      ...txParams
+    await mintNFT({
+      classId: classId.value,
+      mintCount: formState.mintCount,
+      buildTokenMetadata
     })
-
-    const res = await writeContractAsync(txParams)
-    const receipt = await waitForTransactionReceipt({ hash: res })
-    // eslint-disable-next-line no-console
-    console.log(receipt)
-    if (!receipt || receipt.status !== 'success') { throw new Error('INVALID_RECEIPT') }
-    if (!receipt.logs?.[0]?.topics?.[3]) { throw new Error('INVALID_NFT_ID') }
   } catch (err) {
     throw new Error('MINT_NFT_ERROR:' + (err as Error).toString())
   } finally {
