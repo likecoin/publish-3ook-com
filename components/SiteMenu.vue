@@ -111,6 +111,12 @@ const items = computed(() => {
           to: localeRoute({ name: 'my-books' }),
           exact: true,
           badge: getTotalPendingNFTCount.value
+        },
+        {
+          label: $t('menu.bulk_upload'),
+          icon: 'i-heroicons-arrow-up-tray',
+          to: localeRoute({ name: 'bulk-upload' }),
+          exact: true
         }
       ]
     },
