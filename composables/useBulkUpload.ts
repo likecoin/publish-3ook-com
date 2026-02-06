@@ -83,8 +83,10 @@ export function useBulkUpload () {
   ): Promise<void> {
     const { onProgress } = callbacks
 
-    // Upload cover image
-    if (!book.coverArweaveId && book.coverFile) {
+    if (!book.coverArweaveId) {
+      if (!book.coverFile) {
+        throw new Error('No cover image file found')
+      }
       currentStep.value = 'uploading_cover'
       const coverResult = await uploadToArweave({
         arrayBuffer: await book.coverFile.arrayBuffer(),
@@ -100,7 +102,6 @@ export function useBulkUpload () {
       })
     }
 
-    // Upload ebook file (prefer EPUB, fall back to PDF)
     if (!book.bookArweaveId) {
       const ebookFile = book.epubFile || book.pdfFile
       if (!ebookFile) {
