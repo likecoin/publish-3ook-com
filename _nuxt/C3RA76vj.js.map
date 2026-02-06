@@ -1,0 +1,1 @@
+{"version":3,"file":"C3RA76vj.js","sources":["../../../layouts/page.vue"],"sourcesContent":["<template>\n  <PageContainer>\n    <slot />\n  </PageContainer>\n</template>\n"],"names":["_createBlock","_component_PageContainer","_renderSlot","_ctx"],"mappings":"urBACEA,EAEgBC,EAAA,KAAA,WADd,IAAQ,CAARC,EAAQC,EAAA,OAAA,SAAA"}
