@@ -1,9 +1,9 @@
+import { serializeBook, deserializeBook } from './bulk-upload'
 import type {
   BulkUploadSession,
   BulkUploadBook,
   SerializedBulkUploadBook
-} from './bulk-upload.type'
-import { serializeBook, deserializeBook } from './bulk-upload.type'
+} from '~/types/bulk-upload'
 
 export const BULK_UPLOAD_KEY = 'publish_book_bulk_upload_session'
 

@@ -1,5 +1,5 @@
-import type { BulkUploadBook } from '~/utils/bulk-upload.type'
-import { BookUploadStatus } from '~/utils/bulk-upload.type'
+import type { BulkUploadBook } from '~/types/bulk-upload'
+import { BookUploadStatus } from '~/types/bulk-upload'
 import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'

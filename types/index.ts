@@ -3,3 +3,5 @@ export type { ClassListingPrice, ClassListingData, BookRecord, ProductData, Edit
 export type { PurchaseItem } from './purchase'
 export type { CommissionRow, PayoutRow, PayoutData, PayoutItemDetail } from './payout'
 export type { FileRecord, EpubMetadata, ArweaveEstimate } from './upload'
+export type { BulkUploadCSVRow, BulkUploadBook, SerializedBulkUploadBook, BulkUploadSession, BulkUploadValidationError, ValidatedProgressFields } from './bulk-upload'
+export { BookUploadStatus } from './bulk-upload'

@@ -398,8 +398,9 @@
 import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
 import { getTransactionReceipt } from '@wagmi/vue/actions'
-import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/utils/bulk-upload.type'
-import { BookUploadStatus, parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload.type'
+import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
+import { BookUploadStatus } from '~/types/bulk-upload'
+import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
 import {
   loadBulkUploadSession,
   clearBulkUploadSession,

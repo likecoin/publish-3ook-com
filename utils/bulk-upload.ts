@@ -1,17 +1,6 @@
 import { DEFAULT_PRICE, MINIMAL_PRICE, CSV_DEFAULT_LANGUAGE, CSV_DEFAULT_AUTO_DELIVER, CSV_DEFAULT_ENABLE_DRM, CSV_DEFAULT_EDITION_NAME, CSV_DEFAULT_EDITION_DESCRIPTION } from '~/constant'
-
-export enum BookUploadStatus {
-  PENDING = 'pending',
-  UPLOADING_FILES = 'uploading',
-  FILES_UPLOADED = 'files_uploaded',
-  CREATING_NFT = 'creating_nft',
-  NFT_CREATED = 'nft_created',
-  MINTING = 'minting',
-  MINTED = 'minted',
-  LISTING = 'listing',
-  COMPLETED = 'completed',
-  FAILED = 'failed'
-}
+import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUploadValidationError, ValidatedProgressFields } from '~/types/bulk-upload'
+import { BookUploadStatus } from '~/types/bulk-upload'
 
 export const CSV_REQUIRED_COLUMNS = ['book_title', 'book_description', 'author_name', 'cover_image_filename']
 
@@ -56,121 +45,6 @@ export const CSV_RESULT_COLUMNS = [
   'remark'
 ]
 
-export interface BulkUploadCSVRow {
-  book_title: string
-  book_description: string
-  author_name: string
-  author_description?: string
-  publisher?: string
-  isbn?: string
-  publish_date?: string
-  list_price?: string
-  tags?: string
-  cover_image_filename: string
-  pdf_filename?: string
-  epub_filename?: string
-  edition_name?: string
-  edition_description?: string
-  auto_deliver?: string
-  auto_memo?: string
-  enable_drm?: string
-  language?: string
-  // Resume fields (from result CSV)
-  class_id?: string
-  mint_tx_hash?: string
-  cover_arweave_id?: string
-  book_arweave_id?: string
-  book_arweave_key?: string
-  status?: string
-  remark?: string
-}
-
-export interface BulkUploadBook {
-  id: string
-  rowIndex: number
-  // CSV fields
-  title: string
-  description: string
-  authorName: string
-  authorDescription?: string
-  publisher: string
-  isbn?: string
-  publishDate?: string
-  listPrice: number
-  tags: string[]
-  coverImageFilename: string
-  pdfFilename?: string
-  epubFilename?: string
-  editionName: string
-  editionDescription: string
-  isAutoDeliver: boolean
-  autoMemo: string
-  enableDRM: boolean
-  language: string
-  // Runtime state
-  status: BookUploadStatus
-  error?: string
-  // File references (for matching)
-  coverFile?: File
-  pdfFile?: File
-  epubFile?: File
-  // Progress tracking (persisted for resume)
-  coverArweaveId?: string
-  coverIpfsHash?: string
-  bookArweaveId?: string
-  bookArweaveKey?: string
-  bookIpfsHash?: string
-  classId?: string
-  mintTxHash?: string
-}
-
-export interface SerializedBulkUploadBook {
-  id: string
-  rowIndex: number
-  title: string
-  description: string
-  authorName: string
-  authorDescription?: string
-  publisher: string
-  isbn?: string
-  publishDate?: string
-  listPrice: number
-  tags: string[]
-  coverImageFilename: string
-  pdfFilename?: string
-  epubFilename?: string
-  editionName: string
-  editionDescription: string
-  isAutoDeliver: boolean
-  autoMemo: string
-  enableDRM: boolean
-  language: string
-  status: BookUploadStatus
-  error?: string
-  // Progress tracking
-  coverArweaveId?: string
-  coverIpfsHash?: string
-  bookArweaveId?: string
-  bookArweaveKey?: string
-  bookIpfsHash?: string
-  classId?: string
-  mintTxHash?: string
-}
-
-export interface BulkUploadSession {
-  sessionId: string
-  createdAt: string
-  books: SerializedBulkUploadBook[]
-  currentIndex: number
-}
-
-export interface BulkUploadValidationError {
-  rowIndex: number
-  field: string
-  message: string
-  params?: Record<string, string | number>
-}
-
 export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploadBook {
   const tags = row.tags
     ? row.tags.split(',').map(t => t.trim()).filter(Boolean)
@@ -194,7 +68,7 @@ export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploa
     pdfFilename: row.pdf_filename?.trim() || undefined,
     epubFilename: row.epub_filename?.trim() || undefined,
     editionName: row.edition_name?.trim() || CSV_DEFAULT_EDITION_NAME,
-    editionDescription: row.edition_description?.trim() || CSV_DEFAULT_EDITION_DESCRIPTION,
+    editionDescription: row.edition_description?.trim() || undefined,
     isAutoDeliver: row.auto_deliver?.trim().toLowerCase() !== 'false',
     autoMemo: row.auto_memo?.trim() || '',
     enableDRM: row.enable_drm?.trim().toLowerCase() === 'true',
@@ -328,14 +202,6 @@ export function deserializeBook (serialized: SerializedBulkUploadBook): BulkUplo
   }
 }
 
-export interface ValidatedProgressFields {
-  coverArweaveId?: string
-  bookArweaveId?: string
-  bookArweaveKey?: string
-  classId?: string
-  mintTxHash?: string
-}
-
 const ARWEAVE_ID_REGEX = /^[a-zA-Z0-9_-]{43}$/
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/
 
@@ -383,7 +249,7 @@ export async function generateResultCSV (books: BulkUploadBook[]): Promise<void>
     book.pdfFilename || '',
     book.epubFilename || '',
     book.editionName,
-    book.editionDescription,
+    book.editionDescription || '',
     book.isAutoDeliver ? 'true' : 'false',
     book.autoMemo,
     book.enableDRM ? 'true' : 'false',
