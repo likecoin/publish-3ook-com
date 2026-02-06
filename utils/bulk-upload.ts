@@ -68,7 +68,7 @@ export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploa
     pdfFilename: row.pdf_filename?.trim() || undefined,
     epubFilename: row.epub_filename?.trim() || undefined,
     editionName: row.edition_name?.trim() || CSV_DEFAULT_EDITION_NAME,
-    editionDescription: row.edition_description?.trim() || undefined,
+    editionDescription: row.edition_description?.trim() || CSV_DEFAULT_EDITION_DESCRIPTION,
     isAutoDeliver: row.auto_deliver?.trim().toLowerCase() !== 'false',
     autoMemo: row.auto_memo?.trim() || '',
     enableDRM: row.enable_drm?.trim().toLowerCase() === 'true',
