@@ -140,6 +140,7 @@ export interface BulkUploadValidationError {
   rowIndex: number
   field: string
   message: string
+  params?: Record<string, string | number>
 }
 
 export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploadBook {
@@ -179,35 +180,35 @@ export function validateBook (book: BulkUploadBook): BulkUploadValidationError[]
   const { rowIndex } = book
 
   if (!book.title) {
-    errors.push({ rowIndex, field: 'book_title', message: 'Book title is required' })
+    errors.push({ rowIndex, field: 'book_title', message: 'bulk_upload.error_book_title_required' })
   }
 
   if (!book.description) {
-    errors.push({ rowIndex, field: 'book_description', message: 'Book description is required' })
+    errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_required' })
   }
 
   if (book.description && book.description.length > 1000) {
-    errors.push({ rowIndex, field: 'book_description', message: 'Book description must be 1000 characters or less' })
+    errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_too_long' })
   }
 
   if (!book.authorName) {
-    errors.push({ rowIndex, field: 'author_name', message: 'Author name is required' })
+    errors.push({ rowIndex, field: 'author_name', message: 'bulk_upload.error_author_name_required' })
   }
 
   if (book.listPrice !== 0 && book.listPrice < MINIMAL_PRICE) {
-    errors.push({ rowIndex, field: 'list_price', message: `Price must be 0 (free) or at least ${MINIMAL_PRICE}` })
+    errors.push({ rowIndex, field: 'list_price', message: 'bulk_upload.error_invalid_price', params: { minPrice: MINIMAL_PRICE } })
   }
 
   if (!book.coverImageFilename) {
-    errors.push({ rowIndex, field: 'cover_image_filename', message: 'Cover image filename is required' })
+    errors.push({ rowIndex, field: 'cover_image_filename', message: 'bulk_upload.error_cover_required' })
   }
 
   if (!book.pdfFilename && !book.epubFilename) {
-    errors.push({ rowIndex, field: 'pdf_filename/epub_filename', message: 'At least one ebook file (PDF or EPUB) is required' })
+    errors.push({ rowIndex, field: 'pdf_filename/epub_filename', message: 'bulk_upload.error_ebook_required' })
   }
 
   if (book.autoMemo && !book.isAutoDeliver) {
-    errors.push({ rowIndex, field: 'auto_memo', message: 'auto_memo requires auto_deliver to be true' })
+    errors.push({ rowIndex, field: 'auto_memo', message: 'bulk_upload.error_auto_memo_requires_auto_deliver' })
   }
 
   return errors
@@ -230,7 +231,8 @@ export function validateBooks (books: BulkUploadBook[]): BulkUploadValidationErr
         errors.push({
           rowIndex: book.rowIndex,
           field,
-          message: `Duplicate filename "${name}" (also used in row ${existing.rowIndex} ${existing.field})`
+          message: 'bulk_upload.error_duplicate_filename',
+          params: { filename: name, otherRow: existing.rowIndex, otherField: existing.field }
         })
       } else {
         seen.set(key, { rowIndex: book.rowIndex, field })

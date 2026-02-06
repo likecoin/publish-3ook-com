@@ -51,6 +51,17 @@
             @click="downloadCSVTemplate"
           />
         </div>
+
+        <details class="text-sm">
+          <summary class="cursor-pointer font-medium text-gray-600 hover:text-gray-900">
+            {{ $t('bulk_upload.csv_column_reference') }}
+          </summary>
+          <UTable
+            class="mt-2"
+            :columns="csvColumnRefColumns"
+            :data="csvColumnRefData"
+          />
+        </details>
       </UCard>
 
       <!-- Validation Errors -->
@@ -61,11 +72,13 @@
         variant="soft"
         :title="$t('bulk_upload.validation_errors')"
       >
-        <ul class="list-disc pl-4 mt-2">
-          <li v-for="(error, index) in validationErrors" :key="index">
-            Row {{ error.rowIndex }}: {{ error.field }} - {{ error.message }}
-          </li>
-        </ul>
+        <template #description>
+          <ul class="list-disc pl-4 mt-2">
+            <li v-for="(error, index) in validationErrors" :key="index">
+              {{ $t('bulk_upload.error_row', { row: error.rowIndex }) }}: {{ error.field }} - {{ $t(error.message, error.params || {}) }}
+            </li>
+          </ul>
+        </template>
       </UAlert>
 
       <!-- CSV-level Errors -->
@@ -154,16 +167,18 @@
           variant="soft"
           :title="$t('bulk_upload.extra_files_warning', { count: extraFiles.length })"
         >
-          <div class="flex flex-wrap gap-1 mt-2">
-            <UBadge
-              v-for="file in extraFiles"
-              :key="file.name"
-              variant="soft"
-              color="warning"
-            >
-              {{ file.name }}
-            </UBadge>
-          </div>
+          <template #description>
+            <div class="flex flex-wrap gap-1 mt-2">
+              <UBadge
+                v-for="file in extraFiles"
+                :key="file.name"
+                variant="soft"
+                color="warning"
+              >
+                {{ file.name }}
+              </UBadge>
+            </div>
+          </template>
         </UAlert>
 
         <div class="flex justify-between">
@@ -281,9 +296,9 @@
         </div>
 
         <UProgress
-          v-if="completedBooks.length < books.length"
-          :value="(completedBooks.length / books.length) * 100"
-          color="primary"
+          v-if="isProcessing || failedBooks.length > 0 || (completedBooks.length > 0 && completedBooks.length < books.length)"
+          :value="((completedBooks.length + failedBooks.length) / books.length) * 100"
+          :color="failedBooks.length > 0 ? 'error' : 'primary'"
         />
 
         <!-- Current Processing Status -->
@@ -321,7 +336,7 @@
           </template>
           <template #actions-cell="{ row }">
             <UButton
-              v-if="row.original.classId"
+              v-if="row.original.status === BookUploadStatus.COMPLETED && row.original.classId"
               :to="`/my-books/status/${row.original.classId}`"
               variant="link"
               size="xs"
@@ -419,6 +434,31 @@ const fileMatchingStatus = computed(() =>
     epubFilename: book.epubFilename || ''
   }))
 )
+
+const csvColumnRefColumns = [
+  { accessorKey: 'column', header: $t('bulk_upload.csv_col_column') },
+  { accessorKey: 'required', header: $t('bulk_upload.csv_col_required') },
+  { accessorKey: 'defaultValue', header: $t('bulk_upload.csv_col_default') },
+  { accessorKey: 'description', header: $t('bulk_upload.csv_col_description') }
+]
+
+const csvColumnRefData = CSV_ALL_COLUMNS.map((col) => {
+  const isRequired = CSV_REQUIRED_COLUMNS.includes(col)
+  const defaults: Record<string, string> = {
+    list_price: '4.99',
+    edition_name: '標準版',
+    edition_description: '標準數位版',
+    auto_deliver: 'true',
+    enable_drm: 'false',
+    language: 'zh'
+  }
+  return {
+    column: col,
+    required: isRequired ? '✓' : '',
+    defaultValue: defaults[col] || '—',
+    description: $t(`bulk_upload.csv_col_desc_${col}`)
+  }
+})
 
 const reviewData = computed(() =>
   books.value.map(book => ({
