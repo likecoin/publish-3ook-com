@@ -106,6 +106,22 @@
           </h3>
         </template>
 
+        <UAlert
+          v-if="missingOptionalColumns.length > 0"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          :title="$t('bulk_upload.missing_optional_columns_warning')"
+        >
+          <template #description>
+            <ul class="list-disc pl-4 mt-2 text-sm">
+              <li v-for="col in missingOptionalColumns" :key="col.column">
+                <code>{{ col.column }}</code> → {{ $t('bulk_upload.csv_col_default') }}: <strong>{{ col.defaultValue }}</strong>
+              </li>
+            </ul>
+          </template>
+        </UAlert>
+
         <p class="text-sm text-gray-600">
           {{ $t('bulk_upload.select_files_description', { count: books.length }) }}
         </p>
@@ -235,7 +251,7 @@
         >
           <template #enableDRM-cell="{ row }">
             <UBadge
-              :color="'warning'"
+              :color="row.original.enableDRM ? 'primary' : 'neutral'"
               variant="soft"
             >
               {{ row.original.enableDRM ? $t('common.yes') : $t('common.no') }}
@@ -243,7 +259,7 @@
           </template>
           <template #isAutoDeliver-cell="{ row }">
             <UBadge
-              :color="row.original.isAutoDeliver ? 'success' : 'neutral'"
+              :color="row.original.isAutoDeliver ? 'primary' : 'neutral'"
               variant="soft"
             >
               {{ row.original.isAutoDeliver ? $t('common.yes') : $t('common.no') }}
@@ -383,7 +399,7 @@ import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
 import { getTransactionReceipt } from '@wagmi/vue/actions'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/utils/bulk-upload.type'
-import { BookUploadStatus, parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS } from '~/utils/bulk-upload.type'
+import { BookUploadStatus, parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload.type'
 import {
   loadBulkUploadSession,
   clearBulkUploadSession,
@@ -403,6 +419,7 @@ const isVerifyingProgress = ref(false)
 const books = ref<BulkUploadBook[]>([])
 const validationErrors = ref<BulkUploadValidationError[]>([])
 const csvError = ref('')
+const missingOptionalColumns = ref<{ column: string; defaultValue: string }[]>([])
 const selectedFiles = ref<File[]>([])
 const isProcessing = ref(false)
 const isPaused = ref(false)
@@ -464,18 +481,10 @@ const csvColumnRefColumns = [
 
 const csvColumnRefData = CSV_ALL_COLUMNS.map((col) => {
   const isRequired = CSV_REQUIRED_COLUMNS.includes(col)
-  const defaults: Record<string, string> = {
-    list_price: '4.99',
-    edition_name: '標準版',
-    edition_description: '標準數位版',
-    auto_deliver: 'true',
-    enable_drm: 'false',
-    language: 'zh'
-  }
   return {
     column: col,
     required: isRequired ? '✓' : '',
-    defaultValue: defaults[col] || '—',
+    defaultValue: CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS[col] || '—',
     description: $t(`bulk_upload.csv_col_desc_${col}`)
   }
 })
@@ -546,13 +555,17 @@ async function parseCSV (csvContent: string) {
       return
     }
 
+    missingOptionalColumns.value = Object.entries(CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS)
+      .filter(([col]) => !headers.includes(col))
+      .map(([column, defaultValue]) => ({ column, defaultValue }))
+
     const hasProgressColumns = headers.includes('status') || headers.includes('class_id')
     const parsedBooks: BulkUploadBook[] = []
     const allErrors: BulkUploadValidationError[] = []
 
     records.forEach((row: any, index: number) => {
       const book = parseCSVRow(row, index + 1)
-      const errors = validateBook(book)
+      const errors = validateBook(book, row as BulkUploadCSVRow)
 
       if (errors.length > 0) {
         allErrors.push(...errors)
@@ -811,6 +824,7 @@ function resetAll () {
   books.value = []
   validationErrors.value = []
   csvError.value = ''
+  missingOptionalColumns.value = []
   selectedFiles.value = []
   currentStep.value = 'csv'
   isProcessing.value = false
