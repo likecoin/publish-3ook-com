@@ -63,7 +63,7 @@ export function useNFTClassCreator () {
     })
 
     const txHash = await writeContractAsync(txParams)
-    const receipt = await waitForTransactionReceipt({ hash: txHash })
+    const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
 
     if (!receipt || receipt.status !== 'success') {
       throw new Error('NFT class creation failed')

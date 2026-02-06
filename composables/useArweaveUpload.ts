@@ -77,7 +77,7 @@ export function useArweaveUpload () {
       data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}`
     })
 
-    const receipt = await waitForTransactionReceipt({ hash: txHash })
+    const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
     if (!receipt || receipt.status !== 'success') {
       throw new Error('Arweave fee transaction failed')
     }

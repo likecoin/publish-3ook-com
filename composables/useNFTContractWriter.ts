@@ -69,6 +69,7 @@ export const useNFTContractWriter = () => {
         functionName: 'ownerGrantRole',
         args: [roleData, wallet]
       })
+      await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
       // eslint-disable-next-line no-console
       console.log(`Granted ${role} to ${wallet} in class ${classId}. Transaction hash: ${txHash}`)
     }
