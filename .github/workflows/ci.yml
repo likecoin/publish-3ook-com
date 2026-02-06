@@ -1,9 +1,9 @@
-name: CI
+name: ci
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +24,7 @@ jobs:
       - name: Run typecheck
         run: yarn typecheck
 
-      - name: Build project
-        run: yarn build
+      - name: Generate
+        run: yarn generate
         env:
           NODE_OPTIONS: --max_old_space_size=8192
