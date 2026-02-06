@@ -36,6 +36,17 @@ export const CSV_ALL_COLUMNS = [
   'language'
 ]
 
+export const CSV_RESULT_COLUMNS = [
+  ...CSV_ALL_COLUMNS,
+  'class_id',
+  'mint_tx_hash',
+  'cover_arweave_id',
+  'book_arweave_id',
+  'book_arweave_key',
+  'status',
+  'remark'
+]
+
 export interface BulkUploadCSVRow {
   book_title: string
   book_description: string
@@ -55,6 +66,14 @@ export interface BulkUploadCSVRow {
   auto_memo?: string
   enable_drm?: string
   language?: string
+  // Resume fields (from result CSV)
+  class_id?: string
+  mint_tx_hash?: string
+  cover_arweave_id?: string
+  book_arweave_id?: string
+  book_arweave_key?: string
+  status?: string
+  remark?: string
 }
 
 export interface BulkUploadBook {
@@ -284,4 +303,83 @@ export function deserializeBook (serialized: SerializedBulkUploadBook): BulkUplo
     pdfFile: undefined,
     epubFile: undefined
   }
+}
+
+export interface ValidatedProgressFields {
+  coverArweaveId?: string
+  bookArweaveId?: string
+  bookArweaveKey?: string
+  classId?: string
+  mintTxHash?: string
+}
+
+const ARWEAVE_ID_REGEX = /^[a-zA-Z0-9_-]{43}$/
+const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/
+
+export function validateProgressFieldFormats (row: BulkUploadCSVRow): ValidatedProgressFields {
+  const result: ValidatedProgressFields = {}
+
+  if (row.cover_arweave_id && ARWEAVE_ID_REGEX.test(row.cover_arweave_id)) {
+    result.coverArweaveId = row.cover_arweave_id
+  }
+
+  if (row.book_arweave_id && ARWEAVE_ID_REGEX.test(row.book_arweave_id)) {
+    result.bookArweaveId = row.book_arweave_id
+  }
+
+  if (row.book_arweave_key && row.book_arweave_key.trim()) {
+    result.bookArweaveKey = row.book_arweave_key.trim()
+  }
+
+  if (row.class_id && row.class_id.startsWith('0x')) {
+    result.classId = row.class_id
+  }
+
+  if (row.mint_tx_hash && TX_HASH_REGEX.test(row.mint_tx_hash)) {
+    result.mintTxHash = row.mint_tx_hash
+  }
+
+  return result
+}
+
+export async function generateResultCSV (books: BulkUploadBook[]): Promise<void> {
+  const { stringify: csvStringify } = await import('csv-stringify/sync')
+  const { saveAs } = await import('file-saver')
+
+  const rows = books.map(book => [
+    book.title,
+    book.description,
+    book.authorName,
+    book.authorDescription || '',
+    book.publisher,
+    book.isbn || '',
+    book.publishDate || '',
+    book.listPrice,
+    book.tags.join(','),
+    book.coverImageFilename,
+    book.pdfFilename || '',
+    book.epubFilename || '',
+    book.editionName,
+    book.editionDescription,
+    book.isAutoDeliver ? 'true' : 'false',
+    book.autoMemo,
+    book.enableDRM ? 'true' : 'false',
+    book.language,
+    book.classId || '',
+    book.mintTxHash || '',
+    book.coverArweaveId || '',
+    book.bookArweaveId || '',
+    book.bookArweaveKey || '',
+    book.status,
+    book.error || ''
+  ])
+
+  const csvContent = csvStringify(rows, {
+    header: true,
+    columns: CSV_RESULT_COLUMNS
+  })
+
+  const bom = '\uFEFF'
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+  saveAs(blob, `bulk-upload-result-${new Date().toISOString().slice(0, 10)}.csv`)
 }

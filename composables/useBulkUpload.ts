@@ -54,8 +54,10 @@ export function useBulkUpload () {
       }
 
       // Step 3: Mint NFT
-      onStatusChange?.(book.id, BookUploadStatus.MINTING)
-      await mintNFTForBook(book, callbacks)
+      if (!book.mintTxHash) {
+        onStatusChange?.(book.id, BookUploadStatus.MINTING)
+        await mintNFTForBook(book, callbacks)
+      }
 
       // Step 4: Create book listing
       onStatusChange?.(book.id, BookUploadStatus.LISTING)

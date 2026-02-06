@@ -64,6 +64,14 @@
         </details>
       </UCard>
 
+      <!-- Verifying Progress Loading -->
+      <UCard v-if="isVerifyingProgress" :ui="{ body: 'space-y-4' }">
+        <div class="flex items-center gap-3">
+          <UIcon name="i-heroicons-arrow-path" class="animate-spin text-primary" />
+          <span>{{ $t('bulk_upload.verifying_progress') }}</span>
+        </div>
+      </UCard>
+
       <!-- Validation Errors -->
       <UAlert
         v-if="validationErrors.length > 0 && currentStep === 'csv'"
@@ -283,6 +291,13 @@
                 variant="outline"
                 @click="retryFailed"
               />
+              <UButton
+                v-if="!isProcessing"
+                :label="$t('bulk_upload.download_result_csv')"
+                variant="outline"
+                icon="i-heroicons-arrow-down-tray"
+                @click="generateResultCSV(books)"
+              />
             </div>
           </div>
         </template>
@@ -366,8 +381,9 @@
 <script setup lang="ts">
 import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
-import type { BulkUploadBook, BulkUploadValidationError } from '~/utils/bulk-upload.type'
-import { BookUploadStatus, parseCSVRow, validateBook, validateBooks, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS } from '~/utils/bulk-upload.type'
+import { getTransactionReceipt } from '@wagmi/vue/actions'
+import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/utils/bulk-upload.type'
+import { BookUploadStatus, parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS } from '~/utils/bulk-upload.type'
 import {
   loadBulkUploadSession,
   clearBulkUploadSession,
@@ -378,9 +394,12 @@ import {
 const { t: $t } = useI18n()
 const toast = useToast()
 const { processBooksSequentially, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
+const { getClassMetadata } = useNFTContractReader()
+const { $wagmiConfig } = useNuxtApp()
 
 // State
 const currentStep = ref<'csv' | 'files' | 'review' | 'processing'>('csv')
+const isVerifyingProgress = ref(false)
 const books = ref<BulkUploadBook[]>([])
 const validationErrors = ref<BulkUploadValidationError[]>([])
 const csvError = ref('')
@@ -404,6 +423,7 @@ const failedBooks = computed(() =>
 
 const unmatchedBooks = computed(() =>
   books.value.filter((b) => {
+    if (b.status === BookUploadStatus.COMPLETED) { return false }
     if (b.coverArweaveId && b.bookArweaveId) { return false }
     return !b.coverFile || (!b.pdfFile && !b.epubFile)
   })
@@ -502,7 +522,7 @@ function handleCSVFileUpload (event: Event) {
   reader.readAsText(file)
 }
 
-function parseCSV (csvContent: string) {
+async function parseCSV (csvContent: string) {
   validationErrors.value = []
   csvError.value = ''
 
@@ -526,6 +546,7 @@ function parseCSV (csvContent: string) {
       return
     }
 
+    const hasProgressColumns = headers.includes('status') || headers.includes('class_id')
     const parsedBooks: BulkUploadBook[] = []
     const allErrors: BulkUploadValidationError[] = []
 
@@ -537,6 +558,16 @@ function parseCSV (csvContent: string) {
         allErrors.push(...errors)
       }
 
+      if (hasProgressColumns) {
+        const csvRow = row as BulkUploadCSVRow
+        const progress = validateProgressFieldFormats(csvRow)
+        Object.assign(book, progress)
+
+        if (csvRow.status === BookUploadStatus.COMPLETED && progress.classId) {
+          book.status = BookUploadStatus.COMPLETED
+        }
+      }
+
       parsedBooks.push(book)
     })
 
@@ -545,6 +576,15 @@ function parseCSV (csvContent: string) {
     if (allErrors.length > 0) {
       validationErrors.value = allErrors
       return
+    }
+
+    if (hasProgressColumns) {
+      isVerifyingProgress.value = true
+      try {
+        await verifyProgressFieldsOnChain(parsedBooks)
+      } finally {
+        isVerifyingProgress.value = false
+      }
     }
 
     books.value = parsedBooks
@@ -562,6 +602,30 @@ function parseCSV (csvContent: string) {
       description: error.message,
       color: 'error'
     })
+  }
+}
+
+async function verifyProgressFieldsOnChain (booksToVerify: BulkUploadBook[]) {
+  for (const book of booksToVerify) {
+    if (book.classId) {
+      try {
+        await getClassMetadata(book.classId)
+      } catch {
+        book.classId = undefined
+        book.mintTxHash = undefined
+        if (book.status === BookUploadStatus.COMPLETED) {
+          book.status = BookUploadStatus.PENDING
+        }
+      }
+    }
+
+    if (book.mintTxHash) {
+      try {
+        await getTransactionReceipt($wagmiConfig, { hash: book.mintTxHash as `0x${string}` })
+      } catch {
+        book.mintTxHash = undefined
+      }
+    }
   }
 }
 
