@@ -278,7 +278,7 @@
 
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
-import type { FileRecord } from '~/types'
+import type { FileRecord, ISCNFormData } from '~/types'
 
 import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH, BOOK_CATEGORIES } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'

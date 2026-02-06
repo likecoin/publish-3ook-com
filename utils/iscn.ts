@@ -1,4 +1,4 @@
-import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from './iscn.type'
+import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from '~/types/iscn'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
 function isValidImageUrl (urlString: string): boolean {

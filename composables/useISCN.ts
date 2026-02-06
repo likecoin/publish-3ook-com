@@ -1,6 +1,6 @@
 import { sha256, toHex, fromHex, stringToHex } from 'viem'
 import { getApiEndpoints } from '~/constant/api'
-import type { ISCNFormData, ClassMetadata } from '~/utils/iscn.type'
+import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 
 const getFileMimeType = (fileType: string): string => {
   switch (fileType) {

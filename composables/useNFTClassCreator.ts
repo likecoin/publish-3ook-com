@@ -2,7 +2,7 @@ import { useWriteContract } from '@wagmi/vue'
 import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import { formatISCNTxPayload } from '~/utils/iscn'
-import type { ISCNFormData } from '~/utils/iscn.type'
+import type { ISCNFormData } from '~/types/iscn'
 
 export function useNFTClassCreator () {
   const walletStore = useWalletStore()

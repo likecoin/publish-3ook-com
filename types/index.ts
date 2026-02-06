@@ -1,4 +1,4 @@
-export type { ISCNContentMetadata, ISCNData } from './iscn'
+export type { ISCNContentMetadata, ISCNData, PotentialActionTarget, PotentialAction, ClassMetadata, ISCNRegisterPayload, ISCNFormData, ISCNTxPayload, ISCNValidationData } from './iscn'
 export type { ClassListingPrice, ClassListingData, BookRecord, ProductData, EditionTableRow } from './book'
 export type { PurchaseItem } from './purchase'
 export type { CommissionRow, PayoutRow, PayoutData, PayoutItemDetail } from './payout'

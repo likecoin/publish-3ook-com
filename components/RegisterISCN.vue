@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ISCNFormData } from '~/utils/iscn.type'
+import type { ISCNFormData } from '~/types/iscn'
 
 const walletStore = useWalletStore()
 

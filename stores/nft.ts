@@ -1,4 +1,4 @@
-import type { ClassMetadata } from '~/utils/iscn.type'
+import type { ClassMetadata } from '~/types/iscn'
 
 export const useNftStore = defineStore('nft', () => {
   const { LIKE_CO_API } = useRuntimeConfig().public

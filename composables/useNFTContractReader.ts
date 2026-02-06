@@ -1,6 +1,6 @@
 import { readContract } from '@wagmi/vue/actions'
 import { LIKE_NFT_ABI, LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
-import type { ClassMetadata } from '~/utils/iscn.type'
+import type { ClassMetadata } from '~/types/iscn'
 
 function parseURIString (dataString: string): ClassMetadata | null {
   const dataUriPattern = /^data:application\/json(?:; ?charset=utf-8|; ?utf8)?(;base64)?,/i

@@ -47,7 +47,7 @@
 import { useWriteContract } from '@wagmi/vue'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
-import type { ClassMetadata, ISCNFormData } from '~/utils/iscn.type'
+import type { ClassMetadata, ISCNFormData } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 
 // eslint-disable-next-line func-call-spacing
