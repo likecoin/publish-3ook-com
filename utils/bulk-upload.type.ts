@@ -1,4 +1,4 @@
-import { DEFAULT_PRICE, MINIMAL_PRICE } from '~/constant'
+import { DEFAULT_PRICE, MINIMAL_PRICE, CSV_DEFAULT_LANGUAGE, CSV_DEFAULT_AUTO_DELIVER, CSV_DEFAULT_ENABLE_DRM, CSV_DEFAULT_EDITION_NAME, CSV_DEFAULT_EDITION_DESCRIPTION } from '~/constant'
 
 export enum BookUploadStatus {
   PENDING = 'pending',
@@ -35,6 +35,15 @@ export const CSV_ALL_COLUMNS = [
   'enable_drm',
   'language'
 ]
+
+export const CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS: Record<string, string> = {
+  list_price: String(DEFAULT_PRICE),
+  edition_name: CSV_DEFAULT_EDITION_NAME,
+  edition_description: CSV_DEFAULT_EDITION_DESCRIPTION,
+  auto_deliver: String(CSV_DEFAULT_AUTO_DELIVER),
+  enable_drm: String(CSV_DEFAULT_ENABLE_DRM),
+  language: CSV_DEFAULT_LANGUAGE
+}
 
 export const CSV_RESULT_COLUMNS = [
   ...CSV_ALL_COLUMNS,
@@ -184,17 +193,19 @@ export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploa
     coverImageFilename: row.cover_image_filename?.trim() || '',
     pdfFilename: row.pdf_filename?.trim() || undefined,
     epubFilename: row.epub_filename?.trim() || undefined,
-    editionName: row.edition_name?.trim() || '標準版',
-    editionDescription: row.edition_description?.trim() || '標準數位版',
+    editionName: row.edition_name?.trim() || CSV_DEFAULT_EDITION_NAME,
+    editionDescription: row.edition_description?.trim() || CSV_DEFAULT_EDITION_DESCRIPTION,
     isAutoDeliver: row.auto_deliver?.trim().toLowerCase() !== 'false',
     autoMemo: row.auto_memo?.trim() || '',
     enableDRM: row.enable_drm?.trim().toLowerCase() === 'true',
-    language: row.language?.trim() || 'zh',
+    language: row.language?.trim() || CSV_DEFAULT_LANGUAGE,
     status: BookUploadStatus.PENDING
   }
 }
 
-export function validateBook (book: BulkUploadBook): BulkUploadValidationError[] {
+const VALID_BOOLEAN_VALUES = ['true', 'false', '']
+
+export function validateBook (book: BulkUploadBook, rawRow?: BulkUploadCSVRow): BulkUploadValidationError[] {
   const errors: BulkUploadValidationError[] = []
   const { rowIndex } = book
 
@@ -228,6 +239,18 @@ export function validateBook (book: BulkUploadBook): BulkUploadValidationError[]
 
   if (book.autoMemo && !book.isAutoDeliver) {
     errors.push({ rowIndex, field: 'auto_memo', message: 'bulk_upload.error_auto_memo_requires_auto_deliver' })
+  }
+
+  // Validate boolean fields contain valid values
+  if (rawRow) {
+    const autoDeliverVal = rawRow.auto_deliver?.trim().toLowerCase() ?? ''
+    if (autoDeliverVal && !VALID_BOOLEAN_VALUES.includes(autoDeliverVal)) {
+      errors.push({ rowIndex, field: 'auto_deliver', message: 'bulk_upload.error_invalid_boolean', params: { field: 'auto_deliver', value: rawRow.auto_deliver!.trim() } })
+    }
+    const enableDrmVal = rawRow.enable_drm?.trim().toLowerCase() ?? ''
+    if (enableDrmVal && !VALID_BOOLEAN_VALUES.includes(enableDrmVal)) {
+      errors.push({ rowIndex, field: 'enable_drm', message: 'bulk_upload.error_invalid_boolean', params: { field: 'enable_drm', value: rawRow.enable_drm!.trim() } })
+    }
   }
 
   return errors
