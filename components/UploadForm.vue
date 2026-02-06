@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import ePub from 'epubjs'
+import ePub from '@likecoin/epub-ts'
 import { BigNumber } from 'bignumber.js'
 import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
@@ -482,7 +482,7 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
     const epubMetadata: EpubMetadata = {}
 
     // Get metadata
-    const { metadata } = book.packaging
+    const metadata = book.packaging?.metadata
     if (metadata) {
       epubMetadata.epubFileName = file.name
       epubMetadata.title = metadata.title
@@ -509,21 +509,25 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
     }
 
     // Get tags
-    const opfFilePath = book.path.toString()
-    const opfContent = await book.archive.getText(opfFilePath)
-    const parser = new DOMParser()
-    const opfDocument = parser.parseFromString(opfContent, 'application/xml')
-    const dcSubjectElements = opfDocument.querySelectorAll(
-      'dc\\:subject, subject'
-    )
-    const subjects: string[] = []
-    dcSubjectElements.forEach((element) => {
-      const subject = element.textContent
-      if (subject) {
-        subjects.push(subject)
+    if (book.path && book.archive) {
+      const opfFilePath = book.path.toString()
+      const opfContent = await book.archive.getText(opfFilePath)
+      if (opfContent) {
+        const parser = new DOMParser()
+        const opfDocument = parser.parseFromString(opfContent, 'application/xml')
+        const dcSubjectElements = opfDocument.querySelectorAll(
+          'dc\\:subject, subject'
+        )
+        const subjects: string[] = []
+        dcSubjectElements.forEach((element) => {
+          const subject = element.textContent
+          if (subject) {
+            subjects.push(subject)
+          }
+        })
+        epubMetadata.tags = subjects
       }
-    })
-    epubMetadata.tags = subjects
+    }
 
     // Get cover file
     const coverUrl = await book.coverUrl()
@@ -533,7 +537,7 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }
       if (blobData) {
         const coverFile = new File(
           [blobData],
-          `${metadata.title}_cover.jpeg`,
+          `${metadata?.title || 'cover'}_cover.jpeg`,
           {
             type: 'image/jpeg'
           }
