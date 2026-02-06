@@ -22,6 +22,12 @@ export const NFT_DEFAULT_RESTOCK_AMOUNT = 50
 
 export const LIKE_ADDRESS_REGEX = /^like1[ac-hj-np-z02-9]{38}$/
 
+export const CSV_DEFAULT_LANGUAGE = 'zh'
+export const CSV_DEFAULT_AUTO_DELIVER = true
+export const CSV_DEFAULT_ENABLE_DRM = false
+export const CSV_DEFAULT_EDITION_NAME = '標準版'
+export const CSV_DEFAULT_EDITION_DESCRIPTION = '標準數位版'
+
 export const AFFILIATION_CHANNEL_DEFAULT = 'liker_land'
 
 export const AFFILIATION_CHANNELS = [

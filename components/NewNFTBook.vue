@@ -315,6 +315,7 @@ import type { FormError } from '#ui/types'
 
 import {
   DEFAULT_PRICE_STRING,
+  DEFAULT_STOCK,
   USD_PRICING_OPTIONS,
   DEFAULT_MAX_SUPPLY,
   MINIMAL_PRICE
@@ -377,7 +378,7 @@ const prices = ref<PriceFormItem[]>([
     price: '-1',
     deliveryMethod: 'auto',
     autoMemo: '',
-    stock: 100,
+    stock: DEFAULT_STOCK,
     name: $t('prices.standard_edition'),
     description: '',
     isAllowCustomPrice: isAllowCustomPrice.value,
@@ -622,7 +623,7 @@ function addMorePrice () {
     price: DEFAULT_PRICE_STRING,
     deliveryMethod: 'auto',
     autoMemo: '',
-    stock: 100,
+    stock: DEFAULT_STOCK,
     name: '增訂版',
     description: '',
     isAllowCustomPrice: true,
