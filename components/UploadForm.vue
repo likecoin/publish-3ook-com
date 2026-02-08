@@ -193,7 +193,6 @@
 </template>
 
 <script setup lang="ts">
-import ePub from '@likecoin/epub-ts'
 import { BigNumber } from 'bignumber.js'
 import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
@@ -476,6 +475,7 @@ const validateEpub = async (buffer: ArrayBuffer): Promise<{ errors: string, warn
 
 const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer; file: File }) => {
   try {
+    const { default: ePub } = await import('@likecoin/epub-ts')
     const book = ePub(buffer)
     await book.ready
 
