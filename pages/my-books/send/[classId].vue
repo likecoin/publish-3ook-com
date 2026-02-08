@@ -111,13 +111,14 @@
       <UFormField
         :label="$t('form.nft_id_label')"
         class="mb-4"
-        :error="nftIdError"
-        :ui="{ description: 'text-gray-400 dark:text-gray-600' }"
+        :error="nftIdError || validationError || false"
+        :help="isNftIdConfirmed && isSingleQuantity ? $t('button.confirmed') : undefined"
+        :ui="{ description: 'text-gray-400 dark:text-gray-600', help: 'text-green-500' }"
       >
         <div class="flex flex-wrap items-center justify-center gap-2 w-full">
           <div
             v-if="orderInfo.quantity"
-            :class="[orderInfo.quantity > 1 ? 'w-full' : 'grow', 'space-y-1', 'relative']"
+            :class="[orderInfo.quantity > 1 ? 'w-full' : 'grow', 'space-y-1']"
           >
             <UInput
               v-for="i in orderInfo.quantity"
@@ -131,8 +132,6 @@
                 <span class="text-sm text-gray-400 dark:text-gray-600">#{{ i }}</span>
               </template>
             </UInput>
-            <span v-if="validationError" class="text-xs text-red-500 absolute" v-text="validationError" />
-            <span v-else-if="isNftIdConfirmed && isSingleQuantity" class="text-xs text-green-500 absolute" v-text="$t('button.confirmed')" />
           </div>
           <UButton
             v-if="isSingleQuantity"
@@ -224,7 +223,7 @@ const { getNFTMetadata, getNFTOwner } = useNFTContractReader()
 const nftIdInput = ref([] as string[])
 const nftIds = ref([] as number[])
 const isVerifyingNFTId = ref(false)
-const nftIdError = ref('')
+const nftIdError = ref<string | false>(false)
 const isNftIdConfirmed = ref(false)
 const nftIdInputRef = ref<string[] | undefined>(undefined)
 
@@ -260,7 +259,7 @@ watch(nftIdInput, (_, oldVal) => {
   if (oldVal && oldVal.length > 0 && isSingleQuantity.value) {
     isNftIdConfirmed.value = false
     validationError.value = ''
-    nftIdError.value = ''
+    nftIdError.value = false
   }
 }, { deep: true })
 
@@ -281,7 +280,7 @@ async function handleConfirmNFTId () {
 
   try {
     validationError.value = ''
-    nftIdError.value = ''
+    nftIdError.value = false
 
     nftIds.value = nftIdInput.value.filter(id => id.trim() !== '').map(id => Number(id))
 
@@ -349,7 +348,7 @@ async function fetchNFTMetadata () {
 async function fetchNextNFTId (_count = 1) {
   try {
     nftIds.value = []
-    nftIdError.value = ''
+    nftIdError.value = false
     if (!wallet.value || !signer.value) {
       await validateWalletConsistency()
     }
