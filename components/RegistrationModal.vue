@@ -92,9 +92,9 @@ const props = withDefaults(defineProps<RegistrationModalProps>(), {
 
 const accountId = ref(props.accountId || '')
 const isAccountIdHidden = ref(props.isAccountIdHidden || false)
-const accountIdError = ref('')
+const accountIdError = ref<string | false>(false)
 const email = ref(props.email || '')
-const emailError = ref('')
+const emailError = ref<string | false>(false)
 const displayName = ref(props.displayName || '')
 
 const emit = defineEmits<{
@@ -110,8 +110,8 @@ watch(accountIdError, (newValue) => {
 })
 
 function handleRegisterButtonClick () {
-  accountIdError.value = ''
-  emailError.value = ''
+  accountIdError.value = false
+  emailError.value = false
 
   if (!accountId.value) {
     accountIdError.value = $t('registration_modal_error_account_id_required')

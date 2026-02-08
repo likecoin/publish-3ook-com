@@ -631,13 +631,13 @@ const allChannelTableRows = computed(() => {
 })
 const hasMoreThanOneChannel = computed(() => allChannelTableRows.value.length > 1)
 
-const productIdError = ref('')
+const productIdError = ref<string | false>(false)
 watch(productId, () => {
-  productIdError.value = ''
+  productIdError.value = false
 })
-const customChannelInputError = ref('')
+const customChannelInputError = ref<string | false>(false)
 watch(customChannelInput, () => {
-  customChannelInputError.value = ''
+  customChannelInputError.value = false
 })
 
 const creatingAffiliationLinkState = ref('')
@@ -813,10 +813,10 @@ async function fetchProductData (id: string) {
 }
 
 async function createAffiliationLink () {
-  productIdError.value = ''
+  productIdError.value = false
   productDataList.value = undefined
   productEditionSelectModelValue.value = {}
-  customChannelInputError.value = ''
+  customChannelInputError.value = false
   creatingAffiliationLinkState.value = ''
 
   if (!canCreateAffiliationLink.value) {
