@@ -1786,14 +1786,12 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.4.0"
 
-"@likecoin/epub-ts@^0.3.97":
-  version "0.3.97"
-  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.3.97.tgz#8d86195f9b85588361c4e2b7ca88a8515e1f50b1"
-  integrity sha512-7YWkAGyJY3nuZHVCbc5Z3JWM/An8Plhx6x9MAumSbZfRKLlb1G5f0bGP+7QY8W1y6SnT+QCFFXZOwlwcTU8Evg==
+"@likecoin/epub-ts@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.4.1.tgz#6888a05bb4cd4b73dfa1ef37ff965368ef2fd3c3"
+  integrity sha512-FY5hqgaYNtyDlsK+mQ9PX4PTgEUdm+f0Fj+qx9NOqpBGDcRgkxfCCSeKc0NSglX7pSJ9xVOLKW3KvnmI86JTAg==
   dependencies:
-    "@xmldom/xmldom" "^0.7.5"
-    jszip "^3.7.1"
-    localforage "^1.10.0"
+    jszip "^3.10.1"
 
 "@likecoin/epubcheck-ts@^0.3.3":
   version "0.3.3"
@@ -5859,11 +5857,6 @@
     "@walletconnect/window-getters" "^1.0.1"
     tslib "1.14.1"
 
-"@xmldom/xmldom@^0.7.5":
-  version "0.7.13"
-  resolved "https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.7.13.tgz"
-  integrity sha512-lm2GW5PkosIzccsaZIz7tp8cPADSIlIHWDFTR1N0SzfinhhYgeIQjFMz4rYzanCScr3DqQLeomUDArp6MWKm+g==
-
 abbrev@^3.0.0:
   version "3.0.1"
   resolved "https://registry.npmjs.org/abbrev/-/abbrev-3.0.1.tgz"
@@ -9869,7 +9862,7 @@ jsonc-eslint-parser@^2.3.0:
     espree "^9.0.0"
     semver "^7.3.5"
 
-jszip@^3.10.1, jszip@^3.7.1:
+jszip@^3.10.1:
   version "3.10.1"
   resolved "https://registry.npmjs.org/jszip/-/jszip-3.10.1.tgz"
   integrity sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==
@@ -10149,7 +10142,7 @@ local-pkg@^1.1.2:
     pkg-types "^2.3.0"
     quansync "^0.2.11"
 
-localforage@^1.10.0, localforage@^1.7.4:
+localforage@^1.7.4:
   version "1.10.0"
   resolved "https://registry.npmjs.org/localforage/-/localforage-1.10.0.tgz"
   integrity sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==
