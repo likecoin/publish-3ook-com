@@ -80,9 +80,27 @@
         </table>
       </div>
     </div>
-    <div class="flex items-center gap-2 mt-4">
-      <UCheckbox v-model="isEncryptEBookData" :label="$t('upload_form.drm_encrypt_disable')" />
-    </div>
+    <URadioGroup
+      v-model="drmOption"
+      :items="drmOptions"
+      orientation="vertical"
+      :ui="{ label: 'text-left' }"
+    >
+      <template #label="{ item }">
+        <span>{{ item.label }}</span>
+        <UTooltip v-if="item.value === 'open'" :text="$t('upload_form.drm_option_open_tooltip')">
+          <a
+            :href="$t('upload_form.drm_option_open_tooltip')"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center ml-1"
+            @click.stop
+          >
+            <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-gray-400 hover:text-primary-500" />
+          </a>
+        </UTooltip>
+      </template>
+    </URadioGroup>
     <UModal
       :open="!!uploadStatus"
       :dismissible="false"
@@ -232,7 +250,12 @@ const arweaveFee = ref(new BigNumber(0))
 const arweaveFeeMap = ref({} as Record<string, string>)
 const arweaveFeeTargetAddress = ref('')
 const sentArweaveTransactionInfo = ref(new Map())
-const isEncryptEBookData = ref(props.defaultEncrypted)
+const drmOption = ref(props.defaultEncrypted ? 'encrypted' : 'open')
+const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
+const drmOptions = computed(() => [
+  { label: $t('upload_form.drm_option_encrypted'), value: 'encrypted' },
+  { label: $t('upload_form.drm_option_open'), value: 'open' }
+])
 
 const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
 const uploadStatus = ref('')
