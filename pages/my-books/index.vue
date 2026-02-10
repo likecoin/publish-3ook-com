@@ -41,11 +41,11 @@
                     :items-per-page="tableRowsPerPage"
                     :total="tableRows.length"
                   />
-                  <span class="text-sm leading-5">
+                  <span class="text-sm leading-5 whitespace-nowrap">
                     {{ $t('table.showing_rows', { from: tablePageRowFrom, to: tablePageRowTo, total: tableRows.length }) }}
                   </span>
                 </div>
-                <UInput v-model="searchInput" icon="i-heroicons-magnifying-glass-20-solid" :placeholder="$t('table.search_placeholder')" />
+                <UInput v-model="searchInput" class="max-w-xs" icon="i-heroicons-magnifying-glass-20-solid" :placeholder="$t('table.search_placeholder')" />
               </div>
             </template>
             <!-- Table -->
@@ -61,9 +61,9 @@
                     :key="price"
                   >
                     <UBadge
-                      :label="`$${price}`"
+                      :label="`${price}`"
                       variant="solid"
-                      size="xs"
+                      size="md"
                       color="neutral"
                       class="rounded-full"
                     />
