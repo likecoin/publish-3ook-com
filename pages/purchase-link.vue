@@ -223,22 +223,22 @@
                   {
                     label: $t('purchase_link.print_all_qr'),
                     icon: 'i-heroicons-qr-code',
-                    click: printAllQRCodes,
+                    onSelect: printAllQRCodes,
                   },
                   {
                     label: $t('purchase_link.download_qr_codes'),
                     icon: 'i-heroicons-arrow-down-on-square-stack',
-                    click: downloadAllQRCodes,
+                    onSelect: downloadAllQRCodes,
                   },
                   {
                     label: $t('purchase_link.download_all_links'),
                     icon: 'i-heroicons-arrow-down-on-square-stack',
-                    click: downloadAllPurchaseLinks,
+                    onSelect: downloadAllPurchaseLinks,
                   },
                   {
                     label: $t('purchase_link.shorten_all_links'),
                     icon: 'i-heroicons-sparkles',
-                    click: shortenAllLinks,
+                    onSelect: shortenAllLinks,
                   },
                 ]
               ]"
@@ -283,27 +283,27 @@
                     {
                       label: $t('purchase_link.print_qr_codes'),
                       icon: 'i-heroicons-qr-code',
-                      click: printQRCodesByChannelId(channel.id),
+                      onSelect: printQRCodesByChannelId(channel.id),
                     },
                     {
                       label: $t('purchase_link.download_qr_codes'),
                       icon: 'i-heroicons-arrow-down-on-square-stack',
-                      click: downloadQRCodesByChannelId(channel.id),
+                      onSelect: downloadQRCodesByChannelId(channel.id),
                     },
                     {
                       label: $t('purchase_link.download_links'),
                       icon: 'i-heroicons-arrow-down-on-square-stack',
-                      click: downloadPurchaseLinksByChannelId(channel.id),
+                      onSelect: downloadPurchaseLinksByChannelId(channel.id),
                     },
                     {
                       label: $t('purchase_link.shorten_links'),
                       icon: 'i-heroicons-sparkles',
-                      click: shortenLinksByChannelId(channel.id),
+                      onSelect: shortenLinksByChannelId(channel.id),
                     },
                     {
                       label: $t('purchase_link.share_table'),
                       icon: 'i-heroicons-document-duplicate',
-                      click: shareTableLinkByChannelId(channel.id),
+                      onSelect: shareTableLinkByChannelId(channel.id),
                     },
                   ]
                 ]"

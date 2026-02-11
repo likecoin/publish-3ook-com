@@ -355,17 +355,17 @@
                         {
                           label: $t('buttons.print_all_qr'),
                           icon: 'i-heroicons-qr-code',
-                          click: printAllQRCodes,
+                          onSelect: printAllQRCodes,
                         },
                         {
                           label: $t('buttons.download_all_links'),
                           icon: 'i-heroicons-arrow-down-on-square-stack',
-                          click: downloadAllPurchaseLinks,
+                          onSelect: downloadAllPurchaseLinks,
                         },
                         {
                           label: $t('buttons.shorten_all_links'),
                           icon: 'i-heroicons-sparkles',
-                          click: shortenAllLinks,
+                          onSelect: shortenAllLinks,
                         },
                       ]
                     ]"
@@ -705,7 +705,7 @@ function getOrdersTableActionItems (purchaseListItem: PurchaseItem) {
     actionItems.push([{
       label: $t('status_page.send_reminder_email'),
       icon: 'i-heroicons-envelope',
-      click: () => {
+      onSelect: () => {
         sendReminderEmail(purchaseListItem)
       }
     }])
@@ -715,7 +715,7 @@ function getOrdersTableActionItems (purchaseListItem: PurchaseItem) {
     actionItems.push([{
       label: $t('status_page.mark_complete'),
       icon: 'i-heroicons-check-circle',
-      click: () => {
+      onSelect: () => {
         hardSetStatusToCompleted(purchaseListItem)
       }
     }])
