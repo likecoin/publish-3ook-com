@@ -116,7 +116,14 @@
               {{ $t('upload_form.do_not_close_upload') }}
             </p>
           </div>
+          <template v-if="totalFiles > 1">
+            <div class="flex items-center text-sm text-gray-600">
+              <span>{{ $t('upload_form.processing_file', { index: currentFileIndex, total: totalFiles }) }}</span>
+            </div>
+            <UProgress :value="Math.round((completedFiles / totalFiles) * 100)" color="primary" class="w-full" />
+          </template>
           <UProgress
+            v-else
             animation="carousel"
             color="primary"
             class="w-full"
@@ -266,6 +273,9 @@ const canProceedAnyway = ref(true)
 const showEpubValidationModal = ref(false)
 const epubValidationErrors = ref('')
 const epubValidationWarnings = ref('')
+const currentFileIndex = ref(0)
+const totalFiles = ref(0)
+const completedFiles = ref(0)
 
 const computedFormClasses = computed(() => [
   'block',
@@ -897,11 +907,13 @@ const onSubmitInternal = async () => {
     if (!signer.value) {
       throw new Error('SIGNER_NOT_INITED')
     }
-    uploadStatus.value = $t('upload_form.uploading')
-
     if (!fileRecords.value.some(file => file.fileBlob)) {
       throw new Error('NO_FILE_TO_UPLOAD')
     }
+
+    totalFiles.value = fileRecords.value.length
+    currentFileIndex.value = 0
+    completedFiles.value = 0
 
     uploadStatus.value = $t('upload_form.uploading')
     if (
@@ -917,8 +929,10 @@ const onSubmitInternal = async () => {
     for (let i = 0; i < fileRecords.value.length; i += 1) {
       const record = fileRecords.value[i]
       if (record) {
+        currentFileIndex.value = i + 1
         uploadStatus.value = $t('upload_form.processing_file', { index: i + 1, total: fileRecords.value.length })
         await submitToArweave(record)
+        completedFiles.value++
       }
     }
   } catch (error) {
@@ -935,6 +949,9 @@ const onSubmitInternal = async () => {
     return
   } finally {
     uploadStatus.value = ''
+    totalFiles.value = 0
+    currentFileIndex.value = 0
+    completedFiles.value = 0
   }
 
   fileRecords.value.forEach((record: FileRecord, index: number) => {
