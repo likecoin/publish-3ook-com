@@ -739,7 +739,7 @@ const submitToArweave = async (record: FileRecord): Promise<void> => {
 
   if (!txHash) {
     // HACK: override ipfsHash memo to match arweave tag later
-    txHash = await sendArweaveFeeTx(record, ipfsHash)
+    txHash = await sendArweaveFeeTx(record)
     if (!txHash) {
       throw new Error('TRANSACTION_NOT_SENT')
     }
@@ -777,7 +777,7 @@ const submitToArweave = async (record: FileRecord): Promise<void> => {
   emit('arweaveUploaded', { arweaveId, arweaveLink })
 }
 
-const sendArweaveFeeTx = async (record: FileRecord, memoIpfsOveride?: string): Promise<string> => {
+const sendArweaveFeeTx = async (record: FileRecord): Promise<string> => {
   const recordIpfsHash = record.ipfsHash
   if (!recordIpfsHash) {
     throw new Error('IPFS_HASH_NOT_SET')
@@ -803,22 +803,16 @@ const sendArweaveFeeTx = async (record: FileRecord, memoIpfsOveride?: string): P
     throw new Error('ARWEAVE_FEE_NOT_SET')
   }
   uploadStatus.value = $t('upload_form.checking_balance')
-  const memo = JSON.stringify({
-    ipfs: memoIpfsOveride || recordIpfsHash,
-    fileSize: record.fileBlob?.size || 0
-  })
   try {
     await assertSufficientBalanceForTransfer({
       wallet: wallet.value,
       to: arweaveFeeTargetAddress.value as `0x${string}`,
-      value: parseEther(arweaveFeeMap.value[recordIpfsHash]),
-      data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}` as `0x${string}`
+      value: parseEther(arweaveFeeMap.value[recordIpfsHash])
     })
     uploadStatus.value = $t('upload_form.waiting_signature')
     const transactionHash = await sendTransactionAsync({
       to: arweaveFeeTargetAddress.value as `0x${string}`,
-      value: parseEther(arweaveFeeMap.value[recordIpfsHash]),
-      data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}`
+      value: parseEther(arweaveFeeMap.value[recordIpfsHash])
     })
     uploadStatus.value = $t('upload_form.waiting_confirmation')
     const receipt = await waitForTransactionReceipt({ hash: transactionHash })

@@ -59,22 +59,15 @@ export function useArweaveUpload () {
       throw new Error('Failed to get Arweave fee estimate')
     }
 
-    const memo = JSON.stringify({
-      ipfs: ipfsHash,
-      fileSize: buffer.length
-    })
-
     await assertSufficientBalanceForTransfer({
       wallet: wallet.value!,
       to: evmAddress as `0x${string}`,
-      value: parseEther(ETH),
-      data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}` as `0x${string}`
+      value: parseEther(ETH)
     })
 
     const txHash = await sendTransactionAsync({
       to: evmAddress as `0x${string}`,
-      value: parseEther(ETH),
-      data: `0x${Buffer.from(memo, 'utf-8').toString('hex')}`
+      value: parseEther(ETH)
     })
 
     const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
