@@ -200,7 +200,8 @@ async function loadBook () {
     const imageType = detectImageType(arrayBuffer)
     if (imageType) {
       detectedType.value = imageType
-      const blob = new Blob([arrayBuffer])
+      const mimeType = imageType === 'PNG' ? 'image/png' : 'image/jpeg'
+      const blob = new Blob([arrayBuffer], { type: mimeType })
       imageObjectUrl.value = URL.createObjectURL(blob)
       return
     }
