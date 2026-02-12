@@ -81,6 +81,7 @@ export default defineNuxtConfig({
         ],
         'worker-src': ["'self'", 'blob:'],
         'img-src': ["'self'", 'data:', '*', 'blob:'],
+        'base-uri': ["'self'"],
         // NOTE: Resolve Safari force HTTPS in development
         'upgrade-insecure-requests': !isDevelopment
       }

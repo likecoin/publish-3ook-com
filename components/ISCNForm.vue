@@ -172,6 +172,16 @@
             />
           </UFormField>
           <UButton
+            v-if="fingerprint.url"
+            :to="localeRoute({ name: 'preview-book', query: { url: fingerprint.url } })"
+            target="_blank"
+            rel="noopener noreferrer"
+            :label="$t('iscn_form.preview')"
+            icon="i-heroicons-eye"
+            variant="ghost"
+            size="xs"
+          />
+          <UButton
             v-if="formData.contentFingerprints.length > 1"
             color="error"
             class="w-min"
@@ -223,6 +233,16 @@
             <UInput v-model="download.fileName" :placeholder="$t('iscn_form.enter_filename')" />
           </UFormField>
         </div>
+        <UButton
+          v-if="download.url"
+          :to="localeRoute({ name: 'preview-book', query: { url: download.url } })"
+          target="_blank"
+          rel="noopener noreferrer"
+          :label="$t('iscn_form.preview')"
+          icon="i-heroicons-eye"
+          variant="ghost"
+          size="xs"
+        />
       </div>
       <UButton
         variant="soft"
@@ -283,6 +303,7 @@ import type { FileRecord, ISCNFormData } from '~/types'
 import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH, BOOK_CATEGORIES } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
+const localeRoute = useLocaleRoute()
 
 const downloadTypeOptions = [
   { label: 'EPUB', value: 'epub' },

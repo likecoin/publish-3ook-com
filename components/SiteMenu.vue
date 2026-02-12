@@ -163,6 +163,11 @@ const items = computed(() => {
           target: '_blank'
         },
         {
+          label: $t('menu.preview_book'),
+          icon: 'i-heroicons-eye',
+          to: localeRoute({ name: 'preview-book' })
+        },
+        {
           label: $t('menu.settings'),
           icon: 'i-heroicons-cog-8-tooth',
           to: localeRoute({ name: 'settings' }),
