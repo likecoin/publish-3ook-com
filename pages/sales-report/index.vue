@@ -235,7 +235,7 @@ async function loadCommissionHistory () {
   } catch (e) {
     console.error(e)
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }
@@ -252,7 +252,7 @@ async function loadPayoutHistory () {
     payoutHistory.value = (data as { payouts?: PayoutRow[] })?.payouts || []
   } catch (e) {
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }

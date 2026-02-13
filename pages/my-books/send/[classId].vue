@@ -339,7 +339,7 @@ async function fetchNFTMetadata () {
       message: (err as Error).toString(),
       actions: []
     }
-    showErrorToast((err as Error).toString())
+    showErrorToast(err)
   } finally {
     isVerifyingNFTId.value = false
   }
@@ -471,7 +471,7 @@ async function onSendNFTStart () {
       message: (err as Error).toString(),
       actions: []
     }
-    showErrorToast((err as Error).toString())
+    showErrorToast(err)
   } finally {
     isLoading.value = false
   }

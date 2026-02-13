@@ -137,7 +137,7 @@ import { parse as csvParse } from 'csv-parse/sync'
 import { convertArrayOfObjectsToCSV } from '~/utils'
 const { t: $t } = useI18n()
 
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 
@@ -220,12 +220,7 @@ async function shortenURLWithBitly ({ url, key }: { url: string, key: string }) 
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: (error as Error).toString(),
-      duration: 0,
-      color: 'error'
-    })
+    showErrorToast(error)
     return 'error'
   }
 }
@@ -254,12 +249,7 @@ async function shortenURLWithShortIO ({ url, key }: { url: string, key: string }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: (error as Error).toString(),
-      duration: 0,
-      color: 'error'
-    })
+    showErrorToast(error)
     return 'error'
   }
 }
@@ -278,12 +268,7 @@ async function startShorteningURLs () {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: (error as Error).toString(),
-      duration: 0,
-      color: 'error'
-    })
+    showErrorToast(error)
     return
   }
 
@@ -309,12 +294,7 @@ async function startShorteningURLs () {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: (error as Error).toString(),
-      duration: 0,
-      color: 'error'
-    })
+    showErrorToast(error)
   }
 }
 

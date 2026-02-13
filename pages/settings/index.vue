@@ -108,7 +108,7 @@ async function refreshStripeConnectStatus () {
     await stripeStore.refreshStripeConnectStatus(wallet.value)
   } catch (e) {
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }
@@ -135,7 +135,7 @@ async function onLoginToStripe () {
     // eslint-disable-next-line no-console
     console.error(e)
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }
@@ -162,7 +162,7 @@ async function onSetupStripe () {
     // eslint-disable-next-line no-console
     console.error(e)
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }
@@ -180,7 +180,7 @@ async function handleClickStripeButton () {
     // eslint-disable-next-line no-console
     console.error(e)
     error.value = (e as Error).toString()
-    showErrorToast((e as Error).toString())
+    showErrorToast(e)
   } finally {
     isLoading.value = false
   }

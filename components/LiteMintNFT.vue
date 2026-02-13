@@ -262,7 +262,7 @@ async function startNFTMintFlow () {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    showErrorToast(`${$t('nft.mint_error')}: ${(error as Error).toString()}`)
+    showErrorToast(`${$t('nft.mint_error')}: ${(error as Error).message || error}`)
   } finally {
     isLoading.value = false
   }

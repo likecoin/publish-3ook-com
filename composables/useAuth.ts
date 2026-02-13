@@ -5,7 +5,7 @@ export function useAuth () {
   const { connect, disconnect, signMessageMemo } = store
   const { authenticate, clearSession, fetchBookListing } = bookstoreApiStore
   const { intercomToken } = storeToRefs(bookstoreApiStore)
-  const toast = useToast()
+  const { showErrorToast } = useToastComposable()
   const { t: $t } = useI18n()
 
   const isAuthenticating = ref(false)
@@ -80,12 +80,7 @@ export function useAuth () {
           try {
             isRegistered = await store.register({ walletAddress, email, loginMethod, magicUserId, magicDIDToken })
           } catch (error) {
-            toast.add({
-              icon: 'i-heroicons-exclamation-circle',
-              title: (error as Error).toString(),
-              duration: 10000,
-              color: 'error'
-            })
+            showErrorToast(error)
           }
         }
 
@@ -116,12 +111,7 @@ export function useAuth () {
       }
       // eslint-disable-next-line no-console
       console.error(err)
-      toast.add({
-        icon: 'i-heroicons-exclamation-circle',
-        title: (err as Error).toString(),
-        duration: 0,
-        color: 'error'
-      })
+      showErrorToast(err)
     } finally {
       isAuthenticating.value = false
       loginStatus.value = ''
