@@ -116,7 +116,14 @@
               {{ $t('upload_form.do_not_close_upload') }}
             </p>
           </div>
+          <template v-if="totalFiles > 1">
+            <div class="flex items-center text-sm text-gray-600">
+              <span>{{ $t('upload_form.processing_file', { index: currentFileIndex, total: totalFiles }) }}</span>
+            </div>
+            <UProgress :value="Math.round((completedFiles / totalFiles) * 100)" color="primary" class="w-full" />
+          </template>
           <UProgress
+            v-else
             animation="carousel"
             color="primary"
             class="w-full"
@@ -266,6 +273,9 @@ const canProceedAnyway = ref(true)
 const showEpubValidationModal = ref(false)
 const epubValidationErrors = ref('')
 const epubValidationWarnings = ref('')
+const currentFileIndex = ref(0)
+const totalFiles = ref(0)
+const completedFiles = ref(0)
 
 const computedFormClasses = computed(() => [
   'block',
@@ -698,13 +708,20 @@ const estimateArweaveFee = async (): Promise<void> => {
   }
 }
 
-const submitToArweave = async (record: FileRecord): Promise<void> => {
+interface PreparedUpload {
+  txHash: string
+  buffer: Buffer
+  ipfsHash: string
+  key?: string
+}
+
+const prepareArweaveSubmission = async (record: FileRecord): Promise<PreparedUpload | null> => {
   const existingData =
     sentArweaveTransactionInfo.value.get(record.ipfsHash) || {}
   const { transactionHash, arweaveId: uploadArweaveId } = existingData
 
   if (uploadArweaveId || !record.fileBlob) {
-    return
+    return null
   }
 
   let txHash = transactionHash
@@ -745,26 +762,30 @@ const submitToArweave = async (record: FileRecord): Promise<void> => {
     }
   }
 
-  const { arweaveId, arweaveLink } = await uploadSingleFileToBundlr(buffer, {
+  return { txHash, buffer, ipfsHash: ipfsHash as string, key }
+}
+
+const executeArweaveUpload = async (record: FileRecord, prepared: PreparedUpload): Promise<void> => {
+  const { arweaveId, arweaveLink } = await uploadSingleFileToBundlr(prepared.buffer, {
     fileSize: record.fileBlob?.size || 0,
-    ipfsHash: ipfsHash as string,
+    ipfsHash: prepared.ipfsHash,
     fileType: record.fileType as string,
-    txHash,
+    txHash: prepared.txHash,
     token: token.value,
-    key
+    key: prepared.key
   })
 
   if (!arweaveId) {
-    throw new Error(`Failed to upload file ${record.fileName} with IPFS hash ${ipfsHash}`)
+    throw new Error(`Failed to upload file ${record.fileName} with IPFS hash ${prepared.ipfsHash}`)
   }
 
   const uploadedData =
-  sentArweaveTransactionInfo.value.get(record.ipfsHash) || {}
+    sentArweaveTransactionInfo.value.get(record.ipfsHash) || {}
   sentArweaveTransactionInfo.value.set(record.ipfsHash, {
     ...uploadedData,
     arweaveId,
     arweaveLink,
-    arweaveKey: key
+    arweaveKey: prepared.key
   })
   if (record.fileName?.endsWith('cover.jpeg')) {
     const metadata = epubMetadataList.value.find(
@@ -775,6 +796,7 @@ const submitToArweave = async (record: FileRecord): Promise<void> => {
     }
   }
   emit('arweaveUploaded', { arweaveId, arweaveLink })
+  completedFiles.value++
 }
 
 const sendArweaveFeeTx = async (record: FileRecord): Promise<string> => {
@@ -897,11 +919,13 @@ const onSubmitInternal = async () => {
     if (!signer.value) {
       throw new Error('SIGNER_NOT_INITED')
     }
-    uploadStatus.value = $t('upload_form.uploading')
-
     if (!fileRecords.value.some(file => file.fileBlob)) {
       throw new Error('NO_FILE_TO_UPLOAD')
     }
+
+    totalFiles.value = fileRecords.value.length
+    currentFileIndex.value = 0
+    completedFiles.value = 0
 
     uploadStatus.value = $t('upload_form.uploading')
     if (
@@ -914,13 +938,28 @@ const onSubmitInternal = async () => {
       await setEbookCoverFromImages()
     }
 
+    // Pipeline: collect next signature while previous file uploads
+    let pendingUpload: Promise<void> = Promise.resolve()
+
     for (let i = 0; i < fileRecords.value.length; i += 1) {
       const record = fileRecords.value[i]
       if (record) {
-        uploadStatus.value = $t('upload_form.processing_file', { index: i + 1, total: fileRecords.value.length })
-        await submitToArweave(record)
+        currentFileIndex.value = i + 1
+        // Prepare: encrypt + sign transaction (interactive, requires wallet)
+        const prepared = await prepareArweaveSubmission(record)
+        if (prepared) {
+          // Chain upload after previous upload completes, but don't await here
+          // so the next file's signature can be collected concurrently
+          const prevUpload = pendingUpload
+          pendingUpload = prevUpload.then(() => executeArweaveUpload(record, prepared))
+        } else {
+          completedFiles.value++
+        }
       }
     }
+
+    // Wait for the last upload to finish
+    await pendingUpload
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
@@ -935,6 +974,9 @@ const onSubmitInternal = async () => {
     return
   } finally {
     uploadStatus.value = ''
+    totalFiles.value = 0
+    currentFileIndex.value = 0
+    completedFiles.value = 0
   }
 
   fileRecords.value.forEach((record: FileRecord, index: number) => {
