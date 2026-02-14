@@ -1793,10 +1793,10 @@
   dependencies:
     jszip "^3.10.1"
 
-"@likecoin/epubcheck-ts@^0.3.3":
-  version "0.3.3"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.3.tgz#695637a45ffdf760dcba40cc3a77aac39948ff22"
-  integrity sha512-zOr13IsZxXdrxTCq+PATkGlQbGvbatzoHVEfduof7kRF3wQR9zQaRXIeWUT+NMb/geZjkH9TLVRUb28UPcF9sw==
+"@likecoin/epubcheck-ts@^0.3.7":
+  version "0.3.7"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.7.tgz#c21f09b14870794a54b7b89af65411c321f0ac2c"
+  integrity sha512-eYp97z7LMUawbuI78/yRyaQRjSHxpkLE/Wy3wHJtFH0RmVSnV3SzfCiW0PmFv7yfEfETI4QFrCvi75GzbI3PLw==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
