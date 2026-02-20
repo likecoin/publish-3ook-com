@@ -307,7 +307,7 @@
 </template>
 
 <script setup lang="ts">
-import { whenever } from '@vueuse/core'
+import { useObjectUrl, whenever } from '@vueuse/core'
 import { MdEditor, config, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 
@@ -396,20 +396,7 @@ const connectedWallets = ref<Record<string, number>>({})
 
 const signatureImage = ref<File | null>(null)
 const hasExistingSignatureImage = ref(false)
-const signatureImagePreview = ref<string | null>(null)
-
-watch(signatureImage, (newFile) => {
-  if (signatureImagePreview.value) {
-    URL.revokeObjectURL(signatureImagePreview.value)
-  }
-  signatureImagePreview.value = newFile ? URL.createObjectURL(newFile) : null
-})
-
-onBeforeUnmount(() => {
-  if (signatureImagePreview.value) {
-    URL.revokeObjectURL(signatureImagePreview.value)
-  }
-})
+const signatureImagePreview = useObjectUrl(signatureImage)
 
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 
