@@ -10,6 +10,19 @@ export interface ArweaveUploadResult {
   arweaveKey?: string
 }
 
+export interface PreparedArweaveUpload {
+  txHash: string
+  buffer: Buffer
+  ipfsHash: string
+  key?: string
+  fileType: string
+  fileSize: number
+}
+
+export type PrepareArweaveUploadResult =
+  | PreparedArweaveUpload
+  | { alreadyExists: true; result: ArweaveUploadResult }
+
 export function useArweaveUpload () {
   const walletStore = useWalletStore()
   const bookstoreApiStore = useBookstoreApiStore()
@@ -22,12 +35,12 @@ export function useArweaveUpload () {
   const { sendTransactionAsync } = useSendTransaction()
   const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
 
-  async function uploadToArweave (params: {
+  async function prepareArweaveUpload (params: {
     arrayBuffer: ArrayBuffer
     fileSize: number
     fileType: string
     encrypt: boolean
-  }): Promise<ArweaveUploadResult> {
+  }): Promise<PrepareArweaveUploadResult> {
     let buffer = Buffer.from(params.arrayBuffer)
     let ipfsHash = await calculateIPFSHash(buffer) || ''
     let key: string | undefined
@@ -48,10 +61,13 @@ export function useArweaveUpload () {
 
     if (existingArweaveId) {
       return {
-        arweaveId: existingArweaveId,
-        arweaveLink: `${ARWEAVE_ENDPOINT}/${existingArweaveId}`,
-        arweaveKey: key,
-        ipfsHash
+        alreadyExists: true,
+        result: {
+          arweaveId: existingArweaveId,
+          arweaveLink: `${ARWEAVE_ENDPOINT}/${existingArweaveId}`,
+          arweaveKey: key,
+          ipfsHash
+        }
       }
     }
 
@@ -75,21 +91,38 @@ export function useArweaveUpload () {
       throw new Error('Arweave fee transaction failed')
     }
 
-    const { arweaveId, arweaveLink } = await uploadSingleFileToBundlr(buffer, {
-      fileSize: buffer.length,
-      ipfsHash,
-      fileType: params.fileType,
-      txHash,
+    return { txHash, buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length }
+  }
+
+  async function executeArweaveUpload (prepared: PreparedArweaveUpload): Promise<ArweaveUploadResult> {
+    const { arweaveId, arweaveLink } = await uploadSingleFileToBundlr(prepared.buffer, {
+      fileSize: prepared.fileSize,
+      ipfsHash: prepared.ipfsHash,
+      fileType: prepared.fileType,
+      txHash: prepared.txHash,
       token: token.value,
-      key
+      key: prepared.key
     })
 
     if (!arweaveId) {
       throw new Error('Failed to upload file to Arweave')
     }
 
-    return { arweaveId, arweaveLink, arweaveKey: key, ipfsHash }
+    return { arweaveId, arweaveLink, arweaveKey: prepared.key, ipfsHash: prepared.ipfsHash }
   }
 
-  return { uploadToArweave }
+  async function uploadToArweave (params: {
+    arrayBuffer: ArrayBuffer
+    fileSize: number
+    fileType: string
+    encrypt: boolean
+  }): Promise<ArweaveUploadResult> {
+    const prepareResult = await prepareArweaveUpload(params)
+    if ('alreadyExists' in prepareResult) {
+      return prepareResult.result
+    }
+    return executeArweaveUpload(prepareResult)
+  }
+
+  return { prepareArweaveUpload, executeArweaveUpload, uploadToArweave }
 }

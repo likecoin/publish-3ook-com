@@ -5,9 +5,6 @@ export interface FileRecord {
   fileBlob?: Blob
   ipfsHash?: string
   fileSHA256?: string
-  encryptedIpfsHash?: string | null
-  encryptedBuffer?: Buffer<ArrayBuffer> | null
-  encryptionKey?: string | null
   fileData?: string
   arweaveId?: string
   arweaveLink?: string

@@ -15,7 +15,7 @@ export function useBulkUpload () {
   const { wallet, signer } = storeToRefs(walletStore)
   const { validateWalletConsistency } = walletStore
   const { newBookListing } = bookstoreApiStore
-  const { uploadToArweave } = useArweaveUpload()
+  const { prepareArweaveUpload, executeArweaveUpload } = useArweaveUpload()
   const { createNFTClass } = useNFTClassCreator()
   const { mintNFT } = useNFTMinter()
   const { BOOK3_URL } = useRuntimeConfig().public
@@ -81,24 +81,38 @@ export function useBulkUpload () {
     callbacks: ProcessingCallbacks
   ): Promise<void> {
     const { onProgress } = callbacks
+    let pendingUpload: Promise<void> = Promise.resolve()
 
     if (!book.coverArweaveId) {
       if (!book.coverFile) {
         throw new Error('No cover image file found')
       }
       currentStep.value = 'uploading_cover'
-      const coverResult = await uploadToArweave({
+      const coverPrepare = await prepareArweaveUpload({
         arrayBuffer: await book.coverFile.arrayBuffer(),
         fileSize: book.coverFile.size,
         fileType: book.coverFile.type,
         encrypt: false
       })
-      book.coverArweaveId = coverResult.arweaveId
-      book.coverIpfsHash = coverResult.ipfsHash
-      onProgress?.(book.id, {
-        coverArweaveId: coverResult.arweaveId,
-        coverIpfsHash: coverResult.ipfsHash
-      })
+      if ('alreadyExists' in coverPrepare) {
+        const coverResult = coverPrepare.result
+        book.coverArweaveId = coverResult.arweaveId
+        book.coverIpfsHash = coverResult.ipfsHash
+        onProgress?.(book.id, {
+          coverArweaveId: coverResult.arweaveId,
+          coverIpfsHash: coverResult.ipfsHash
+        })
+      } else {
+        pendingUpload = executeArweaveUpload(coverPrepare)
+          .then((coverResult) => {
+            book.coverArweaveId = coverResult.arweaveId
+            book.coverIpfsHash = coverResult.ipfsHash
+            onProgress?.(book.id, {
+              coverArweaveId: coverResult.arweaveId,
+              coverIpfsHash: coverResult.ipfsHash
+            })
+          })
+      }
     }
 
     if (!book.bookArweaveId) {
@@ -108,23 +122,45 @@ export function useBulkUpload () {
       }
 
       currentStep.value = 'uploading_ebook'
-      const bookResult = await uploadToArweave({
+      const bookPrepare = await prepareArweaveUpload({
         arrayBuffer: await ebookFile.arrayBuffer(),
         fileSize: ebookFile.size,
         fileType: ebookFile.type,
         encrypt: book.enableDRM
       })
-      book.bookArweaveId = bookResult.arweaveId
-      book.bookArweaveKey = bookResult.arweaveKey
-      book.bookArweaveLink = bookResult.arweaveLink
-      book.bookIpfsHash = bookResult.ipfsHash
-      onProgress?.(book.id, {
-        bookArweaveId: bookResult.arweaveId,
-        bookArweaveKey: bookResult.arweaveKey,
-        bookArweaveLink: bookResult.arweaveLink,
-        bookIpfsHash: bookResult.ipfsHash
-      })
+      if ('alreadyExists' in bookPrepare) {
+        await pendingUpload
+        const bookResult = bookPrepare.result
+        book.bookArweaveId = bookResult.arweaveId
+        book.bookArweaveKey = bookResult.arweaveKey
+        book.bookArweaveLink = bookResult.arweaveLink
+        book.bookIpfsHash = bookResult.ipfsHash
+        onProgress?.(book.id, {
+          bookArweaveId: bookResult.arweaveId,
+          bookArweaveKey: bookResult.arweaveKey,
+          bookArweaveLink: bookResult.arweaveLink,
+          bookIpfsHash: bookResult.ipfsHash
+        })
+      } else {
+        const prevUpload = pendingUpload
+        pendingUpload = prevUpload.then(() =>
+          executeArweaveUpload(bookPrepare).then((bookResult) => {
+            book.bookArweaveId = bookResult.arweaveId
+            book.bookArweaveKey = bookResult.arweaveKey
+            book.bookArweaveLink = bookResult.arweaveLink
+            book.bookIpfsHash = bookResult.ipfsHash
+            onProgress?.(book.id, {
+              bookArweaveId: bookResult.arweaveId,
+              bookArweaveKey: bookResult.arweaveKey,
+              bookArweaveLink: bookResult.arweaveLink,
+              bookIpfsHash: bookResult.ipfsHash
+            })
+          })
+        )
+      }
     }
+
+    await pendingUpload
   }
 
   async function createNFTClassForBook (
