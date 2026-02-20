@@ -940,11 +940,13 @@ const onSubmitInternal = async () => {
 
     // Pipeline: collect next signature while previous file uploads
     let pendingUpload: Promise<void> = Promise.resolve()
+    let uploadError: Error | null = null
 
     for (let i = 0; i < fileRecords.value.length; i += 1) {
       const record = fileRecords.value[i]
       if (record) {
         currentFileIndex.value = i + 1
+        if (uploadError) { break }
         // Prepare: encrypt + sign transaction (interactive, requires wallet)
         const prepared = await prepareArweaveSubmission(record)
         if (prepared) {
@@ -952,6 +954,7 @@ const onSubmitInternal = async () => {
           // so the next file's signature can be collected concurrently
           const prevUpload = pendingUpload
           pendingUpload = prevUpload.then(() => executeArweaveUpload(record, prepared))
+            .catch((err) => { uploadError = err; throw err })
         } else {
           completedFiles.value++
         }
