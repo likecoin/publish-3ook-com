@@ -307,6 +307,7 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
 import { MdEditor, config, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 
@@ -440,11 +441,7 @@ const submitButtonText = computed(() =>
 const shouldShowAdvanceSettings = ref<boolean>(true)
 const stripeConnectWallets = computed(() => Object.keys(connectedWallets.value))
 
-watch(isLoading, (val: boolean) => {
-  if (val) {
-    error.value = ''
-  }
-}, { immediate: true })
+whenever(isLoading, () => { error.value = '' })
 
 config({
   markdownItConfig (mdit) {

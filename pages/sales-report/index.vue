@@ -140,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
 import type { CommissionRow, PayoutRow } from '~/types'
 
 const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
@@ -160,9 +161,7 @@ const isLoading = ref(false)
 const commissionHistory = ref<CommissionRow[]>([])
 const payoutHistory = ref<PayoutRow[]>([])
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+whenever(isLoading, () => { error.value = '' })
 
 onMounted(async () => {
   await Promise.all([

@@ -509,6 +509,7 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
 import { getPortfolioURL, downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink, copyToClipboard } from '~/utils'
 import type { PurchaseItem, ClassListingData, ClassListingPrice, EditionTableRow } from '~/types'
 import { getApiEndpoints } from '~/constant/api'
@@ -881,9 +882,7 @@ const editionsTableRows = computed(() => {
   return rows
 })
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+whenever(isLoading, () => { error.value = '' })
 
 watch(sessionWallet, async (newWallet) => {
   if (newWallet) {
@@ -1107,14 +1106,8 @@ async function updateSettings () {
   }
 }
 
-async function copyPurchaseLink (text = '') {
-  await navigator.clipboard.writeText(text)
-  toast.add({
-    icon: 'i-heroicons-check-circle',
-    title: $t('purchase_link.copied_to_clipboard'),
-    duration: 2000,
-    color: 'success'
-  })
+function copyPurchaseLink (text = '') {
+  copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadAllPurchaseLinks () {

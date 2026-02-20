@@ -69,6 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
+
 const { LIKE_CO_API } = useRuntimeConfig().public
 const { t: $t } = useI18n()
 
@@ -81,9 +83,7 @@ const { showErrorToast } = useToastComposable()
 const error = ref('')
 const isLoading = ref(false)
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+whenever(isLoading, () => { error.value = '' })
 
 onMounted(async () => {
   await stripeStore.refreshStripeConnectStatus(wallet.value)

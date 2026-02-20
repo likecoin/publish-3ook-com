@@ -205,15 +205,16 @@ export function convertLikerIdToChannelId (likerId: string) {
   return `@${likerId}`
 }
 
-export function copyToClipboard (text: string): void {
+export function copyToClipboard (text: string, title?: string): void {
   const toast = useToast()
   const { copy } = useClipboard()
 
   copy(text).then(() => {
     toast.add({
-      icon: 'i-heroicons-clipboard',
-      title: 'Copied to clipboard',
-      duration: 3000
+      icon: 'i-heroicons-check-circle',
+      title: title || 'Copied to clipboard',
+      duration: 2000,
+      color: 'success'
     })
   }).catch(() => {
     toast.add({

@@ -892,14 +892,8 @@ function getQRCodeFilename (link: AffiliationLink) {
   return filenameParts.join('_')
 }
 
-async function copyLink (text = '') {
-  await navigator.clipboard.writeText(text)
-  toast.add({
-    icon: 'i-heroicons-check-circle',
-    title: $t('purchase_link.copied_to_clipboard'),
-    duration: 2000,
-    color: 'success'
-  })
+function copyLink (text = '') {
+  copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadPurchaseLinksByTableRows (rows: AffiliationLink[] = [], channelId?: string) {

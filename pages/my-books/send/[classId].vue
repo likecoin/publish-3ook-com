@@ -186,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
 import { useWriteContract } from '@wagmi/vue'
 import { parseImageURLFromMetadata } from '~/utils'
 import { AUTHOR_MESSAGE_LIMIT } from '~/constant'
@@ -251,9 +252,7 @@ const isSingleQuantity = computed(() => orderInfo.value.quantity === 1)
 
 const nftClassName = computed(() => nftStore.getClassMetadataById(classId.value as string)?.name)
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = { message: '', actions: [] } }
-})
+whenever(isLoading, () => { error.value = { message: '', actions: [] } })
 
 watch(nftIdInput, (_, oldVal) => {
   if (oldVal && oldVal.length > 0 && isSingleQuantity.value) {

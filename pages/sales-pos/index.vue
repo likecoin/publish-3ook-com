@@ -573,8 +573,7 @@ function saveSaleCoupons () {
 }
 
 function copyCartUrl () {
-  toast.add({ title: 'Copied URL to clipboard', duration: 2000 })
-  navigator.clipboard.writeText(checkoutUrl.value)
+  copyToClipboard(checkoutUrl.value)
 }
 
 function goToCartUrl () {
