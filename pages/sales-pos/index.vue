@@ -293,7 +293,9 @@
 </template>
 
 <script setup lang="ts">
+import { useLocalStorage } from '@vueuse/core'
 import type { DropdownMenuItem, TableRow } from '#ui/types'
+import { copyToClipboard } from '~/utils'
 const { t: $t } = useI18n()
 
 const route = useRoute()
@@ -309,10 +311,10 @@ const newProductIdInputNextId = ref(1)
 const isOpenNewCouponModal = ref(false)
 const newCouponNameInput = ref('')
 const newCouponCodeInput = ref('')
-const coupons = ref<{name: string, code: string}[]>([])
+const coupons = useLocalStorage<{name: string, code: string}[]>('nft_book_store_pos_coupons', [])
 const selectedCouponCode = ref('')
 
-const saleItemList = ref<{ classId: string; priceIndex?: number }[]>([])
+const saleItemList = useLocalStorage<{ classId: string; priceIndex?: number }[]>('nft_book_store_pos_items', [])
 const isShowAddItemModal = ref(false)
 const isOpenQRCodeModal = ref(false)
 const isEditMode = ref(false)
@@ -445,28 +447,6 @@ useSeoMeta({
 })
 
 onMounted(() => {
-  try {
-    const storedItemString = window.localStorage.getItem('nft_book_store_pos_items')
-    if (storedItemString) {
-      const items = JSON.parse(storedItemString)
-      saleItemList.value = items
-        .map((item: { classId: string; priceIndex?: number }) => ({
-          classId: item.classId,
-          priceIndex: item.priceIndex
-        }))
-    }
-    const storedCouponString = window.localStorage.getItem('nft_book_store_pos_coupons')
-    if (storedCouponString) {
-      const items = JSON.parse(storedCouponString)
-      coupons.value = items
-        .map((item: { name: string; code: string }) => ({
-          name: item.name,
-          code: item.code
-        }))
-    }
-  } catch (e) {
-    console.error(e)
-  }
   saleItemList.value.forEach((item) => {
     if (item.classId) {
       lazyFetchClassMetadataById(item.classId)
@@ -511,7 +491,6 @@ function addSaleItem () {
   })
   if (newProductIdInputs.value.every(input => !input.error)) {
     isShowAddItemModal.value = false
-    saveSaleProductIds()
   }
 }
 
@@ -520,13 +499,11 @@ function changePriceIndex (value: number, { index }: { index: number }) {
   if (item) {
     item.priceIndex = Number(value)
   }
-  saveSaleProductIds()
 }
 
 function removeSaleItem ({ index }: { index: number }) {
   saleItemList.value.splice(index, 1)
   selectedSaleItemTableRows.value = selectedSaleItemTableRows.value.filter(row => row.index !== index)
-  saveSaleProductIds()
 }
 
 function toggleAddItemModal () {
@@ -541,7 +518,6 @@ function addCouponCode () {
   coupons.value.push({ name: newCouponNameInput.value, code: newCouponCodeInput.value })
   newCouponNameInput.value = ''
   newCouponCodeInput.value = ''
-  saveSaleCoupons()
   toast.add({
     title: 'Added coupon',
     duration: 2000,
@@ -555,7 +531,6 @@ function clearAllCoupons () {
   if (isConfirm) {
     coupons.value = []
     selectedCouponCode.value = ''
-    saveSaleCoupons()
     toast.add({
       title: 'Cleared all coupons',
       duration: 2000,
@@ -564,17 +539,8 @@ function clearAllCoupons () {
   }
 }
 
-function saveSaleProductIds () {
-  window.localStorage.setItem('nft_book_store_pos_items', JSON.stringify(saleItemList.value))
-}
-
-function saveSaleCoupons () {
-  window.localStorage.setItem('nft_book_store_pos_coupons', JSON.stringify(coupons.value))
-}
-
 function copyCartUrl () {
-  toast.add({ title: 'Copied URL to clipboard', duration: 2000 })
-  navigator.clipboard.writeText(checkoutUrl.value)
+  copyToClipboard(checkoutUrl.value)
 }
 
 function goToCartUrl () {

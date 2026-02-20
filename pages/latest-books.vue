@@ -84,8 +84,29 @@ const tabItems = computed(() => [
 const error = ref('')
 const isStripeConnectReady = ref(false)
 
-const latestBookList = ref<BookRecord[]>([])
-const bestSellerBookList = ref<BookRecord[]>([])
+const { data: latestBookList, error: latestBooksError } = useLazyAsyncData(
+  'latest-books',
+  async () => {
+    const data = await $fetch(`${BOOK3_URL}/api/store/products?tag=latest`)
+    return (data as { records?: BookRecord[] })?.records || []
+  },
+  { default: () => [] as BookRecord[] }
+)
+
+const { data: bestSellerBookList, error: bestSellersError } = useLazyAsyncData(
+  'best-sellers',
+  async () => {
+    const data = await $fetch(`${BOOK3_URL}/api/store/products?tag=bestselling`)
+    return (data as { records?: BookRecord[] })?.records || []
+  },
+  { default: () => [] as BookRecord[] }
+)
+
+watch([latestBooksError, bestSellersError], ([e1, e2]) => {
+  if (e1) { error.value = String(e1) }
+  if (e2) { error.value = String(e2) }
+})
+
 const selectedTabItemIndex = ref('latest')
 const q = ref(route.query.q as string || '')
 
@@ -152,14 +173,6 @@ useSeoMeta({
 })
 
 onMounted(async () => {
-  await Promise.all([
-    fetchBookList().catch((e) => {
-      error.value = e
-    }),
-    fetchBestSellersList().catch((e) => {
-      error.value = e
-    })
-  ])
   if (isAuthenticated.value) {
     try {
       await fetchUserStripeInfo()
@@ -168,16 +181,6 @@ onMounted(async () => {
     }
   }
 })
-
-async function fetchBookList () {
-  const data = await $fetch(`${BOOK3_URL}/api/store/products?tag=latest`)
-  latestBookList.value = (data as { records?: BookRecord[] })?.records || []
-}
-
-async function fetchBestSellersList () {
-  const data = await $fetch(`${BOOK3_URL}/api/store/products?tag=bestselling`)
-  bestSellerBookList.value = (data as { records?: BookRecord[] })?.records || []
-}
 
 async function fetchUserStripeInfo () {
   if (!sessionWallet.value) {

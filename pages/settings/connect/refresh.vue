@@ -51,6 +51,8 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
+
 const { LIKE_CO_API } = useRuntimeConfig().public
 
 const localeRoute = useLocaleRoute()
@@ -65,9 +67,7 @@ definePageMeta({
   layout: 'page'
 })
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+whenever(isLoading, () => { error.value = '' })
 
 onMounted(async () => {
   try {

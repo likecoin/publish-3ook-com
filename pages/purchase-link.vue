@@ -397,6 +397,7 @@
 <script setup lang="ts">
 import { AFFILIATION_CHANNEL_DEFAULT, AFFILIATION_CHANNELS } from '~/constant'
 import type { ProductData } from '~/types'
+import { copyToClipboard } from '~/utils'
 
 const { LIKE_CO_API, SITE_URL } = useRuntimeConfig().public
 const likerStore = useLikerStore()
@@ -892,14 +893,8 @@ function getQRCodeFilename (link: AffiliationLink) {
   return filenameParts.join('_')
 }
 
-async function copyLink (text = '') {
-  await navigator.clipboard.writeText(text)
-  toast.add({
-    icon: 'i-heroicons-check-circle',
-    title: $t('purchase_link.copied_to_clipboard'),
-    duration: 2000,
-    color: 'success'
-  })
+function copyLink (text = '') {
+  copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadPurchaseLinksByTableRows (rows: AffiliationLink[] = [], channelId?: string) {

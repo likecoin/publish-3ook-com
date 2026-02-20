@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
 import type { ISCNData } from '~/types'
 import { NFT_DEFAULT_MINT_AMOUNT, NFT_DEFAULT_RESTOCK_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
@@ -163,11 +164,7 @@ watch(isFormValid, (val: boolean) => {
   emit('formValidChange', val)
 }, { immediate: true })
 
-watch(isLoading, (val: boolean) => {
-  if (val) {
-    error.value = ''
-  }
-}, { immediate: true })
+whenever(isLoading, () => { error.value = '' })
 
 watchEffect(async () => {
   if (props.iscnData) {
@@ -178,10 +175,6 @@ watchEffect(async () => {
   } else if (props.iscnId) {
     await fetchISCNById(props.iscnId)
   }
-})
-
-watch(isLoading, (newIsLoading: boolean) => {
-  if (newIsLoading) { error.value = '' }
 })
 
 watch(() => props.isRestock, (isRestock: boolean) => {

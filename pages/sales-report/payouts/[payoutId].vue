@@ -12,6 +12,14 @@
       </template>
     </UProgress>
 
+    <UAlert
+      v-if="fetchError"
+      icon="i-heroicons-exclamation-triangle"
+      color="error"
+      variant="soft"
+      :title="`${fetchError}`"
+    />
+
     <UCard
       :ui="{
         header: 'flex justify-between items-center',
@@ -119,12 +127,6 @@ const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
 
 const route = useRoute()
-
-const payoutData = ref<PayoutData>({} as PayoutData)
-const payoutItemDetails = ref<PayoutItemDetail[]>([])
-
-const error = ref('')
-const isLoading = ref(false)
 const payoutId = ref(route.params.payoutId as string)
 
 const modalMetadata = ref('')
@@ -137,9 +139,16 @@ const isModalMetadataOpen = computed({
   }
 })
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+const { data: payoutData, status: fetchStatus, error: fetchError } = useLazyAsyncData(
+  `payout-${payoutId.value}`,
+  () => $fetch(`${LIKE_CO_API}/likernft/book/user/payouts/${payoutId.value}`, {
+    headers: { authorization: `Bearer ${token.value}` }
+  }) as Promise<PayoutData>,
+  { server: false, default: () => ({} as PayoutData) }
+)
+
+const isLoading = computed(() => fetchStatus.value === 'pending')
+const payoutItemDetails = computed(() => payoutData.value?.items ?? [] as PayoutItemDetail[])
 
 const payoutDataRows = computed(() => {
   if (!payoutData.value) { return [] }
@@ -184,24 +193,6 @@ const payoutItemRows = computed(() => {
       metadata: JSON.stringify(metadata, null, 2)
     }
   })
-})
-
-onMounted(async () => {
-  try {
-    isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/payouts/${payoutId.value}`,
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`
-        }
-      })
-    payoutData.value = data as PayoutData
-    if (payoutData.value.items) {
-      payoutItemDetails.value = payoutData.value.items
-    }
-  } finally {
-    isLoading.value = false
-  }
 })
 
 async function exportPayoutData () {

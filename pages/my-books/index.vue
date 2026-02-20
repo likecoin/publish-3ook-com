@@ -99,6 +99,8 @@
 </template>
 
 <script setup lang="ts">
+import { whenever } from '@vueuse/core'
+
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const { t: $t } = useI18n()
@@ -223,9 +225,7 @@ const tableColumns = computed(() => [
   }
 ])
 
-watch(isLoading, (newIsLoading) => {
-  if (newIsLoading) { error.value = '' }
-})
+whenever(isLoading, () => { error.value = '' })
 
 watch(selectedTabItemIndex, () => {
   searchInput.value = ''
