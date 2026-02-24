@@ -451,6 +451,18 @@
               </div>
             </UCard>
 
+            <UFormField class="flex items-center">
+              <UTooltip class="flex items-center gap-2" :text="$t('nft_book_form.is_adult_only_tooltip')">
+                <UCheckbox
+                  v-model="isAdultOnly"
+                  name="isAdultOnly"
+                  :label="$t('nft_book_form.is_adult_only')"
+                />
+
+                <UIcon name="i-heroicons-question-mark-circle" />
+              </UTooltip>
+            </UFormField>
+
             <UFormField :label="$t('form.table_of_content')">
               <UTextarea
                 v-model="tableOfContents"
@@ -560,6 +572,7 @@ const stripeConnectWallet = ref('')
 const connectedWallets = ref<Record<string, number>>({})
 const mustClaimToView = ref(true)
 const hideDownload = ref(false)
+const isAdultOnly = ref(false)
 const enableCustomMessagePage = ref(true)
 const useLikerLandPurchaseLink = ref(true)
 const shouldDisableStripeConnectSetting = ref(false)
@@ -909,7 +922,8 @@ onMounted(async () => {
       mustClaimToView: classMustClaimToView,
       tableOfContents: classTableOfContent,
       enableCustomMessagePage: classEnableCustomMessagePage,
-      hideDownload: classHideDownload
+      hideDownload: classHideDownload,
+      isAdultOnly: classIsAdultOnly
     } = classData
     moderatorWallets.value = classModeratorWallets || []
     isStripeConnectChecked.value = !!(classConnectedWallets && Object.keys(classConnectedWallets).length)
@@ -930,6 +944,7 @@ onMounted(async () => {
     }
     mustClaimToView.value = classMustClaimToView ?? true
     hideDownload.value = classHideDownload ?? false
+    isAdultOnly.value = classIsAdultOnly ?? false
     enableCustomMessagePage.value = classEnableCustomMessagePage ?? true
     tableOfContents.value = classTableOfContent ?? ''
     await ordersStore.fetchOrdersByClassId([classId.value])
@@ -1089,6 +1104,7 @@ async function updateSettings () {
       moderatorWallets: moderatorWallets.value,
       connectedWallets: newConnectedWallets,
       hideDownload: hideDownload.value,
+      isAdultOnly: isAdultOnly.value,
       mustClaimToView: mustClaimToView.value,
       tableOfContents: tableOfContents.value,
       enableCustomMessagePage: enableCustomMessagePage.value

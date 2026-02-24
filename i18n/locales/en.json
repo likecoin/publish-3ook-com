@@ -467,6 +467,8 @@
   "nft_book_form.edition_number": "Edition #{number}",
   "nft_book_form.enable_custom_message_page": "Custom page setting",
   "nft_book_form.image_requirements": "PNG files only, max 1MB, recommended size 600 x 200",
+  "nft_book_form.is_adult_only": "Adult content (18+)",
+  "nft_book_form.is_adult_only_tooltip": "Declare this book contains adult content. Readers will see a warning before viewing, and the book will be excluded from promotions.",
   "nft_book_form.limited": "Batch minting, author messages one by one, manual delivery",
   "nft_book_form.loading_progress_text": "Please do not close this window until operation is complete.",
   "nft_book_form.manual_delivery": "Manual delivery",

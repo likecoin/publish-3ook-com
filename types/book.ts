@@ -26,6 +26,7 @@ export interface ClassListingData {
   tableOfContents?: string
   enableCustomMessagePage?: boolean
   hideDownload?: boolean
+  isAdultOnly?: boolean
   pendingNFTCount?: number
   enableSignatureImage?: boolean
 }

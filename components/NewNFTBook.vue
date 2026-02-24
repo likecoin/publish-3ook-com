@@ -229,6 +229,18 @@
               </UTooltip>
             </UFormField>
 
+            <UFormField class="flex items-center">
+              <UTooltip class="flex items-center gap-2" :text="$t('nft_book_form.is_adult_only_tooltip')">
+                <UCheckbox
+                  v-model="isAdultOnly"
+                  name="isAdultOnly"
+                  :label="$t('nft_book_form.is_adult_only')"
+                />
+
+                <UIcon name="i-heroicons-question-mark-circle" />
+              </UTooltip>
+            </UFormField>
+
             <!-- Stripe connect list -->
             <UFormField :label="$t('nft_book_form.stripe_connect_wallets')">
               <div
@@ -357,6 +369,7 @@ const classId = computed(() => {
 })
 const nextPriceIndex = ref(1)
 const hideDownload = ref(false)
+const isAdultOnly = ref(false)
 const isAllowCustomPrice = ref(true)
 const tableOfContents = ref(getUploadFileData()?.epubMetadata?.tableOfContents || '')
 
@@ -748,6 +761,7 @@ async function submitNewClass () {
       mustClaimToView: true,
       enableCustomMessagePage: shouldEnableCustomMessagePage,
       hideDownload: hideDownload.value,
+      isAdultOnly: isAdultOnly.value,
       tableOfContents: tableOfContents.value || undefined
     })
   } catch (err) {

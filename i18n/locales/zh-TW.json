@@ -467,6 +467,8 @@
   "nft_book_form.edition_number": "版本 #{number}",
   "nft_book_form.enable_custom_message_page": "扉頁設定",
   "nft_book_form.image_requirements": "僅限 PNG 檔案，最大 1MB，建議尺寸 600 x 200",
+  "nft_book_form.is_adult_only": "成人內容（18+）",
+  "nft_book_form.is_adult_only_tooltip": "聲明此書籍含有成人內容。讀者在查看前會收到警告，且書籍將不會出現在推廣中。",
   "nft_book_form.limited": "批量印鑄、作者逐一留言、手動發送",
   "nft_book_form.loading_progress_text": "請勿關閉此視窗，直到操作完成。",
   "nft_book_form.manual_delivery": "逐一簽發",
