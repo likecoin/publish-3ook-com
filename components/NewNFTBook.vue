@@ -262,7 +262,20 @@
                 </div>
               </div>
               <div
-                v-if="stripeConnectWallets.length === 0"
+                v-if="stripeConnectWallets.length === 0 && sessionWalletStripeStatus?.isReady"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
+              >
+                {{ $t('nft_book_form.no_wallets') }}
+                <UButton
+                  variant="outline"
+                  color="primary"
+                  size="xs"
+                  :label="$t('nft_book_form.link_wallet')"
+                  @click="connectedWallets = { [sessionWallet]: 100 }"
+                />
+              </div>
+              <div
+                v-else-if="stripeConnectWallets.length === 0"
                 class="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
               >
                 {{ $t('nft_book_form.no_wallets') }}
@@ -343,6 +356,7 @@ const bookstoreApiStore = useBookstoreApiStore()
 const stripeStore = useStripeStore()
 const { newBookListing, updateEditionPrice, uploadSignImages } = bookstoreApiStore
 const { fetchStripeConnectStatusByWallet } = stripeStore
+const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
 const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const nftStore = useNftStore()
 
@@ -440,6 +454,10 @@ const submitButtonText = computed(() =>
 )
 const shouldShowAdvanceSettings = ref<boolean>(true)
 const stripeConnectWallets = computed(() => Object.keys(connectedWallets.value))
+const sessionWalletStripeStatus = computed(() => {
+  if (!sessionWallet.value) { return null }
+  return getStripeConnectStatusByWallet.value(sessionWallet.value)
+})
 
 whenever(isLoading, () => { error.value = '' })
 
