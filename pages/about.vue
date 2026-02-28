@@ -1,5 +1,5 @@
 <template>
-  <main class="flex-1 overflow-y-auto">
+  <div class="flex-1 overflow-y-auto">
     <!-- Hero Section (dark, matching 3ook.com) -->
     <section class="flex flex-col justify-center items-center text-center space-y-8 min-h-[50vh] px-6 py-16 bg-[#131313]">
       <img
@@ -62,7 +62,7 @@
         <div class="grid md:grid-cols-2 gap-6">
           <UCard
             v-for="feat in mainFeatures"
-            :key="feat.title"
+            :key="feat.icon"
             class="p-6 space-y-3"
           >
             <div class="flex items-center gap-3">
@@ -145,7 +145,7 @@
           <p class="text-gray-500 text-sm">
             {{ $t('about.cta_contact') }}
             <a
-              href="#"
+              href="mailto:publish@3ook.com"
               class="text-[color:var(--ui-primary)] hover:underline"
               @click.prevent="handleContact"
             >publish@3ook.com</a>
@@ -153,7 +153,7 @@
         </div>
       </UCard>
     </div>
-  </main>
+  </div>
 </template>
 
 <script setup lang="ts">

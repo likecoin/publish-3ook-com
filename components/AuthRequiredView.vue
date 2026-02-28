@@ -29,7 +29,7 @@
         <div class="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10 max-w-xl w-full">
           <div
             v-for="feature in features"
-            :key="feature.title"
+            :key="feature.icon"
             class="flex items-start gap-3"
           >
             <UIcon
@@ -53,7 +53,7 @@
           color="primary"
           size="sm"
           :label="`${$t('landing.learn_more')} →`"
-          @click="navigateTo(localeRoute({ name: 'about' }))"
+          :to="localeRoute({ name: 'about' })"
         />
       </div>
     </main>
@@ -71,9 +71,10 @@ const { isAuthenticating } = useAuth()
 
 const router = useRouter()
 const isPublicRoute = ref(route.meta.requiresAuth === false)
-router.afterEach((to) => {
+const unregisterAfterEach = router.afterEach((to) => {
   isPublicRoute.value = to.meta.requiresAuth === false
 })
+onUnmounted(unregisterAfterEach)
 
 const showLanding = computed(() => !bookstoreApiStore.isAuthenticated && !isPublicRoute.value)
 
