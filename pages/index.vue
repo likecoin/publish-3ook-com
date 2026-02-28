@@ -14,8 +14,11 @@
 <script setup lang="ts">
 const { t: $t } = useI18n()
 const localeRoute = useLocaleRoute()
+const bookstoreApiStore = useBookstoreApiStore()
 
-onMounted(async () => {
-  await navigateTo(localeRoute({ name: 'my-books' }), { replace: true })
-})
+watch(() => bookstoreApiStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    navigateTo(localeRoute({ name: 'my-books' }), { replace: true })
+  }
+}, { immediate: true })
 </script>

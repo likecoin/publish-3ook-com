@@ -68,6 +68,11 @@ const items = computed(() => {
         label: $t('menu.help'),
         links: [
           {
+            label: $t('menu.about'),
+            icon: 'i-heroicons-information-circle',
+            to: localeRoute({ name: 'about' })
+          },
+          {
             label: $t('menu.publisher_guide'),
             icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
             to: PUBLISH_GUIDE_URL,
