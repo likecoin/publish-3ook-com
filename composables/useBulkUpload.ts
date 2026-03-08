@@ -171,7 +171,7 @@ export function useBulkUpload () {
     currentStep.value = 'creating_nft_class'
 
     const ebookFile = book.epubFile || book.pdfFile
-    const fileType = book.epubFile ? 'epub' : 'pdf'
+    const fileType = book.epubFilename ? 'epub' : 'pdf'
     const arweaveLink = book.bookArweaveLink || `ar://${book.bookArweaveId}`
 
     const contentFingerprints = [
@@ -197,7 +197,7 @@ export function useBulkUpload () {
       downloadableUrls: [{
         url: arweaveLink,
         type: fileType,
-        fileName: ebookFile?.name || `${book.title}.${fileType}`
+        fileName: ebookFile?.name || book.epubFilename || book.pdfFilename || `${book.title}.${fileType}`
       }],
       language: book.language,
       bookInfoUrl: '',
