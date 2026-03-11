@@ -763,7 +763,7 @@
   "sales_pos.gift_checkout": "禮品結帳",
   "sales_pos.receiver_email": "收件人電子郵件",
   "sales_pos.sales_items": "銷售項目",
-  "sales_pos.scan_to_buy": "掃描以購買",
+  "sales_pos.scan_to_buy": "掃描購買",
   "sales_pos.select_coupon": "選擇優惠碼",
   "sales_pos.selected_count": "（已選擇 {count} 項）",
   "sales_pos.view_cart": "查看購物車",
