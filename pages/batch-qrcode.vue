@@ -31,8 +31,12 @@
       />
     </div>
 
-    <UModal v-model:open="isEditingQRCodeConfig">
-      <template #content>
+    <UModal
+      v-model:open="isEditingQRCodeConfig"
+      :title="$t('batch_qrcode.qr_config')"
+      :ui="{ body: '!p-0' }"
+    >
+      <template #body>
         <QRCodeGenerator
           v-model:icon="selectedQRCodeIcon"
           v-model:color="selectedQRCodeColor"
@@ -42,19 +46,7 @@
           :height="500"
           mode="config"
           @save="isEditingQRCodeConfig = false"
-        >
-          <template #header>
-            <h3 class="font-bold font-mono">
-              {{ $t('batch_qrcode.qr_config') }}
-            </h3>
-            <UButton
-              icon="i-heroicons-x-mark"
-              color="neutral"
-              variant="ghost"
-              @click="isEditingQRCodeConfig = false"
-            />
-          </template>
-        </QRCodeGenerator>
+        />
       </template>
     </UModal>
 

@@ -1,15 +1,12 @@
 <template>
   <UCard
     :ui="{
+      root: 'rounded-none ring-0',
       header: 'flex justify-between items-center gap-2',
-      body: 'p-0',
+      body: '!p-0',
       footer: 'flex justify-center items-center gap-2'
     }"
   >
-    <template #header>
-      <slot name="header" />
-    </template>
-
     <div v-if="!isReadonlyMode" class="grid grid-cols-2 gap-4 p-4 print:hidden">
       <UFormField :label="$t('qr_generator.pick_dot')">
         <URadioGroup
@@ -24,7 +21,7 @@
     <div
       id="qr-code"
       ref="qrCodeRef"
-      class="flex justify-center items-center py-2"
+      class="qr-code-container flex justify-center items-center p-2 h-full"
     />
 
     <template v-if="!isReadonlyMode" #footer>
@@ -144,3 +141,9 @@ function saveConfig () {
   emit('save', { icon: selectedIcon.value, color: selectedColor.value, dotStyle: selectedDotStyle.value })
 }
 </script>
+
+<style>
+.qr-code-container > svg {
+  max-height: 40vh !important;
+}
+</style>

@@ -366,27 +366,19 @@
           </UCard>
         </UCard>
 
-        <UModal v-model:open="isOpenQRCodeModal">
-          <template #content>
+        <UModal
+          v-if="selectedPurchaseLink"
+          v-model:open="isOpenQRCodeModal"
+          :title="$t('purchase_link.download_qr_modal')"
+          :ui="{ body: '!p-0' }"
+        >
+          <template #body>
             <QRCodeGenerator
-              v-if="selectedPurchaseLink"
               :data="selectedPurchaseLink.qrCodeUrl"
               :file-name="getQRCodeFilename(selectedPurchaseLink)"
               :width="500"
               :height="500"
-            >
-              <template #header>
-                <h3 class="font-bold font-mono">
-                  {{ $t('purchase_link.download_qr_modal') }}
-                </h3>
-                <UButton
-                  icon="i-heroicons-x-mark"
-                  color="neutral"
-                  variant="ghost"
-                  @click="isOpenQRCodeModal = false"
-                />
-              </template>
-            </QRCodeGenerator>
+            />
           </template>
         </UModal>
       </template>

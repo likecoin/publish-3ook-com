@@ -155,25 +155,17 @@
                   />
                   <UModal
                     v-model:open="isOpenQRCodeModal"
+                    :title="$t('sales_pos.scan_to_buy')"
+                    :ui="{ body: '!p-0' }"
                   >
-                    <template #content>
+                    <template #body>
                       <QRCodeGenerator
                         :data="checkoutUrl"
                         mode="readonly"
                         file-name="likerland_checkout"
                         :width="280"
                         :height="280"
-                      >
-                        <template #header>
-                          <h3 class="font-bold font-mono" v-text="'Scan to buy'" />
-                          <UButton
-                            icon="i-heroicons-x-mark"
-                            color="neutral"
-                            variant="ghost"
-                            @click="isOpenQRCodeModal = false"
-                          />
-                        </template>
-                      </QRCodeGenerator>
+                      />
                     </template>
                   </UModal>
                 </div>

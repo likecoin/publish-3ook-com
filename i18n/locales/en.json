@@ -763,6 +763,7 @@
   "sales_pos.gift_checkout": "Gift Checkout",
   "sales_pos.receiver_email": "Receiver Email",
   "sales_pos.sales_items": "Sales Items",
+  "sales_pos.scan_to_buy": "Scan to buy",
   "sales_pos.select_coupon": "Select Coupon",
   "sales_pos.selected_count": " ({count} selected)",
   "sales_pos.view_cart": "View Cart",
