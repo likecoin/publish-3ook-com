@@ -12,12 +12,12 @@
         <h1 class="text-3xl md:text-4xl font-bold">
           {{ $t('about.hero_title') }}
         </h1>
-        <p class="text-lg leading-relaxed">
+        <p class="text-lg md:text-xl leading-relaxed">
           {{ $t('about.hero_description') }}
         </p>
       </div>
 
-      <p class="text-gray-400 text-sm max-w-2xl">
+      <p class="text-gray-300 text-base max-w-2xl">
         {{ $t('about.hero_subtitle') }}
       </p>
     </section>
@@ -112,6 +112,16 @@
             </p>
           </div>
         </div>
+      </section>
+
+      <!-- Our Vision -->
+      <section class="space-y-4 max-w-2xl mx-auto text-center">
+        <h2 class="text-2xl font-bold text-gray-900">
+          {{ $t('about.vision_title') }}
+        </h2>
+        <p class="text-gray-600 leading-relaxed">
+          {{ $t('about.vision_description') }}
+        </p>
       </section>
 
       <!-- Link to 3ook.com/about -->
