@@ -1190,6 +1190,7 @@ async function handleISCNUpdated ({
   classId: string
   metadata: Record<string, unknown> & { contentFingerprints?: string[] }
 }) {
+  useLogEvent('iscn_metadata_updated', { class_id: classId })
   const { contentFingerprints } = metadata
   if (contentFingerprints) {
     const shouldHideDownload = isContentFingerprintEncrypted(contentFingerprints)

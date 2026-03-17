@@ -46,6 +46,8 @@ onMounted(async () => {
 })
 
 function onClickDisconnect () {
+  useLogEvent('logout')
+  useSetLogUser(null)
   disconnect()
   clearSession()
 }

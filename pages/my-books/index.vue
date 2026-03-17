@@ -252,6 +252,7 @@ onMounted(async () => {
 })
 
 async function selectTableRow (row: { original: { classId: string } }) {
+  useLogEvent('my_books_view_detail', { class_id: row.original.classId })
   await navigateTo(localeRoute({
     name: 'my-books-status-classId',
     params: { classId: row.original.classId }

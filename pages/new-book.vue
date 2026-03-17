@@ -149,6 +149,7 @@ const steps = [
 ]
 
 onMounted(() => {
+  useLogEvent('book_publish_started')
   let data = null
   try {
     const sessionData = sessionStorage.getItem(FILE_UPLOAD_KEY)
@@ -206,6 +207,10 @@ const nextStep = async () => {
 
 const handleUploadSubmit = (uploadFileData: UploadFileData) => {
   const { fileRecords, epubMetadata } = uploadFileData
+  useLogEvent('book_publish_upload_completed', {
+    file_count: fileRecords.length,
+    has_epub_metadata: !!epubMetadata
+  })
   if (epubMetadata?.coverData) {
     epubMetadata.coverData = undefined
   }
@@ -215,6 +220,7 @@ const handleUploadSubmit = (uploadFileData: UploadFileData) => {
 
 const handleIscnSubmit = async (res: { iscnId: string, txHash: string }) => {
   const { iscnId: newIscnId } = res
+  useLogEvent('iscn_registration_success', { iscn_id: newIscnId, tx_hash: res.txHash })
   if (newIscnId) {
     await navigateTo(localeRoute({ query: { iscn_id: newIscnId } }), { replace: true })
   }
@@ -225,6 +231,7 @@ const handleIscnSubmit = async (res: { iscnId: string, txHash: string }) => {
 
 const handleMintNFTSubmit = async (res: { classId: string; nftMintCount?: number }) => {
   const { classId: newClassId, nftMintCount } = res
+  useLogEvent('nft_mint_success', { class_id: newClassId, mint_count: nftMintCount })
   if (newClassId) {
     classId.value = newClassId
     await navigateTo(localeRoute({ query: { class_id: newClassId, count: nftMintCount } }), { replace: true })
@@ -234,6 +241,7 @@ const handleMintNFTSubmit = async (res: { classId: string; nftMintCount?: number
 }
 
 const handleNewBookSubmit = async () => {
+  useLogEvent('book_listing_created', { class_id: classId.value })
   clearUploadFileData()
   await navigateTo(localeRoute({ name: 'my-books' }))
 }

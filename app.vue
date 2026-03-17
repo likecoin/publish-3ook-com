@@ -127,12 +127,8 @@ onMounted(async () => {
   isRestoringSession.value = true
   try {
     await restoreAuthSession()
-    if (window.Intercom && intercomToken.value) {
-      window.Intercom('update', {
-        intercom_user_jwt: intercomToken.value,
-        session_duration: 2592000000, // 30d
-        evm_wallet: wallet.value
-      })
+    if (isAuthenticated.value && wallet.value) {
+      useSetLogUser(wallet.value, { intercomToken: intercomToken.value })
     }
   } catch (error) {
     console.error(error)

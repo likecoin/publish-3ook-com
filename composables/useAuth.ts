@@ -17,20 +17,15 @@ export function useAuth () {
     wallet: string,
     signMethod: string,
     expiresIn: string,
-  }) {
+  }, context?: { email?: string }) {
     loginStatus.value = $t('auth_state.connecting')
 
     try {
       isAuthenticating.value = true
 
       await authenticate(signature.wallet, signature)
-      if (window.Intercom && intercomToken.value) {
-        window.Intercom('update', {
-          intercom_user_jwt: intercomToken.value,
-          session_duration: 2592000000, // 30d
-          evm_wallet: signature.wallet
-        })
-      }
+      useSetLogUser(signature.wallet, { email: context?.email, intercomToken: intercomToken.value })
+      useLogEvent('login', { method: signature.signMethod, wallet: signature.wallet })
       loginStatus.value = $t('auth_state.success')
       try {
         await fetchBookListing()
@@ -53,6 +48,8 @@ export function useAuth () {
 
       bookstoreApiStore.closeLoginPanel()
 
+      useLogEvent('login_started', { method: connectorId })
+
       if (!wallet.value) {
         connectResult = await connect(connectorId) || undefined
       }
@@ -74,6 +71,7 @@ export function useAuth () {
       let isRegistered = await store.checkIsRegistered({ walletAddress, email, magicDIDToken, loginMethod })
 
       if (!isRegistered) {
+        useLogEvent('sign_up_started', { method: loginMethod, wallet: walletAddress })
         const maxRetries = 2
 
         for (let retryCount = 0; retryCount < maxRetries && !isRegistered; retryCount++) {
@@ -85,6 +83,7 @@ export function useAuth () {
         }
 
         if (!isRegistered) {
+          useLogEvent('sign_up_failed', { method: loginMethod, wallet: walletAddress })
           if (window.Intercom) {
             window.Intercom('showNewMessage', $t('intercom.registration_failed_message', {
               walletAddress
@@ -103,8 +102,9 @@ export function useAuth () {
         return
       }
 
-      await authenticateBySignature(signature)
+      await authenticateBySignature(signature, { email: connectResult?.email })
     } catch (err) {
+      useLogEvent('login_failed', { method: connectorId, error: (err as Error)?.message })
       clearSession()
       if (isConnected.value) {
         await disconnect()

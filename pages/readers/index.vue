@@ -250,6 +250,7 @@ function sortByColumn (columnKey: string) {
 }
 
 function exportSelectedToCSV () {
+  useLogEvent('readers_export_csv')
   exportReadersToCSV()
 }
 

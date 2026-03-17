@@ -57,7 +57,7 @@ const props = defineProps({
 const emit = defineEmits(['click-link'])
 
 function handleLinkClick ({ label }: { label?: string }) {
-  useTrackEvent(`click-link_${label}`)
+  useLogEvent('site_menu_click_link', { label })
   emit('click-link')
 }
 

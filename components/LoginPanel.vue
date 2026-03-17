@@ -73,6 +73,7 @@ const { connectors, error } = useConnect()
 const othersConnectors = computed(() => connectors.filter(c => !['magic', 'injected'].includes(c.id)))
 
 function handleConnect (connectorId = '') {
+  useLogEvent('login_panel_connect', { method: connectorId })
   emit('connect', connectorId)
 }
 

@@ -169,6 +169,8 @@ async function onSetupStripe () {
 }
 
 async function handleClickStripeButton () {
+  const action = isStripeConnectReady.value ? 'stripe_login' : 'stripe_setup_started'
+  useLogEvent(action)
   isLoading.value = true
   try {
     if (!isStripeConnectReady.value) {

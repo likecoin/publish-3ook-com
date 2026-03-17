@@ -7,7 +7,9 @@ const {
   SENTRY_ORG,
   SENTRY_PROJECT,
   SENTRY_AUTH_TOKEN,
-  GA_TRACKING_ID
+  GA_TRACKING_ID,
+  POSTHOG_PUBLIC_KEY,
+  POSTHOG_HOST
 } = process.env
 
 const isDevelopment = NODE_ENV === 'development'
@@ -26,7 +28,8 @@ export default defineNuxtConfig({
     'nuxt-gtag',
     'nuxt-security',
     '@nuxt/scripts',
-    '@nuxtjs/i18n'
+    '@nuxtjs/i18n',
+    '@posthog/nuxt'
   ],
 
   scripts: {
@@ -37,6 +40,14 @@ export default defineNuxtConfig({
 
   gtag: {
     id: GA_TRACKING_ID
+  },
+
+  posthogConfig: {
+    publicKey: POSTHOG_PUBLIC_KEY || 'placeholder_key_to_avoid_nuxt_module_error',
+    host: POSTHOG_HOST,
+    clientConfig: {
+      person_profiles: 'identified_only'
+    }
   },
 
   i18n: {

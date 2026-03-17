@@ -847,10 +847,12 @@ async function createAffiliationLink () {
       }
     }
 
+    useLogEvent('purchase_link_create_started', { product_count: productIds.value.length })
     creatingAffiliationLinkState.value = $t('purchase_link.fetching_product_data')
     try {
       const dataList = await Promise.all(productIds.value.map(id => fetchProductData(id)))
       productDataList.value = dataList
+      useLogEvent('purchase_link_created', { product_count: dataList.length })
     } catch (error) {
       productIdError.value = (error as Error).message
       isSharingMode.value = false
@@ -885,10 +887,12 @@ function getQRCodeFilename (link: AffiliationLink) {
 }
 
 function copyLink (text = '') {
+  useLogEvent('purchase_link_copy')
   copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadPurchaseLinksByTableRows (rows: AffiliationLink[] = [], channelId?: string) {
+  useLogEvent('purchase_link_download_csv', { count: rows.length, channel_id: channelId })
   downloadFile({
     data: rows.map(({
 
@@ -912,6 +916,7 @@ function downloadPurchaseLinksByChannelId (channelId: string) {
 }
 
 function printQRCodesByTableRows (rows: AffiliationLink[] = []) {
+  useLogEvent('purchase_link_print_qr', { count: rows.length })
   try {
     sessionStorage.setItem(
       'nft_book_press_batch_qrcode',
@@ -980,6 +985,7 @@ function shareTableLinkByChannelId (channelId: string) {
 }
 
 async function downloadQRCodesByTableRows (rows: AffiliationLink[] = [], channelId?: string) {
+  useLogEvent('purchase_link_download_qr', { count: rows.length, channel_id: channelId })
   const items = rows.map(link => ({
     url: link.qrCodeUrl,
     filename: getQRCodeFilename(link)

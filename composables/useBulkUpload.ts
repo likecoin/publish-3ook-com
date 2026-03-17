@@ -63,9 +63,11 @@ export function useBulkUpload () {
       await createBookListing(book, callbacks)
 
       onStatusChange?.(book.id, BookUploadStatus.COMPLETED)
+      useLogEvent('bulk_upload_book_completed', { book_id: book.id, class_id: book.classId })
       return true
     } catch (error: any) {
       const errorMessage = error?.message || error?.toString() || 'Unknown error'
+      useLogEvent('bulk_upload_book_failed', { book_id: book.id, error: errorMessage })
       onError?.(book.id, errorMessage)
       onStatusChange?.(book.id, BookUploadStatus.FAILED, errorMessage)
       return false

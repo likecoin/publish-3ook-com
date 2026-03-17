@@ -258,6 +258,7 @@ async function loadPayoutHistory () {
 }
 
 async function exportCommissionHistory () {
+  useLogEvent('sales_report_export_commission')
   const date = new Date().toISOString().split('T')[0]
 
   const columns = [
@@ -295,6 +296,7 @@ async function exportCommissionHistory () {
 }
 
 async function exportPayoutHistory () {
+  useLogEvent('sales_report_export_payout')
   const date = new Date().toISOString().split('T')[0]
 
   const columns = [

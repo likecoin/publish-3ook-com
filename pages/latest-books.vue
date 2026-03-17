@@ -198,18 +198,18 @@ async function fetchUserStripeInfo () {
 }
 
 function handleAffiliationSetupButtonClick () {
-  useTrackEvent('latest_books_click_affiliation_setup')
+  useLogEvent('latest_books_click_affiliation_setup')
   navigateTo(localeRoute({ name: 'settings' }))
 }
 
 function selectTableRow (row: { original: { url: string } }) {
-  useTrackEvent('latest_books_click_table_row')
+  useLogEvent('latest_books_click_table_row')
   window.open(row.original.url, '_blank')
 }
 
 function handleCopyButtonClick (e: MouseEvent, text: string) {
   e.stopPropagation()
-  useTrackEvent('latest_books_click_copy_button')
+  useLogEvent('latest_books_click_copy_button')
   copyToClipboard(text)
 }
 
