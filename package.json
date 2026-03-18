@@ -21,7 +21,7 @@
     "@likecoin/epub-ts": "^0.4.6",
     "@likecoin/epubcheck-ts": "^0.3.7",
     "@likecoin/qr-code-styling": "^1.6.6",
-    "@likecoin/wagmi-connector": "2.3.2-like.3",
+    "@likecoin/wagmi-connector": "2.4.0-like.0",
     "@metamask/sdk": "~0.33.1",
     "@nuxt/ui": "3.3.7",
     "@pinia/nuxt": "^0.11.1",

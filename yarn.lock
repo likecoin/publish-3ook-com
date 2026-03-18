@@ -1812,13 +1812,14 @@
   dependencies:
     qrcode-generator "^1.4.3"
 
-"@likecoin/wagmi-connector@2.3.2-like.3":
-  version "2.3.2-like.3"
-  resolved "https://registry.npmjs.org/@likecoin/wagmi-connector/-/wagmi-connector-2.3.2-like.3.tgz"
-  integrity sha512-79fNvZdynkVlgrF2iaWoceahglmjKwXjkyz1a6EX0UshKZ19RqoY998exAAYAYMP6gBv2e67zZkvYEuubCHm0w==
+"@likecoin/wagmi-connector@2.4.0-like.0":
+  version "2.4.0-like.0"
+  resolved "https://registry.yarnpkg.com/@likecoin/wagmi-connector/-/wagmi-connector-2.4.0-like.0.tgz#cc30ce210c73b1fced64d5e5f834981cddcac5dd"
+  integrity sha512-+hncq9Xwok9k+mosma+NxjFmzC2rsoAxP5D3Lot6bkQlx0yNwbxutT7MtThYyFPuzGQv1kfhImo8ivA/bkNsWA==
   dependencies:
-    "@magic-ext/oauth2" "^11.4.1"
-    magic-sdk "29.4.2"
+    "@magic-ext/evm" "^1.2.1"
+    "@magic-ext/oauth2" "^15.3.1"
+    magic-sdk "^33.4.1"
 
 "@lit-labs/ssr-dom-shim@^1.4.0":
   version "1.4.0"
@@ -1837,30 +1838,30 @@
   dependencies:
     "@lit-labs/ssr-dom-shim" "^1.4.0"
 
-"@magic-ext/oauth2@^11.4.1":
-  version "11.5.0"
-  resolved "https://registry.npmjs.org/@magic-ext/oauth2/-/oauth2-11.5.0.tgz"
-  integrity sha512-jUdRq3go9gJq2slnTMQZJpFDUn5hHpCpcJ8jhJP/CjUOUOL8LOmgD3SKNezjdwFv9bKfiEHTpB5oz8dxYGzZgw==
+"@magic-ext/evm@^1.2.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@magic-ext/evm/-/evm-1.4.1.tgz#306d9d1d11abfadf16a0875da0f63ee80a260e84"
+  integrity sha512-z3efjiYotJfjwlV+BqGfF1ySX4MLSCCEVgYvT5p+vBZ3IFhnQFqAlCcp2QkDKgt70xVwoPCCJrMVlXzgU7B/+A==
+
+"@magic-ext/oauth2@^15.3.1":
+  version "15.5.1"
+  resolved "https://registry.yarnpkg.com/@magic-ext/oauth2/-/oauth2-15.5.1.tgz#e5b217cab7e78a4e30bf71b235eb307dfa595d6d"
+  integrity sha512-+lBKnuRfvRULzETIHVzXhJMyR7qebvbwUYHiNZVkj63D0Tq7x9XZBHYcduXBsvHvekS69eTHczcTW7Hmafkg6Q==
   dependencies:
     crypto-js "^4.2.0"
 
-"@magic-sdk/commons@^25.4.2":
-  version "25.4.2"
-  resolved "https://registry.npmjs.org/@magic-sdk/commons/-/commons-25.4.2.tgz"
-  integrity sha512-R3wJ1NWa+uDH9+Cc6kLjPDCSkelG3VM9pnuHR0zpE52XxiYaL0IplSG8DsjCqt2FeurTgqlUHGUEFrDHIdXEFQ==
-
-"@magic-sdk/provider@^29.4.2":
-  version "29.5.0"
-  resolved "https://registry.npmjs.org/@magic-sdk/provider/-/provider-29.5.0.tgz"
-  integrity sha512-OAd813MLFfJDdRk/puRYqoGpBukGbTAlnR0n7f5AHG1NH9vQd/VSo3g6FunAPgoMfnLtJjFH9PdmD+Sh+f1yWA==
+"@magic-sdk/provider@^33.6.1":
+  version "33.6.1"
+  resolved "https://registry.yarnpkg.com/@magic-sdk/provider/-/provider-33.6.1.tgz#1c5971c69d24b0edb27091fd078b52d1c8a4ebfd"
+  integrity sha512-W4qDE7/H/Y1NRwa0mGpy6vOvIU+pYXiExMdudnUmy53exk3wGy5dj9xztylHKxkHRMI//ANa6CfstnFeTL81ZA==
   dependencies:
-    "@magic-sdk/types" "^24.21.0"
+    "@magic-sdk/types" "^27.6.0"
     eventemitter3 "^4.0.4"
 
-"@magic-sdk/types@^24.21.0":
-  version "24.22.0"
-  resolved "https://registry.npmjs.org/@magic-sdk/types/-/types-24.22.0.tgz"
-  integrity sha512-FLa9ChjsHcuRNF+dcXIFK4wPb1hJMjGtW+dz1gY5Oyhv37UB7xmOaIlR6YAe4jAxQvO+Hz2Q2Htk4JGI7WRluA==
+"@magic-sdk/types@^27.6.0":
+  version "27.6.0"
+  resolved "https://registry.yarnpkg.com/@magic-sdk/types/-/types-27.6.0.tgz#98653011b61d9259b04d6bb9a8790ab2b4ffc465"
+  integrity sha512-qsR+zZacfYZV5VSJQsYfVkiBIhf1O0l2grO1XRLmWuPpQg3y9NPerGUJalucnLwITsSZrhghqSqooJdkelVZzA==
 
 "@mapbox/node-pre-gyp@^2.0.0":
   version "2.0.0"
@@ -10566,14 +10567,13 @@ magic-regexp@^0.10.0:
     ufo "^1.5.4"
     unplugin "^2.0.0"
 
-magic-sdk@29.4.2:
-  version "29.4.2"
-  resolved "https://registry.npmjs.org/magic-sdk/-/magic-sdk-29.4.2.tgz"
-  integrity sha512-m5DFM+FUxAwDkmG8cuGKp9aIcJfIrI7TUoL5oL2ywumVAPAfBdJys0Udda7nZMJMN0mtHAhYPhqoOSqDU9HvgA==
+magic-sdk@^33.4.1:
+  version "33.6.1"
+  resolved "https://registry.yarnpkg.com/magic-sdk/-/magic-sdk-33.6.1.tgz#f89f6cd744270167008c299325d111bb751169b0"
+  integrity sha512-F5RyTEwT2TnxlkitXPLjUXXVfShd3FbA0lOJFhqgavlda4pti7wnTG+jdFsEG7PpF/cPndKB5sOHXVj64bf93A==
   dependencies:
-    "@magic-sdk/commons" "^25.4.2"
-    "@magic-sdk/provider" "^29.4.2"
-    "@magic-sdk/types" "^24.21.0"
+    "@magic-sdk/provider" "^33.6.1"
+    "@magic-sdk/types" "^27.6.0"
     localforage "^1.7.4"
 
 magic-string-ast@^0.7.0:

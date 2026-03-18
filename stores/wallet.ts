@@ -99,9 +99,9 @@ export const useWalletStore = defineStore('wallet', () => {
       let magicUserId: string | undefined
       let magicDIDToken: string | undefined
       const loginMethod = connector.id
-      if (loginMethod === 'magic' && 'magic' in connector) {
-        const magic = connector.magic as Magic
+      if (loginMethod === 'magic' && 'getMagic' in connector) {
         try {
+          const magic = await (connector as unknown as { getMagic(): Promise<Magic> }).getMagic()
           const userInfo = await magic.user.getInfo()
           if (userInfo.email) {
             email = userInfo.email
