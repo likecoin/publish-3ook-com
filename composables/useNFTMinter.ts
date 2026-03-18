@@ -1,4 +1,3 @@
-import { useWriteContract } from '@wagmi/vue'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 
 export interface NFTTokenMetadata {
@@ -14,7 +13,7 @@ export function useNFTMinter () {
   const { wallet } = storeToRefs(walletStore)
   const { checkAndGrantMinter, assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
   const { getClassCurrentTokenId } = useNFTContractReader()
-  const { writeContractAsync } = useWriteContract()
+  const { writeContractAsync } = useContractWrite()
 
   async function mintNFT (params: {
     classId: string

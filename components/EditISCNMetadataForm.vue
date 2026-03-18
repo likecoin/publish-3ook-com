@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import { useWriteContract } from '@wagmi/vue'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { ClassMetadata, ISCNFormData } from '~/types/iscn'
@@ -40,7 +39,7 @@ const toast = useToast()
 const walletStore = useWalletStore()
 const { wallet, signer } = storeToRefs(walletStore)
 const { validateWalletConsistency } = walletStore
-const { writeContractAsync } = useWriteContract()
+const { writeContractAsync } = useContractWrite()
 const { checkAndGrantUpdater, assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 const { getNFTClassConfig } = useNFTContractReader()
 const { refreshBookMetadata } = useBookstoreApiStore()

@@ -1,4 +1,3 @@
-import { useWriteContract } from '@wagmi/vue'
 import { readContract, getBalance, waitForTransactionReceipt as wagmiWaitForTransactionReceipt, estimateGas, getGasPrice } from '@wagmi/vue/actions'
 import { encodeFunctionData, formatEther } from 'viem'
 import type { Abi, EstimateGasParameters } from 'viem'
@@ -6,7 +5,7 @@ import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { sleep } from '~/utils'
 
 export const useNFTContractWriter = () => {
-  const { writeContractAsync } = useWriteContract()
+  const { writeContractAsync } = useContractWrite()
   const { $wagmiConfig: config } = useNuxtApp()
   const { t: $t } = useI18n()
   const toast = useToast()

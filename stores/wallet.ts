@@ -20,6 +20,7 @@ export const useWalletStore = defineStore('wallet', () => {
   const registrationModal = overlay.create(RegistrationModal)
   const { t: $t } = useI18n()
 
+  const { ensureMagicSession } = useMagicSession()
   const isLoginLoading = ref(false)
 
   const wallet = computed(() => address.value ? checksumAddress(address.value) : undefined)
@@ -139,6 +140,7 @@ export const useWalletStore = defineStore('wallet', () => {
     if (!wallet.value) {
       throw new Error('WALLET_NOT_INITED')
     }
+    await ensureMagicSession()
     const ts = Date.now()
     const payload = JSON.stringify({
       action,

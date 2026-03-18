@@ -187,7 +187,6 @@
 
 <script setup lang="ts">
 import { whenever } from '@vueuse/core'
-import { useWriteContract } from '@wagmi/vue'
 import { parseImageURLFromMetadata } from '~/utils'
 import { AUTHOR_MESSAGE_LIMIT } from '~/constant'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
@@ -207,7 +206,7 @@ const { lazyFetchClassMetadataById } = nftStore
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 
-const { writeContractAsync } = useWriteContract()
+const { writeContractAsync } = useContractWrite()
 const { getBalanceOf, getTokenIdByOwnerIndex } = useNFTContractReader()
 const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 

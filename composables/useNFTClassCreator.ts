@@ -1,4 +1,3 @@
-import { useWriteContract } from '@wagmi/vue'
 import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import { formatISCNTxPayload } from '~/utils/iscn'
@@ -11,7 +10,7 @@ export function useNFTClassCreator () {
     assertSufficientBalanceForTransaction,
     waitForTransactionReceipt
   } = useNFTContractWriter()
-  const { writeContractAsync } = useWriteContract()
+  const { writeContractAsync } = useContractWrite()
   const {
     LIKE_NFT_CONTRACT_ADDRESS,
     LIKE_EVM_NFT_TARGET_ADDRESS
