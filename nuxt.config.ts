@@ -1,6 +1,3 @@
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import { replaceCodePlugin } from 'vite-plugin-replace'
-
 const {
   NODE_ENV,
   SENTRY_ORG,
@@ -99,6 +96,9 @@ export default defineNuxtConfig({
     removeLoggers: false
   },
 
+  experimental: {
+    clientNodeCompat: true
+  },
   vite: {
     define: {
       global: 'globalThis',
@@ -108,32 +108,6 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: ['eventemitter3']
     },
-    plugins: [
-      nodePolyfills({
-        // global breaks on dev
-        globals: {
-          process: false,
-          Buffer: false,
-          global: false
-        }
-      }),
-      // https://github.com/davidmyersdev/vite-plugin-node-polyfills/issues/92
-      replaceCodePlugin({
-        replacements: [
-          {
-            from: `if ((crypto && crypto.getRandomValues) || !process.browser) {
-  exports.randomFill = randomFill
-  exports.randomFillSync = randomFillSync
-} else {
-  exports.randomFill = oldBrowser
-  exports.randomFillSync = oldBrowser
-}`,
-            to: `exports.randomFill = randomFill
-exports.randomFillSync = randomFillSync`
-          }
-        ]
-      })
-    ],
     vue: {
       script: {
         defineModel: true,
