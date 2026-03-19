@@ -1,4 +1,3 @@
-import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import { replaceCodePlugin } from 'vite-plugin-replace'
 
@@ -100,10 +99,6 @@ export default defineNuxtConfig({
     removeLoggers: false
   },
 
-  alias: {
-    // polyfill process
-    process: path.resolve(__dirname, 'node_modules/unenv/runtime/node/process')
-  },
   vite: {
     define: {
       global: 'globalThis',
