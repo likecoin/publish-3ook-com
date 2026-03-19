@@ -1,5 +1,5 @@
 import { useConnection } from '@wagmi/vue'
-import { encodeFunctionData, createWalletClient, custom, type Abi, type Address, type Hash } from 'viem'
+import { encodeFunctionData, createWalletClient, custom, toHex, type Abi, type Address, type Hash } from 'viem'
 import { toRaw } from 'vue'
 import type { Magic } from 'magic-sdk'
 
@@ -8,6 +8,11 @@ export interface SponsoredWriteContractParams {
   abi: Abi | readonly unknown[]
   functionName: string
   args?: readonly unknown[]
+}
+
+export interface SponsoredSendTransactionParams {
+  to: Address
+  value: bigint
 }
 
 let alchemyModules: Awaited<ReturnType<typeof loadAlchemyModules>> | null = null
@@ -121,7 +126,7 @@ export function useSponsoredTransaction () {
     return pendingClientCreation
   }
 
-  async function sponsoredWriteContract (params: SponsoredWriteContractParams): Promise<Hash> {
+  async function executeSponsoredCalls (calls: Array<{ to: Address; data?: `0x${string}`; value?: `0x${string}` }>): Promise<Hash> {
     if (!address.value) {
       throw new Error('No connected account')
     }
@@ -130,19 +135,9 @@ export function useSponsoredTransaction () {
     try {
       const client = await getOrCreateSmartWalletClient()
 
-      const callData = encodeFunctionData({
-        abi: params.abi as Abi,
-        functionName: params.functionName,
-        args: params.args || []
-      })
-
       const result = await client.sendCalls({
         from: address.value,
-        calls: [{
-          to: params.address,
-          data: callData,
-          value: '0x0' as `0x${string}`
-        }],
+        calls,
         capabilities: {
           eip7702Auth: true
         }
@@ -161,6 +156,19 @@ export function useSponsoredTransaction () {
     return txHash
   }
 
+  function sponsoredWriteContract (params: SponsoredWriteContractParams): Promise<Hash> {
+    const callData = encodeFunctionData({
+      abi: params.abi as Abi,
+      functionName: params.functionName,
+      args: params.args || []
+    })
+    return executeSponsoredCalls([{ to: params.address, data: callData, value: '0x0' }])
+  }
+
+  function sponsoredSendTransaction (params: SponsoredSendTransactionParams): Promise<Hash> {
+    return executeSponsoredCalls([{ to: params.to, value: toHex(params.value) }])
+  }
+
   watch(isSponsoredMode, (newVal) => {
     if (!newVal) {
       clearSponsoredClientCache()
@@ -169,6 +177,7 @@ export function useSponsoredTransaction () {
 
   return {
     isSponsoredMode,
-    sponsoredWriteContract
+    sponsoredWriteContract,
+    sponsoredSendTransaction
   }
 }

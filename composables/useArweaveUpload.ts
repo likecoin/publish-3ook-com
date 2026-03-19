@@ -1,4 +1,3 @@
-import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
 import { estimateBundlrFilePrice, uploadSingleFileToBundlr } from '~/utils/arweave'
 import { encryptDataWithAES } from '~/utils/encryption'
@@ -32,7 +31,7 @@ export function useArweaveUpload () {
     assertSufficientBalanceForTransfer,
     waitForTransactionReceipt
   } = useNFTContractWriter()
-  const { sendTransactionAsync } = useSendTransaction()
+  const { sendTransactionAsync } = useSendTransactionSponsored()
   const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
 
   async function prepareArweaveUpload (params: {
@@ -75,16 +74,16 @@ export function useArweaveUpload () {
       throw new Error('Failed to get Arweave fee estimate')
     }
 
+    const to = evmAddress as `0x${string}`
+    const value = parseEther(ETH)
+
     await assertSufficientBalanceForTransfer({
       wallet: wallet.value!,
-      to: evmAddress as `0x${string}`,
-      value: parseEther(ETH)
+      to,
+      value
     })
 
-    const txHash = await sendTransactionAsync({
-      to: evmAddress as `0x${string}`,
-      value: parseEther(ETH)
-    })
+    const txHash = await sendTransactionAsync({ to, value })
 
     const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
     if (!receipt || receipt.status !== 'success') {
