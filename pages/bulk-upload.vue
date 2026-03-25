@@ -214,7 +214,7 @@
           <UButton
             :label="$t('bulk_upload.continue')"
             :disabled="unmatchedBooks.length > 0"
-            @click="currentStep = 'review'"
+            @click="goToReview"
           />
         </div>
       </UCard>
@@ -230,6 +230,8 @@
         <p class="text-sm text-gray-600">
           {{ $t('bulk_upload.review_description') }}
         </p>
+
+        <ArweaveSponsorStatus :is-sponsored="isArweaveSponsored" :remaining-uploads="arweaveRemainingUploads" />
 
         <p class="font-medium">
           {{ $t('bulk_upload.total_transactions', { count: books.length }) }}
@@ -398,6 +400,7 @@
 import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
 import { getTransactionReceipt } from '@wagmi/vue/actions'
+import { getArweaveUploadQuota, canSponsorArweaveUpload } from '~/utils/arweave'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -410,6 +413,8 @@ import {
 
 const { t: $t } = useI18n()
 const toast = useToast()
+const bookstoreApiStore = useBookstoreApiStore()
+const { token } = storeToRefs(bookstoreApiStore)
 const { processBooksSequentially, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
 const { getClassMetadata } = useNFTContractReader()
 const { $wagmiConfig } = useNuxtApp()
@@ -425,6 +430,8 @@ const selectedFiles = ref<File[]>([])
 const isProcessing = ref(false)
 const isPaused = ref(false)
 const hasExistingSession = ref(false)
+const isArweaveSponsored = ref(false)
+const arweaveRemainingUploads = ref<number | undefined>()
 
 // Computed
 const pendingBooks = computed(() =>
@@ -720,6 +727,23 @@ function handleFilesChange (event: Event) {
   })
 }
 
+async function goToReview () {
+  currentStep.value = 'review'
+  try {
+    const quota = await getArweaveUploadQuota(token.value)
+    const totalSize = books.value.reduce((sum, b) => {
+      return sum + (b.coverFile?.size || 0) + (b.epubFile?.size || 0) + (b.pdfFile?.size || 0)
+    }, 0)
+    const fileCount = books.value.reduce((count, b) => {
+      return count + (b.coverFile ? 1 : 0) + (b.epubFile || b.pdfFile ? 1 : 0)
+    }, 0)
+    arweaveRemainingUploads.value = quota.remainingUploads
+    isArweaveSponsored.value = canSponsorArweaveUpload(quota, totalSize, fileCount)
+  } catch {
+    // Non-critical — proceed without sponsored info
+  }
+}
+
 async function startProcessing () {
   currentStep.value = 'processing'
   isProcessing.value = true
@@ -729,6 +753,7 @@ async function startProcessing () {
   saveBulkUploadSession(books.value, 0)
 
   await processBooksSequentially(books.value, {
+    sponsored: isArweaveSponsored.value,
     onStatusChange: (bookId, status, error) => {
       const book = books.value.find(b => b.id === bookId)
       if (book) {
