@@ -101,6 +101,7 @@
         </UTooltip>
       </template>
     </URadioGroup>
+    <ArweaveSponsorStatus :is-sponsored="isArweaveSponsored" :remaining-uploads="arweaveRemainingUploads" />
     <UModal
       :open="!!uploadStatus"
       :dismissible="false"
@@ -220,7 +221,8 @@
 <script setup lang="ts">
 import { BigNumber } from 'bignumber.js'
 import {
-  estimateBundlrFilePrice
+  estimateBundlrFilePrice,
+  canSponsorArweaveUpload
 } from '~/utils/arweave'
 import { PUBLISH_GUIDE_URL } from '~/constant'
 
@@ -232,6 +234,8 @@ const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
 const store = useWalletStore()
 const { signer } = storeToRefs(store)
 const { validateWalletConsistency } = store
+const bookstoreApiStore = useBookstoreApiStore()
+const { token } = storeToRefs(bookstoreApiStore)
 const toast = useToast()
 const imageFile = ref<HTMLInputElement | null>(null)
 const { prepareArweaveUpload, executeArweaveUpload: executeArweaveUploadComposable, uploadToArweave } = useArweaveUpload()
@@ -250,6 +254,8 @@ const epubMetadataList = ref<EpubMetadata[]>([])
 const arweaveFee = ref(new BigNumber(0))
 const arweaveFeeMap = ref({} as Record<string, string>)
 const arweaveFeeTargetAddress = ref('')
+const isArweaveSponsored = ref(false)
+const arweaveRemainingUploads = ref<number | undefined>()
 const sentArweaveTransactionInfo = ref(new Map())
 const drmOption = ref(props.defaultEncrypted ? 'encrypted' : 'open')
 const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
@@ -654,7 +660,8 @@ const estimateArweaveFee = async (): Promise<void> => {
       const isEbook = record.fileType === 'application/epub+zip' || record.fileType === 'application/pdf'
       const priceResult = await estimateBundlrFilePrice({
         fileSize: record.fileBlob?.size || 0,
-        ipfsHash: (isEbook && isEncryptEBookData.value) ? undefined : record.ipfsHash
+        ipfsHash: (isEbook && isEncryptEBookData.value) ? undefined : record.ipfsHash,
+        token: token.value
       })
       results.push({
         ...priceResult,
@@ -662,11 +669,19 @@ const estimateArweaveFee = async (): Promise<void> => {
       })
     }
 
+    const firstResult = results[0]
+    arweaveRemainingUploads.value = firstResult?.remainingUploads
+    if (firstResult) {
+      const totalSize = fileRecords.value.reduce((sum, r) => sum + (r.fileBlob?.size || 0), 0)
+      const fileCount = fileRecords.value.filter(r => r.fileBlob).length
+      isArweaveSponsored.value = canSponsorArweaveUpload(firstResult, totalSize, fileCount)
+    }
+
     let totalFee = new BigNumber(0)
     results.forEach((result) => {
       const { evmAddress, arweaveId, ETH, ipfsHash } = result
       if (!ipfsHash) { return }
-      if (ETH) {
+      if (ETH && !isArweaveSponsored.value) {
         totalFee = totalFee.plus(new BigNumber(ETH))
         arweaveFeeMap.value[ipfsHash] = ETH
       }
@@ -816,7 +831,8 @@ const onSubmitInternal = async () => {
           arrayBuffer: await record.fileBlob.arrayBuffer(),
           fileSize: record.fileBlob.size,
           fileType: record.fileType as string,
-          encrypt: shouldEncrypt
+          encrypt: shouldEncrypt,
+          sponsored: isArweaveSponsored.value
         })
 
         if ('alreadyExists' in prepareResult) {
