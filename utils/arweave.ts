@@ -2,12 +2,29 @@ import { getApiEndpoints } from '~/constant/api'
 import type { ArweaveEstimate } from '~/types'
 import { uploadToIrys } from '~/utils/irys'
 
+export function canSponsorArweaveUpload (
+  estimate: Pick<ArweaveEstimate, 'remainingBytes' | 'remainingUploads'>,
+  totalSize: number,
+  fileCount: number
+): boolean {
+  return estimate.remainingBytes !== undefined &&
+    estimate.remainingUploads !== undefined &&
+    estimate.remainingBytes >= totalSize &&
+    estimate.remainingUploads >= fileCount
+}
+
+export function getArweaveUploadQuota (token?: string): Promise<ArweaveEstimate> {
+  return estimateBundlrFilePrice({ fileSize: 0, token })
+}
+
 export async function estimateBundlrFilePrice ({
   fileSize,
-  ipfsHash
+  ipfsHash,
+  token
 }: {
   fileSize: number
   ipfsHash?: string
+  token?: string
 }): Promise<ArweaveEstimate> {
   const apiEndpoints = getApiEndpoints()
   const data = await $fetch<ArweaveEstimate>(apiEndpoints.API_POST_ARWEAVE_V2_ESTIMATE, {
@@ -15,7 +32,8 @@ export async function estimateBundlrFilePrice ({
     body: {
       fileSize,
       ipfsHash
-    }
+    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
   return data
 }
@@ -28,8 +46,17 @@ export async function uploadSingleFileToBundlr (
     ipfsHash,
     txHash,
     token,
-    key
-  }: { fileSize: number; fileType?: string; ipfsHash: string; txHash: string; token: string; key?: string }
+    key,
+    sponsored
+  }: {
+    fileSize: number
+    fileType?: string
+    ipfsHash: string
+    txHash?: string
+    token: string
+    key?: string
+    sponsored?: boolean
+  }
 ) {
   const tags = [
     { name: 'App-Name', value: 'publish.3ook.com' },
@@ -40,13 +67,19 @@ export async function uploadSingleFileToBundlr (
   if (fileType) { tags.push({ name: 'Content-Type', value: fileType }) }
   if (key) { tags.push({ name: 'Content-Encoding', value: 'aes256gcm' }) }
 
-  const { id: arweaveId } = await uploadToIrys(file, {
+  const { id: arweaveId, uploadId, signToken } = await uploadToIrys(file, {
     tags,
     fileSize,
     ipfsHash,
     txHash,
-    token
+    token,
+    sponsored
   })
+
+  const registrationId = sponsored ? (uploadId || txHash) : (txHash || uploadId)
+  if (!registrationId) {
+    throw new Error('Missing registration ID: neither uploadId nor txHash is available')
+  }
 
   const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
   let arweaveLink = `${ARWEAVE_ENDPOINT}/${arweaveId}`
@@ -58,11 +91,12 @@ export async function uploadSingleFileToBundlr (
       body: {
         fileSize,
         ipfsHash,
-        txHash,
+        txHash: registrationId,
         arweaveId,
+        token: signToken,
         key
       },
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     })
     const result = data as { link?: string }
     if (result?.link) {

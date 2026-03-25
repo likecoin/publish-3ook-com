@@ -192,21 +192,31 @@ function getSignatureData (
 
 async function signDataItem (
   sigData: Uint8Array,
-  opts: { fileSize: number; ipfsHash: string; txHash: string; token: string }
-): Promise<Uint8Array> {
+  opts: { fileSize: number; ipfsHash: string; txHash?: string; token: string; sponsored?: boolean }
+): Promise<{ signature: Uint8Array; uploadId: string; signToken: string }> {
   const apiEndpoints = getApiEndpoints()
-  const res = await $fetch<{ signature: string }>(apiEndpoints.API_POST_ARWEAVE_V2_SIGN, {
+  const body: Record<string, unknown> = {
+    signatureData: uint8ArrayToBase64(sigData),
+    fileSize: opts.fileSize,
+    ipfsHash: opts.ipfsHash,
+    txToken: opts.sponsored ? 'SPONSORED' : 'BASEETH'
+  }
+  if (!opts.sponsored) {
+    if (!opts.txHash) {
+      throw new Error('txHash is required for non-sponsored uploads')
+    }
+    body.txHash = opts.txHash
+  }
+  const res = await $fetch<{ signature: string; id: string; token: string }>(apiEndpoints.API_POST_ARWEAVE_V2_SIGN, {
     method: 'POST',
-    body: {
-      signatureData: uint8ArrayToBase64(sigData),
-      fileSize: opts.fileSize,
-      ipfsHash: opts.ipfsHash,
-      txToken: 'BASEETH',
-      txHash: opts.txHash
-    },
-    headers: { Authorization: opts.token ? `Bearer ${opts.token}` : '' }
+    body,
+    headers: opts.token ? { Authorization: `Bearer ${opts.token}` } : {}
   })
-  return Uint8Array.from(atob(res.signature), c => c.charCodeAt(0))
+  return {
+    signature: Uint8Array.from(atob(res.signature), c => c.charCodeAt(0)),
+    uploadId: res.id,
+    signToken: res.token
+  }
 }
 
 // ── Main upload function ─────────────────────────────────────────────────────
@@ -217,10 +227,11 @@ export async function uploadToIrys (
     tags: { name: string; value: string }[]
     fileSize: number
     ipfsHash: string
-    txHash: string
+    txHash?: string
     token: string
+    sponsored?: boolean
   }
-): Promise<{ id: string }> {
+): Promise<{ id: string; uploadId: string; signToken: string }> {
   const apiEndpoints = getApiEndpoints()
 
   // 1. Get Ethereum address that owns the Irys node account
@@ -241,7 +252,7 @@ export async function uploadToIrys (
   const sigData = await getSignatureData(ownerBytes, anchor, tagBytes, file)
 
   // 5. Sign via LikeCoin backend
-  const signature = await signDataItem(sigData, opts)
+  const { signature, uploadId, signToken } = await signDataItem(sigData, opts)
   if (signature.length !== SIG_LENGTH) {
     throw new Error(`Invalid signature length: expected ${SIG_LENGTH} bytes, got ${signature.length}`)
   }
@@ -269,5 +280,5 @@ export async function uploadToIrys (
     throw new Error(`Irys upload failed (${res.status}): ${text}`)
   }
 
-  return { id }
+  return { id, uploadId, signToken }
 }

@@ -32,4 +32,6 @@ export interface ArweaveEstimate {
   arweaveId?: string
   ETH?: string
   ipfsHash?: string
+  remainingBytes?: number
+  remainingUploads?: number
 }

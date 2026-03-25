@@ -7,6 +7,7 @@ interface ProcessingCallbacks {
   onStatusChange?: (bookId: string, status: BookUploadStatus, message?: string) => void
   onProgress?: (bookId: string, updates: Partial<BulkUploadBook>) => void
   onError?: (bookId: string, error: string) => void
+  sponsored?: boolean
 }
 
 export function useBulkUpload () {
@@ -82,7 +83,7 @@ export function useBulkUpload () {
     book: BulkUploadBook,
     callbacks: ProcessingCallbacks
   ): Promise<void> {
-    const { onProgress } = callbacks
+    const { onProgress, sponsored } = callbacks
     let pendingUpload: Promise<void> = Promise.resolve()
 
     if (!book.coverArweaveId) {
@@ -94,7 +95,8 @@ export function useBulkUpload () {
         arrayBuffer: await book.coverFile.arrayBuffer(),
         fileSize: book.coverFile.size,
         fileType: book.coverFile.type,
-        encrypt: false
+        encrypt: false,
+        sponsored
       })
       if ('alreadyExists' in coverPrepare) {
         const coverResult = coverPrepare.result
@@ -128,7 +130,8 @@ export function useBulkUpload () {
         arrayBuffer: await ebookFile.arrayBuffer(),
         fileSize: ebookFile.size,
         fileType: ebookFile.type,
-        encrypt: book.enableDRM
+        encrypt: book.enableDRM,
+        sponsored
       })
       if ('alreadyExists' in bookPrepare) {
         await pendingUpload
