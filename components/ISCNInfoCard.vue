@@ -48,6 +48,15 @@
       />
     </UFormField>
 
+    <UFormField v-if="iscnData?.contentMetadata?.previewContent" :label="$t('iscn_form.preview_content')">
+      <UTextarea
+        :model-value="iscnData?.contentMetadata?.previewContent"
+        :readonly="true"
+        variant="none"
+        autoresize
+      />
+    </UFormField>
+
     <slot name="actions">
       <UButton
         v-if="showEditButton"

@@ -2,6 +2,7 @@ export interface ISCNContentMetadata {
   name?: string
   description?: string
   descriptionFull?: string
+  previewContent?: string
   alternativeHeadline?: string
   thumbnailUrl?: string
   url?: string
@@ -32,6 +33,7 @@ export interface ClassMetadata {
   name?: string
   description?: string
   descriptionFull?: string
+  previewContent?: string
   alternativeHeadline?: string
   url?: string
   keywords?: string | string[]
@@ -76,6 +78,7 @@ export interface ISCNFormData {
   title: string
   description: string
   descriptionFull?: string
+  previewContent?: string
   alternativeHeadline?: string
   isbn: string
   publisher: string

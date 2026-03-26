@@ -79,6 +79,7 @@ export const licenseOptions = [
 
 export const MAX_DESCRIPTION_LENGTH = 1000
 export const MAX_DESCRIPTION_FULL_LENGTH = 5000
+export const MAX_PREVIEW_CONTENT_LENGTH = 10000
 export const MAX_ALTERNATIVE_HEADLINE_LENGTH = 200
 
 export const BOOK_CATEGORIES = [

@@ -38,18 +38,21 @@
       />
     </UFormField>
 
-    <UFormField
+    <ToggleTextarea
+      v-model="formData.descriptionFull"
       :label="$t('iscn_form.description_full')"
-      class="flex-1 text-left"
-      :hint="`${(formData.descriptionFull || '').length}/${MAX_DESCRIPTION_FULL_LENGTH}`"
-      :error="descriptionFullError"
-    >
-      <UTextarea
-        v-model="formData.descriptionFull"
-        :placeholder="$t('iscn_form.enter_iscn_description_full')"
-        autoresize
-      />
-    </UFormField>
+      :toggle-label="$t('iscn_form.enable_description_full')"
+      :placeholder="$t('iscn_form.enter_iscn_description_full')"
+      :max-length="MAX_DESCRIPTION_FULL_LENGTH"
+    />
+
+    <ToggleTextarea
+      v-model="formData.previewContent"
+      :label="$t('iscn_form.preview_content')"
+      :toggle-label="$t('iscn_form.enable_preview_content')"
+      :placeholder="$t('iscn_form.enter_preview_content')"
+      :max-length="MAX_PREVIEW_CONTENT_LENGTH"
+    />
 
     <div class="grid grid-cols-3 gap-4">
       <UFormField :label="$t('form.isbn')">
@@ -307,7 +310,7 @@
 import { useEventListener } from '@vueuse/core'
 import type { FileRecord, ISCNFormData } from '~/types'
 
-import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH, BOOK_CATEGORIES } from '~/constant/index'
+import { licenseOptions, languageOptions, MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH, MAX_PREVIEW_CONTENT_LENGTH, MAX_ALTERNATIVE_HEADLINE_LENGTH, BOOK_CATEGORIES } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
 const localeRoute = useLocaleRoute()
@@ -390,14 +393,6 @@ const descriptionError = computed(() => {
     return 'Description is required'
   } else if (desc.length > MAX_DESCRIPTION_LENGTH) {
     return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH })
-  }
-  return false
-})
-
-const descriptionFullError = computed(() => {
-  const desc = formData.value.descriptionFull || ''
-  if (desc.length > MAX_DESCRIPTION_FULL_LENGTH) {
-    return $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH })
   }
   return false
 })
