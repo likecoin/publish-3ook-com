@@ -1,4 +1,4 @@
-import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from '~/types/iscn'
+import type { ClassMetadata, ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from '~/types/iscn'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
 function isValidImageUrl (urlString: string): boolean {
@@ -16,6 +16,16 @@ function isValidImageUrl (urlString: string): boolean {
   } catch {
     return false
   }
+}
+
+export function getPreviewContentFromHasPart (
+  hasPart?: ClassMetadata['hasPart']
+): string | undefined {
+  if (!hasPart) { return undefined }
+  if (!Array.isArray(hasPart)) {
+    return (hasPart.isAccessibleForFree === true && hasPart.text) ? hasPart.text : undefined
+  }
+  return hasPart.find(p => p.isAccessibleForFree === true && !!p.text)?.text
 }
 
 export function formatISCNTxPayload (payload: ISCNRegisterPayload): ISCNTxPayload {

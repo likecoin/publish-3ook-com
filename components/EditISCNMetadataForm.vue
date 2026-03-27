@@ -27,6 +27,7 @@
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { ClassMetadata, ISCNFormData } from '~/types/iscn'
+import { getPreviewContentFromHasPart } from '~/utils/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 
 // eslint-disable-next-line func-call-spacing
@@ -132,7 +133,7 @@ watch(
           title: metadata.name || '',
           description: metadata.description || '',
           descriptionFull: metadata.descriptionFull || '',
-          previewContent: metadata.previewContent || '',
+          previewContent: getPreviewContentFromHasPart(metadata.hasPart) || '',
           alternativeHeadline: metadata.alternativeHeadline || '',
           isbn: metadata.isbn || '',
           publisher: metadata.publisher || '',

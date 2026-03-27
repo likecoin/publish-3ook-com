@@ -85,7 +85,6 @@ export function useISCN ({
     name: iscnFormData.value.title,
     description: iscnFormData.value.description,
     descriptionFull: iscnFormData.value.descriptionFull || undefined,
-    previewContent: iscnFormData.value.previewContent || undefined,
     alternativeHeadline: iscnFormData.value.alternativeHeadline || undefined,
     author: iscnFormData.value.author.name,
     authorDescription: iscnFormData.value.author.description,
@@ -106,6 +105,13 @@ export function useISCN ({
     tagsString: iscnFormData.value.tags?.join(', ') || '',
     thumbnailUrl: iscnFormData.value.coverUrl,
     genre: iscnFormData.value.genre || undefined,
+    hasPart: iscnFormData.value.previewContent
+      ? {
+          '@type': 'Chapter',
+          isAccessibleForFree: true,
+          text: iscnFormData.value.previewContent
+        }
+      : undefined,
     potentialAction: formattedPotentialActionList.value,
     attributes: getAttributes(iscnFormData.value)
   }))

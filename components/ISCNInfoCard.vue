@@ -48,9 +48,9 @@
       />
     </UFormField>
 
-    <UFormField v-if="iscnData?.contentMetadata?.previewContent" :label="$t('iscn_form.preview_content')">
+    <UFormField v-if="previewContent" :label="$t('iscn_form.preview_content')">
       <UTextarea
-        :model-value="iscnData?.contentMetadata?.previewContent"
+        :model-value="previewContent"
         :readonly="true"
         variant="none"
         autoresize
@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import type { ISCNData } from '~/types'
+import { getPreviewContentFromHasPart } from '~/utils/iscn'
 
 interface Props {
   iscnId: string
@@ -77,8 +78,12 @@ interface Props {
   showEditButton?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits<{(e: 'edit'): void }>()
 
 const { OPENSEA_URL } = useRuntimeConfig().public
+
+const previewContent = computed(() => {
+  return getPreviewContentFromHasPart(props.iscnData?.contentMetadata?.hasPart)
+})
 </script>
