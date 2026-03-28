@@ -125,6 +125,8 @@ export interface ISCNTxPayload {
 export interface ISCNValidationData {
   title?: string
   description?: string
+  descriptionFull?: string
+  previewContent?: string
   author?: { name: string }
   contentFingerprints?: Array<{ url: string }>
   coverUrl?: string

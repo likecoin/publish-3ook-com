@@ -15,6 +15,7 @@
       <UTextarea
         v-model="modelValue"
         :placeholder="placeholder"
+        :maxlength="maxLength"
         autoresize
       />
     </UFormField>
