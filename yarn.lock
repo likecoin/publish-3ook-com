@@ -1770,17 +1770,17 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.4.0"
 
-"@likecoin/epub-ts@^0.4.9":
-  version "0.4.9"
-  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.4.9.tgz#ab2d33ce9e97b7f9af2937e197176641d509e41d"
-  integrity sha512-zshVoA+UT+dRhusX6TpnzXflKz2ta3xwODJ5xEE0oH7lgxzLS21SyIUu7CdyoWHg+QQgykqfXXLGzZPlsON51A==
+"@likecoin/epub-ts@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.5.0.tgz#6c19e992e147598ddffd4360be439830171e487f"
+  integrity sha512-X/2eas2KrFaHWNwlnxUrt75GueCR7x0ayruN3lvqKYjNupwQ4mvM3q61szM7lC4W4R/UUgCWL0voxjYq4Vho3w==
   dependencies:
     jszip "^3.10.1"
 
-"@likecoin/epubcheck-ts@^0.3.8":
-  version "0.3.8"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.8.tgz#3b61054abcdd1bc8f9d956b3cfbd03ff4f3ceb95"
-  integrity sha512-PDK+v4NMDjablR07PAZbzTPLIy4O78VcrT2bOGkfFMgtT5qWGE8dMTu2StVzVYCuH9Lv3J6wB4mEP2o72okZ6A==
+"@likecoin/epubcheck-ts@^0.3.9":
+  version "0.3.9"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.3.9.tgz#0cc1d19c87279653c8355eb38c2f9c1277d9f752"
+  integrity sha512-aPdayrcdZbDnc+ljP9XQRO/uvo/GH6rXLtIbMaJemJS7bobtNhjItzLgsl+cOAd8UXYLX2aNJLe6ZFAMIRiJVQ==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
