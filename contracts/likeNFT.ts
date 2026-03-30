@@ -1,6 +1,4 @@
-import type { Abi } from 'viem'
-
-export const LIKE_NFT_ABI: Abi = [
+export const LIKE_NFT_ABI = [
   {
     inputs: [],
     stateMutability: 'nonpayable',
@@ -592,9 +590,9 @@ export const LIKE_NFT_ABI: Abi = [
     stateMutability: 'payable',
     type: 'function'
   }
-]
+] as const
 
-export const LIKE_NFT_CLASS_ABI: Abi = [
+export const LIKE_NFT_CLASS_ABI = [
   {
     inputs: [],
     stateMutability: 'nonpayable',
@@ -2028,4 +2026,4 @@ export const LIKE_NFT_CLASS_ABI: Abi = [
     stateMutability: 'nonpayable',
     type: 'function'
   }
-]
+] as const

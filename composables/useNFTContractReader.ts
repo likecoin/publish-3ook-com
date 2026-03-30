@@ -49,7 +49,7 @@ export const useNFTContractReader = () => {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'tokenURI',
-      args: [tokenId]
+      args: [BigInt(tokenId)]
     }) as string
     return parseURIString(dataString)
   }
@@ -59,7 +59,7 @@ export const useNFTContractReader = () => {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'ownerOf',
-      args: [tokenId]
+      args: [BigInt(tokenId)]
     }) as string
   }
 
@@ -68,7 +68,7 @@ export const useNFTContractReader = () => {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'balanceOf',
-      args: [address]
+      args: [address as `0x${string}`]
     }) as bigint
   }
 
@@ -81,7 +81,7 @@ export const useNFTContractReader = () => {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'tokenOfOwnerByIndex',
-      args: [address, index]
+      args: [address as `0x${string}`, BigInt(index)]
     }) as bigint
   }
 
@@ -98,16 +98,16 @@ export const useNFTContractReader = () => {
       address: LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
       abi: LIKE_NFT_ABI,
       functionName: 'isBookNFT',
-      args: [classId]
+      args: [classId as `0x${string}`]
     }) as boolean
   }
 
-  const getNFTClassConfig = async (classId: string): Promise<{ name: string; symbol: string; metadata: string; max_supply: number }> => {
+  const getNFTClassConfig = async (classId: string): Promise<{ name: string; symbol: string; metadata: string; max_supply: bigint }> => {
     return await readContract(config, {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'getBookConfig'
-    }) as { name: string; symbol: string; metadata: string; max_supply: number }
+    }) as { name: string; symbol: string; metadata: string; max_supply: bigint }
   }
 
   return {

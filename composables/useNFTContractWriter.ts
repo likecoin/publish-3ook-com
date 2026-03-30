@@ -41,18 +41,18 @@ export const useNFTContractWriter = () => {
 
   const checkAndGrantRole = async (
     { classId, wallet }: { classId: string; wallet: string },
-    role: string
+    role: 'UPDATER_ROLE' | 'MINTER_ROLE'
   ) => {
     const roleData = await readContract(config, {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
-      functionName: role
+      functionName: role as 'UPDATER_ROLE'
     })
     const hasRole = await readContract(config, {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
       functionName: 'hasRole',
-      args: [roleData, wallet]
+      args: [roleData as `0x${string}`, wallet as `0x${string}`]
     })
     if (!hasRole) {
       await assertSufficientBalanceForTransaction({
@@ -60,13 +60,13 @@ export const useNFTContractWriter = () => {
         address: classId as `0x${string}`,
         abi: LIKE_NFT_CLASS_ABI,
         functionName: 'ownerGrantRole',
-        args: [roleData, wallet]
+        args: [roleData as `0x${string}`, wallet as `0x${string}`]
       })
       const txHash = await writeContractAsync({
         abi: LIKE_NFT_CLASS_ABI,
         address: classId as `0x${string}`,
         functionName: 'ownerGrantRole',
-        args: [roleData, wallet]
+        args: [roleData as `0x${string}`, wallet as `0x${string}`]
       })
       await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
       // eslint-disable-next-line no-console
