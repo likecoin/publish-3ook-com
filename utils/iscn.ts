@@ -52,7 +52,7 @@ export function formatISCNTxPayload (payload: ISCNRegisterPayload): ISCNTxPayloa
     ...data,
     publisher: publisherInput,
     author: authorEntity,
-    keywords: tagsString.split(','),
+    keywords: tagsString.split(',').map(k => k.trim()).filter(Boolean),
     usageInfo: license,
     contentFingerprints: [...new Set(contentFingerprints)]
   }
