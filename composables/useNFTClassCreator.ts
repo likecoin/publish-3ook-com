@@ -76,7 +76,7 @@ export function useNFTClassCreator () {
       strict: false
     })
 
-    const classId = (bookNFTLog?.args as unknown as { bookNFT: string })?.bookNFT
+    const classId = (bookNFTLog?.args as unknown as { bookNFT: string })?.bookNFT?.toLowerCase()
     if (!classId) {
       throw new Error('NewBookNFT event not found in receipt')
     }
