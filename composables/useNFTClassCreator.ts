@@ -1,3 +1,4 @@
+import { parseEventLogs } from 'viem'
 import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import { formatISCNTxPayload } from '~/utils/iscn'
@@ -67,11 +68,18 @@ export function useNFTClassCreator () {
     if (!receipt || receipt.status !== 'success') {
       throw new Error('NFT class creation failed')
     }
-    if (!receipt.logs?.[0]?.address) {
-      throw new Error('Invalid class ID in receipt')
-    }
 
-    const classId = receipt.logs[0].address
+    const [bookNFTLog] = parseEventLogs({
+      abi: LIKE_NFT_ABI,
+      logs: receipt.logs,
+      eventName: 'NewBookNFT',
+      strict: false
+    })
+
+    const classId = (bookNFTLog?.args as unknown as { bookNFT: string })?.bookNFT
+    if (!classId) {
+      throw new Error('NewBookNFT event not found in receipt')
+    }
     return { classId, txHash }
   }
 

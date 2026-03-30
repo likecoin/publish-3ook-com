@@ -317,7 +317,7 @@ import {
   MAX_DESCRIPTION_FULL_LENGTH,
   MAX_PREVIEW_CONTENT_LENGTH,
   MAX_ALTERNATIVE_HEADLINE_LENGTH,
-  BOOK_CATEGORIES,
+  BOOK_CATEGORIES
 } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'
 const { t: $t } = useI18n()
