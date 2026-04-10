@@ -826,6 +826,7 @@ function resumeSession () {
   const session = loadBulkUploadSession()
   if (!session) { return }
 
+  hasExistingSession.value = false
   books.value = restoreBooksFromSession(session)
 
   // If all books have their Arweave uploads done, go straight to processing
@@ -843,6 +844,7 @@ function resumeSession () {
 
 function clearAndStartNew () {
   clearBulkUploadSession()
+  hasExistingSession.value = false
   resetAll()
 }
 
