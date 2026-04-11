@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 
 const { SITE_URL } = useRuntimeConfig().public
 const { isShowMaintenancePage } = useMaintenanceMode()
@@ -68,8 +68,25 @@ const bookstoreApiStore = useBookstoreApiStore()
 const { restoreAuthSession, fetchBookListing, clearSession } = bookstoreApiStore
 const { wallet, intercomToken, isAuthenticated } = storeToRefs(bookstoreApiStore)
 const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBySignature } = useAuth()
+const userStore = useUserStore()
+const { userLikerInfo } = storeToRefs(userStore)
 const uiStore = useUIStore()
 const toast = useToast()
+
+// Re-identify once likerId is known — see `useSetLogUser` for why it's
+// gated on likerId rather than the wallet.
+watch(() => userLikerInfo.value?.user, (likerId) => {
+  if (!isAuthenticated.value || !wallet.value || !likerId) { return }
+  const info = userLikerInfo.value!
+  useSetLogUser(wallet.value, {
+    likerId,
+    displayName: info.displayName,
+    likeWallet: info.likeWallet,
+    avatar: info.avatar,
+    locale: locale.value,
+    intercomToken: intercomToken.value
+  })
+})
 
 const isRestoringSession = ref(false)
 

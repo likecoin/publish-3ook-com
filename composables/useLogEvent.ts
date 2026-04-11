@@ -42,6 +42,7 @@ export const INTERCOM_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   'stripe_setup_started',
   'stripe_login'
 ])
+const INTERCOM_SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
 
 interface EventParams {
   [key: string]: unknown
@@ -89,9 +90,18 @@ export function useLogEvent (eventName: string, eventParams: EventParams = {}) {
 
 export function useSetLogUser (
   wallet: string | null,
-  options: { email?: string; displayName?: string; intercomToken?: string } = {}
+  options: {
+    email?: string
+    displayName?: string
+    likerId?: string
+    likeWallet?: string
+    avatar?: string
+    locale?: string
+    intercomToken?: string
+  } = {}
 ) {
-  const { email, displayName, intercomToken } = options
+  const { email, displayName, likerId, likeWallet, avatar, locale, intercomToken } = options
+  const nameFallback = displayName || wallet || likeWallet
 
   // Set user in Sentry
   if (!wallet) {
@@ -100,27 +110,38 @@ export function useSetLogUser (
     setSentryUser({
       id: wallet,
       email,
-      username: displayName || wallet
+      username: nameFallback
     })
   }
 
-  // Set user in Intercom
+  // Set user in Intercom.
+  //
+  // The identity-verification JWT is signed with the LikeCoin user id as
+  // `user_id`, so the client-supplied `user_id` must equal `likerId` or
+  // Intercom rejects with UserIdMismatchException. Identification is
+  // therefore deferred until `likerId` is known — the `userLikerInfo`
+  // watcher in `app.vue` fires this path after the store has hydrated.
   if (window?.Intercom) {
     try {
       if (!wallet) {
         window.Intercom('shutdown')
-      } else {
-        const intercomData: Record<string, unknown> = {
-          user_id: wallet,
-          evm_wallet: wallet,
+      } else if (likerId) {
+        window.Intercom('update', {
+          intercom_user_jwt: intercomToken,
+          session_duration: INTERCOM_SESSION_DURATION_MS,
+          user_id: likerId,
           email,
-          name: displayName || wallet
-        }
-        if (intercomToken) {
-          intercomData.intercom_user_jwt = intercomToken
-          intercomData.session_duration = 2592000000 // 30d
-        }
-        window.Intercom('update', intercomData)
+          name: nameFallback,
+          avatar: avatar
+            ? {
+                type: 'avatar',
+                image_url: avatar
+              }
+            : undefined,
+          evm_wallet: wallet,
+          like_wallet: likeWallet,
+          locale
+        })
       }
     } catch (error) {
       console.error('Failed to set user data in Intercom', error)
@@ -137,7 +158,8 @@ export function useSetLogUser (
       } else {
         posthog.identify(wallet, {
           email: email || undefined,
-          name: displayName || wallet
+          name: nameFallback,
+          locale
         })
       }
     } catch (error) {
