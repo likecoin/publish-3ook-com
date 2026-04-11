@@ -88,7 +88,7 @@ export function useLogEvent (eventName: string, eventParams: EventParams = {}) {
   }
 }
 
-export function useSetLogUser (
+export function useSetIntercomUser (
   wallet: string | null,
   options: {
     email?: string
@@ -100,7 +100,49 @@ export function useSetLogUser (
     intercomToken?: string
   } = {}
 ) {
-  const { email, displayName, likerId, likeWallet, avatar, locale, intercomToken } = options
+  // The identity-verification JWT is signed with the LikeCoin user id as
+  // `user_id`, so the client-supplied `user_id` must equal `likerId` or
+  // Intercom rejects with UserIdMismatchException. Callers should only
+  // invoke this once both `likerId` and `intercomToken` are known.
+  if (!window?.Intercom) { return }
+  try {
+    if (!wallet) {
+      window.Intercom('shutdown')
+      return
+    }
+    const { email, displayName, likerId, likeWallet, avatar, locale, intercomToken } = options
+    if (!likerId || !intercomToken) { return }
+    window.Intercom('update', {
+      intercom_user_jwt: intercomToken,
+      session_duration: INTERCOM_SESSION_DURATION_MS,
+      user_id: likerId,
+      email,
+      name: displayName || wallet || likeWallet,
+      avatar: avatar
+        ? {
+            type: 'avatar',
+            image_url: avatar
+          }
+        : undefined,
+      evm_wallet: wallet,
+      like_wallet: likeWallet,
+      locale
+    })
+  } catch (error) {
+    console.error('Failed to set user data in Intercom', error)
+  }
+}
+
+export function useSetLogUser (
+  wallet: string | null,
+  options: {
+    email?: string
+    displayName?: string
+    likeWallet?: string
+    locale?: string
+  } = {}
+) {
+  const { email, displayName, likeWallet, locale } = options
   const nameFallback = displayName || wallet || likeWallet
 
   // Set user in Sentry
@@ -114,38 +156,11 @@ export function useSetLogUser (
     })
   }
 
-  // Set user in Intercom.
-  //
-  // The identity-verification JWT is signed with the LikeCoin user id as
-  // `user_id`, so the client-supplied `user_id` must equal `likerId` or
-  // Intercom rejects with UserIdMismatchException. Identification is
-  // therefore deferred until `likerId` is known — the `userLikerInfo`
-  // watcher in `app.vue` fires this path after the store has hydrated.
-  if (window?.Intercom) {
-    try {
-      if (!wallet) {
-        window.Intercom('shutdown')
-      } else if (likerId) {
-        window.Intercom('update', {
-          intercom_user_jwt: intercomToken,
-          session_duration: INTERCOM_SESSION_DURATION_MS,
-          user_id: likerId,
-          email,
-          name: nameFallback,
-          avatar: avatar
-            ? {
-                type: 'avatar',
-                image_url: avatar
-              }
-            : undefined,
-          evm_wallet: wallet,
-          like_wallet: likeWallet,
-          locale
-        })
-      }
-    } catch (error) {
-      console.error('Failed to set user data in Intercom', error)
-    }
+  // Intercom identify is deferred to `useSetIntercomUser` (needs likerId
+  // + JWT), but logout can shut it down here so callers don't have to
+  // coordinate both functions on reset.
+  if (!wallet) {
+    useSetIntercomUser(null)
   }
 
   // Set user in PostHog

@@ -4,7 +4,6 @@ export function useAuth () {
   const { wallet, isConnected } = storeToRefs(store)
   const { connect, disconnect, signMessageMemo } = store
   const { authenticate, clearSession, fetchBookListing } = bookstoreApiStore
-  const { intercomToken } = storeToRefs(bookstoreApiStore)
   const { showErrorToast } = useToastComposable()
   const { t: $t } = useI18n()
 
@@ -24,7 +23,7 @@ export function useAuth () {
       isAuthenticating.value = true
 
       await authenticate(signature.wallet, signature)
-      useSetLogUser(signature.wallet, { email: context?.email, intercomToken: intercomToken.value })
+      useSetLogUser(signature.wallet, { email: context?.email })
       useLogEvent('login', { method: signature.signMethod, wallet: signature.wallet })
       loginStatus.value = $t('auth_state.success')
       try {

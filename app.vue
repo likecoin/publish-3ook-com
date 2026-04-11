@@ -73,12 +73,16 @@ const { userLikerInfo } = storeToRefs(userStore)
 const uiStore = useUIStore()
 const toast = useToast()
 
-// Re-identify once likerId is known — see `useSetLogUser` for why it's
-// gated on likerId rather than the wallet.
+// Re-identify Intercom once likerId is known. Intercom's identity
+// verification requires `user_id === likerId` (see `useSetLogUser`), so
+// this path only fires after the liker info store has hydrated and the
+// JWT is available. Sentry/PostHog were already identified at login and
+// are intentionally left alone here to avoid overwriting fields like
+// `email` with undefined.
 watch(() => userLikerInfo.value?.user, (likerId) => {
-  if (!isAuthenticated.value || !wallet.value || !likerId) { return }
+  if (!isAuthenticated.value || !wallet.value || !likerId || !intercomToken.value) { return }
   const info = userLikerInfo.value!
-  useSetLogUser(wallet.value, {
+  useSetIntercomUser(wallet.value, {
     likerId,
     displayName: info.displayName,
     likeWallet: info.likeWallet,
@@ -145,7 +149,7 @@ onMounted(async () => {
   try {
     await restoreAuthSession()
     if (isAuthenticated.value && wallet.value) {
-      useSetLogUser(wallet.value, { intercomToken: intercomToken.value })
+      useSetLogUser(wallet.value)
     }
   } catch (error) {
     console.error(error)
