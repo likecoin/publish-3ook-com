@@ -1806,10 +1806,10 @@
   dependencies:
     jszip "^3.10.1"
 
-"@likecoin/epubcheck-ts@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.4.0.tgz#1a5f056947abe9bd01dbb846095de5b6249ebd22"
-  integrity sha512-gZoJZISG5iccx6AZpKaIM81Dwec6HIfc91CDcWI9AllZSpPjxtsKMrsFw04vaVHzXrWLB4HCwVdISUppqCVyuA==
+"@likecoin/epubcheck-ts@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.5.1.tgz#fc1f1a58f3958cca367a544f93cd07eea08a4099"
+  integrity sha512-dSgFSgvldFCdQRN/mxKk67uCgfxjz1vHliLOd70chBG5Y14YYZ0995hOOZnS3fP2H3F1PAwW00MEFIQT00blmQ==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
