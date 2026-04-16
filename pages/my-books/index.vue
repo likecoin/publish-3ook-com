@@ -62,7 +62,7 @@
                   >
                     <UBadge
                       :label="`${price}`"
-                      variant="solid"
+                      variant="subtle"
                       size="md"
                       color="neutral"
                       class="rounded-full"
