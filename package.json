@@ -21,7 +21,7 @@
     "@account-kit/wallet-client": "^4.86.0",
     "@coinbase/wallet-sdk": "~4.3.7",
     "@likecoin/epub-ts": "^0.6.3",
-    "@likecoin/epubcheck-ts": "^0.5.1",
+    "@likecoin/epubcheck-ts": "^0.6.0",
     "@likecoin/qr-code-styling": "^1.6.6",
     "@likecoin/wagmi-connector": "2.4.0-like.0",
     "@metamask/connect-evm": "~0.9.0",
