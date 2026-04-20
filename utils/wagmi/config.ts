@@ -1,7 +1,7 @@
 import { http, createConfig, type Config, type CreateConnectorFn } from '@wagmi/core'
 import { base, baseSepolia } from '@wagmi/vue/chains'
 import { injected, metaMask, walletConnect, coinbaseWallet } from '@wagmi/vue/connectors'
-import { dedicatedWalletConnector } from '@likecoin/wagmi-connector'
+import { dedicatedWalletConnector } from '@likecoin/wagmi-magic-connector'
 
 export function createWagmiConfig ({
   apiKey,
@@ -23,6 +23,26 @@ export function createWagmiConfig ({
   const connectors: CreateConnectorFn[] = [
     injected(),
     metaMask(),
+    // `@likecoin/wagmi-magic-connector` hasn't been republished against
+    // `@wagmi/core` 3.x's tightened `connect()` return type (readonly accounts
+    // + `withCapabilities` generic). Runtime shape is compatible.
+    dedicatedWalletConnector({
+      chains: [chain],
+      options: {
+        apiKey,
+        accentColor: '#131313',
+        customHeaderText: '3ook.com',
+        customLogo: logoURL,
+        isDarkMode: false,
+        magicSdkConfiguration: {
+          deferPreload: true,
+          network: {
+            rpcUrl: chain.rpcUrls.default.http[0],
+            chainId: chain.id
+          }
+        }
+      }
+    }) as unknown as CreateConnectorFn,
     coinbaseWallet({
       appName: '3ook.com',
       appLogoUrl: logoURL
@@ -41,36 +61,6 @@ export function createWagmiConfig ({
           }
         }))
     }
-    const magicConnectorFn = dedicatedWalletConnector({
-      chains: [chain],
-      options: {
-        apiKey,
-        accentColor: '#131313',
-        customHeaderText: '3ook.com',
-        customLogo: logoURL,
-        isDarkMode: false,
-        magicSdkConfiguration: {
-          deferPreload: true,
-          network: {
-            rpcUrl: chain.rpcUrls.default.http[0],
-            chainId: chain.id
-          }
-        }
-      }
-    }) as CreateConnectorFn
-    // Wrap to make 'magic' non-enumerable on the connector object.
-    // Magic SDK instances have circular references (module.sdk → magic),
-    // and wagmi's deepEqual in getConnections() blows the stack traversing them.
-    connectors.push((config) => {
-      const connector = magicConnectorFn(config)
-      Object.defineProperty(connector, 'magic', {
-        value: undefined,
-        writable: true,
-        enumerable: false,
-        configurable: true
-      })
-      return connector
-    })
   }
 
   return createConfig({

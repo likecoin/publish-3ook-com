@@ -1862,10 +1862,10 @@
   dependencies:
     qrcode-generator "^1.4.3"
 
-"@likecoin/wagmi-connector@2.4.0-like.0":
-  version "2.4.0-like.0"
-  resolved "https://registry.yarnpkg.com/@likecoin/wagmi-connector/-/wagmi-connector-2.4.0-like.0.tgz#cc30ce210c73b1fced64d5e5f834981cddcac5dd"
-  integrity sha512-+hncq9Xwok9k+mosma+NxjFmzC2rsoAxP5D3Lot6bkQlx0yNwbxutT7MtThYyFPuzGQv1kfhImo8ivA/bkNsWA==
+"@likecoin/wagmi-magic-connector@^2.4.1":
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/@likecoin/wagmi-magic-connector/-/wagmi-magic-connector-2.4.1.tgz#e4d68e71445dbea1c9c2d65ebcd6b23935818d3a"
+  integrity sha512-Fo4J4uAPO0kZXVSInjXKYB6p7A1SMd2mUl9NRwQ1TM8rAACYIvhsDQokMbrbPk0nlmaAvDrqvs1jN5voG5Z75A==
   dependencies:
     "@magic-ext/evm" "^1.2.1"
     "@magic-ext/oauth2" "^15.3.1"
