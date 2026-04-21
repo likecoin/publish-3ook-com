@@ -23,32 +23,30 @@ export function createWagmiConfig ({
   const connectors: CreateConnectorFn[] = [
     injected(),
     metaMask(),
-    // `@likecoin/wagmi-magic-connector` hasn't been republished against
-    // `@wagmi/core` 3.x's tightened `connect()` return type (readonly accounts
-    // + `withCapabilities` generic). Runtime shape is compatible.
-    dedicatedWalletConnector({
-      chains: [chain],
-      options: {
-        apiKey,
-        accentColor: '#131313',
-        customHeaderText: '3ook.com',
-        customLogo: logoURL,
-        isDarkMode: false,
-        magicSdkConfiguration: {
-          deferPreload: true,
-          network: {
-            rpcUrl: chain.rpcUrls.default.http[0],
-            chainId: chain.id
-          }
-        }
-      }
-    }) as unknown as CreateConnectorFn,
     coinbaseWallet({
       appName: '3ook.com',
       appLogoUrl: logoURL
     })
   ]
   if (!isServer) {
+    connectors.push(
+      dedicatedWalletConnector({
+        chains: [chain],
+        options: {
+          apiKey,
+          accentColor: '#131313',
+          customHeaderText: '3ook.com',
+          customLogo: logoURL,
+          isDarkMode: false,
+          magicSdkConfiguration: {
+            deferPreload: true,
+            network: {
+              rpcUrl: chain.rpcUrls.default.http[0],
+              chainId: chain.id
+            }
+          }
+        }
+      }) as unknown as CreateConnectorFn)
     if (walletConnectProjectId) {
       connectors.push(
         walletConnect({
