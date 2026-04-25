@@ -67,24 +67,21 @@ export function useLogEvent (eventName: string, eventParams: EventParams = {}) {
     }
   }
 
-  const { $posthog } = useNuxtApp()
-  if ($posthog) {
-    try {
-      const posthog = $posthog()
-      let posthogParams: EventParams = eventParams
-      if (Array.isArray(eventParams.items)) {
-        posthogParams = { ...eventParams }
-        const classIds = (posthogParams.items as { id?: string }[])
-          .map(item => item.id?.split('-')[0])
-          .filter((id): id is string => !!id && id.startsWith('0x'))
-        if (classIds.length) {
-          posthogParams.nft_class_ids = classIds.join(',')
-        }
+  try {
+    const { proxy } = useScriptPostHog()
+    let posthogParams: EventParams = eventParams
+    if (Array.isArray(eventParams.items)) {
+      posthogParams = { ...eventParams }
+      const classIds = (posthogParams.items as { id?: string }[])
+        .map(item => item.id?.split('-')[0])
+        .filter((id): id is string => !!id && id.startsWith('0x'))
+      if (classIds.length) {
+        posthogParams.nft_class_ids = classIds.join(',')
       }
-      posthog.capture(eventName, { app: 'book-press', ...posthogParams })
-    } catch (error) {
-      console.error(`Failed to log event to PostHog: ${eventName}`, error)
     }
+    proxy.posthog.capture(eventName, { app: 'book-press', ...posthogParams })
+  } catch (error) {
+    console.error(`Failed to log event to PostHog: ${eventName}`, error)
   }
 }
 
@@ -164,21 +161,18 @@ export function useSetLogUser (
   }
 
   // Set user in PostHog
-  const { $posthog } = useNuxtApp()
-  if ($posthog) {
-    try {
-      const posthog = $posthog()
-      if (!wallet) {
-        posthog.reset()
-      } else {
-        posthog.identify(wallet, {
-          email: email || undefined,
-          name: nameFallback,
-          locale
-        })
-      }
-    } catch (error) {
-      console.error('Failed to set user data in PostHog', error)
+  try {
+    const { proxy } = useScriptPostHog()
+    if (!wallet) {
+      proxy.posthog.reset()
+    } else {
+      proxy.posthog.identify(wallet, {
+        email: email || undefined,
+        name: nameFallback,
+        locale
+      })
     }
+  } catch (error) {
+    console.error('Failed to set user data in PostHog', error)
   }
 }

@@ -24,27 +24,26 @@ export default defineNuxtConfig({
     'nuxt-gtag',
     'nuxt-security',
     '@nuxt/scripts',
-    '@nuxtjs/i18n',
-    '@posthog/nuxt'
+    '@nuxtjs/i18n'
   ],
 
   scripts: {
     privacy: false,
     registry: {
-      intercom: true
+      intercom: true,
+      posthog: {
+        apiKey: POSTHOG_PUBLIC_KEY || 'placeholder_key_to_avoid_nuxt_module_error',
+        apiHost: POSTHOG_HOST,
+        trigger: 'onNuxtReady',
+        config: {
+          person_profiles: 'identified_only'
+        }
+      }
     }
   },
 
   gtag: {
     id: GA_TRACKING_ID
-  },
-
-  posthogConfig: {
-    publicKey: POSTHOG_PUBLIC_KEY || 'placeholder_key_to_avoid_nuxt_module_error',
-    host: POSTHOG_HOST,
-    clientConfig: {
-      person_profiles: 'identified_only'
-    }
   },
 
   i18n: {
