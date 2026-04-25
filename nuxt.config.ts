@@ -21,7 +21,6 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/eslint-module',
     '@nuxt/ui',
-    'nuxt-gtag',
     'nuxt-security',
     '@nuxt/scripts',
     '@nuxtjs/i18n'
@@ -31,6 +30,10 @@ export default defineNuxtConfig({
     privacy: false,
     registry: {
       intercom: true,
+      googleAnalytics: {
+        id: GA_TRACKING_ID || 'placeholder_id_to_avoid_nuxt_module_error',
+        trigger: 'onNuxtReady'
+      },
       posthog: {
         apiKey: POSTHOG_PUBLIC_KEY || 'placeholder_key_to_avoid_nuxt_module_error',
         apiHost: POSTHOG_HOST,
@@ -40,10 +43,6 @@ export default defineNuxtConfig({
         }
       }
     }
-  },
-
-  gtag: {
-    id: GA_TRACKING_ID
   },
 
   i18n: {

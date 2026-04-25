@@ -50,7 +50,8 @@ interface EventParams {
 
 export function useLogEvent (eventName: string, eventParams: EventParams = {}) {
   try {
-    useTrackEvent(eventName, eventParams)
+    const { proxy } = useScriptGoogleAnalytics()
+    proxy.gtag('event', eventName, eventParams)
   } catch {
     console.error(`Failed to track event to GA: ${eventName}`, eventParams)
   }
