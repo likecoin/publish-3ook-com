@@ -29,6 +29,7 @@ export default defineNuxtConfig({
   ],
 
   scripts: {
+    privacy: false,
     registry: {
       intercom: true
     }
