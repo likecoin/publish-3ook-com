@@ -13,10 +13,6 @@ export function canSponsorArweaveUpload (
     estimate.remainingUploads >= fileCount
 }
 
-export function getArweaveUploadQuota (token?: string): Promise<ArweaveEstimate> {
-  return estimateBundlrFilePrice({ fileSize: 0, token })
-}
-
 export async function estimateBundlrFilePrice ({
   fileSize,
   ipfsHash,

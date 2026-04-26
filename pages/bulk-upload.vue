@@ -400,7 +400,7 @@
 import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
 import { getTransactionReceipt } from '@wagmi/vue/actions'
-import { getArweaveUploadQuota, canSponsorArweaveUpload } from '~/utils/arweave'
+import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweave'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -730,13 +730,14 @@ function handleFilesChange (event: Event) {
 async function goToReview () {
   currentStep.value = 'review'
   try {
-    const quota = await getArweaveUploadQuota(token.value)
     const totalSize = books.value.reduce((sum, b) => {
       return sum + (b.coverFile?.size || 0) + (b.epubFile?.size || 0) + (b.pdfFile?.size || 0)
     }, 0)
     const fileCount = books.value.reduce((count, b) => {
       return count + (b.coverFile ? 1 : 0) + (b.epubFile || b.pdfFile ? 1 : 0)
     }, 0)
+    if (fileCount === 0) { return }
+    const quota = await estimateBundlrFilePrice({ fileSize: totalSize, token: token.value })
     arweaveRemainingUploads.value = quota.remainingUploads
     isArweaveSponsored.value = canSponsorArweaveUpload(quota, totalSize, fileCount)
   } catch {
