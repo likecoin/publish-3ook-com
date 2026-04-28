@@ -45,7 +45,7 @@
     "md-editor-v3": "^4.2.2",
     "pdfjs-dist": "^5.3.31",
     "pinia": "^3.0.1",
-    "posthog-js": "^1.364.1",
+    "posthog-js": "^1.372.3",
     "uuid": "^9.0.0",
     "viem": "^2.47.6"
   },
