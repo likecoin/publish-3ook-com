@@ -4,6 +4,7 @@ export interface CommissionRow {
   amount: number
   amountTotal: number
   currency: string
+  buyerEmail?: string
   timestamp: number
 }
 

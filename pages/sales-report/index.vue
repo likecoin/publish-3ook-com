@@ -61,6 +61,7 @@
           { accessorKey: 'type', header: $t('user_settings.commission_type') },
           { accessorKey: 'amount', header: $t('user_settings.commission') },
           { accessorKey: 'classId', header: $t('user_settings.book_id') },
+          { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
           { accessorKey: 'currency', header: $t('user_settings.currency') },
           { accessorKey: 'amountTotal', header: $t('user_settings.sale_amount') },
         ]"
@@ -71,6 +72,12 @@
           <a :href="`${BOOK3_URL}/store/${row.original.classId || ''}`" target="_blank">
             {{ (row.original.classId ? nftStore.getClassMetadataById(row.original.classId)?.name : '') || row.original.classId || '' }}
           </a>
+        </template>
+        <template #buyerEmail-cell="{ row }">
+          <a v-if="row.original.buyerEmail" :href="`mailto:${row.original.buyerEmail}`">
+            {{ row.original.buyerEmail }}
+          </a>
+          <span v-else class="text-gray-400">-</span>
         </template>
       </UTable>
     </UCard>
@@ -192,6 +199,7 @@ const commissionHistoryRows = computed(() => {
       amount: formatNumberWithCurrency(row.amount, row.currency),
       amountTotal: formatNumberWithCurrency(row.amountTotal, row.currency),
       currency: formatCurrency(row.currency),
+      buyerEmail: row.buyerEmail || '',
       timestamp: new Date(row.timestamp).toLocaleString()
     }
   })
@@ -266,6 +274,7 @@ async function exportCommissionHistory () {
     { accessorKey: 'type', header: $t('user_settings.commission_type') },
     { accessorKey: 'bookName', header: $t('table.book_name') },
     { accessorKey: 'classId', header: $t('user_settings.book_id') },
+    { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
     { accessorKey: 'amount', header: $t('user_settings.commission') },
     { accessorKey: 'amountTotal', header: $t('user_settings.sale_amount') },
     { accessorKey: 'currency', header: $t('user_settings.currency') }
@@ -287,6 +296,7 @@ async function exportCommissionHistory () {
     })(),
     bookName: (row.classId ? nftStore.getClassMetadataById(row.classId)?.name : '') || '',
     classId: row.classId || '',
+    buyerEmail: row.buyerEmail || '',
     amount: convertDecimalToAmount(row.amount, row.currency),
     currency: formatCurrency(row.currency),
     amountTotal: convertDecimalToAmount(row.amountTotal, row.currency)
