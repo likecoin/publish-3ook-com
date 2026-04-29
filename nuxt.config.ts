@@ -31,6 +31,8 @@ export default defineNuxtConfig({
     registry: {
       intercom: true,
       googleAnalytics: {
+        bundle: false,
+        proxy: false,
         id: GA_TRACKING_ID || 'placeholder_id_to_avoid_nuxt_module_error',
         trigger: 'onNuxtReady'
       },
