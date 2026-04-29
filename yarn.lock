@@ -2602,7 +2602,7 @@
     unctx "^2.4.1"
     untyped "^2.0.0"
 
-"@nuxt/kit@^3.11.2", "@nuxt/kit@^3.13.2", "@nuxt/kit@^3.15.4", "@nuxt/kit@^3.17.5", "@nuxt/kit@^3.17.6", "@nuxt/kit@^3.5.0", "@nuxt/kit@^3.9.0":
+"@nuxt/kit@^3.13.2", "@nuxt/kit@^3.15.4", "@nuxt/kit@^3.17.5", "@nuxt/kit@^3.17.6", "@nuxt/kit@^3.5.0", "@nuxt/kit@^3.9.0":
   version "3.17.6"
   resolved "https://registry.npmjs.org/@nuxt/kit/-/kit-3.17.6.tgz"
   integrity sha512-8PKRwoEF70IXVrpGEJZ4g4V2WtE9RjSMgSZLLa0HZCoyT+QczJcJe3kho/XKnJOnNnHep4WqciTD7p4qRRtBqw==
@@ -8331,7 +8331,7 @@ define-properties@^1.2.1:
     has-property-descriptors "^1.0.0"
     object-keys "^1.1.1"
 
-defu@^6.1.1, defu@^6.1.4:
+defu@^6.1.4:
   version "6.1.4"
   resolved "https://registry.npmjs.org/defu/-/defu-6.1.4.tgz"
   integrity sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==
@@ -11596,18 +11596,18 @@ nuxt-define@^1.0.0:
   resolved "https://registry.npmjs.org/nuxt-define/-/nuxt-define-1.0.0.tgz"
   integrity sha512-CYZ2WjU+KCyCDVzjYUM4eEpMF0rkPmkpiFrybTqqQCRpUbPt2h3snswWIpFPXTi+osRCY6Og0W/XLAQgDL4FfQ==
 
-nuxt-security@2.2.0:
-  version "2.2.0"
-  resolved "https://registry.npmjs.org/nuxt-security/-/nuxt-security-2.2.0.tgz"
-  integrity sha512-bTdgAAAdnvM1R1wAX3zQBbYJh6YNFyvsKJwbT9oVv+0U9J/9+k+mufQlJMFO8AdTefi/EDFHG75in9RTnCpngQ==
+nuxt-security@2.5.1:
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/nuxt-security/-/nuxt-security-2.5.1.tgz#2c151099b04a586ab4f6e667290e1a445ad20db3"
+  integrity sha512-gXUhJiOqgkKkP0FHDAPOuREjoala0p6G/4TIlkti1ZafpJV8TkjjFqCNT6NuiWHxKzVYY00OIR1tbRcZuJ7LmQ==
   dependencies:
-    "@nuxt/kit" "^3.11.2"
+    "@nuxt/kit" "^4.2.1"
     basic-auth "^2.0.1"
-    defu "^6.1.1"
+    defu "^6.1.4"
     nuxt-csurf "^1.6.5"
-    pathe "^1.0.0"
+    pathe "^2.0.3"
     unplugin-remove "^1.0.3"
-    xss "^1.0.14"
+    xss "^1.0.15"
 
 nuxt@^3.20.1:
   version "3.20.1"
@@ -12238,7 +12238,7 @@ path-type@^6.0.0:
   resolved "https://registry.npmjs.org/path-type/-/path-type-6.0.0.tgz"
   integrity sha512-Vj7sf++t5pBD637NSfkxpHSMfWaeig5+DKWLhcqIYx6mWQz5hdJTGDVMQiJcw1ZYkhs7AazKDGpRVji1LJCZUQ==
 
-pathe@^1.0.0, pathe@^1.1.0, pathe@^1.1.1, pathe@^1.1.2:
+pathe@^1.1.0, pathe@^1.1.1, pathe@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/pathe/-/pathe-1.1.2.tgz"
   integrity sha512-whLdWMYL2TwI08hn8/ZqAbrVemu0LNaNNJZX73O6qaIdCTfXutsLhMkjdENX0qhsQ9uIimo4/aQOmXkoon2nDQ==
@@ -15134,7 +15134,7 @@ xspattern@^3.1.0:
   dependencies:
     whynot "^5.0.0"
 
-xss@^1.0.14, xss@^1.0.15:
+xss@^1.0.15:
   version "1.0.15"
   resolved "https://registry.npmjs.org/xss/-/xss-1.0.15.tgz"
   integrity sha512-FVdlVVC67WOIPvfOwhoMETV72f6GbW7aOabBC3WxN/oUdoEMDyLz4OgRv5/gck2ZeNqEQu+Tb0kloovXOfpYVg==
