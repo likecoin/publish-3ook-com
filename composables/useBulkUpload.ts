@@ -177,7 +177,9 @@ export function useBulkUpload () {
 
     const ebookFile = book.epubFile || book.pdfFile
     const fileType = book.epubFilename ? 'epub' : 'pdf'
-    const arweaveLink = book.bookArweaveLink || `ar://${book.bookArweaveId}`
+    const arweaveLink = book.bookArweaveKey
+      ? book.bookArweaveLink || `ar://${book.bookArweaveId}`
+      : `ar://${book.bookArweaveId}`
 
     const contentFingerprints = [
       { url: `ar://${book.coverArweaveId}` },
