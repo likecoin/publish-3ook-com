@@ -2,6 +2,7 @@ import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
+import { detectEbookType } from '~/utils/ebookType'
 
 interface ProcessingCallbacks {
   onStatusChange?: (bookId: string, status: BookUploadStatus, message?: string) => void
@@ -126,10 +127,18 @@ export function useBulkUpload () {
       }
 
       currentStep.value = 'uploading_ebook'
+      const arrayBuffer = await ebookFile.arrayBuffer()
+      const detectedType = detectEbookType(arrayBuffer)
+      if (!detectedType) {
+        throw new Error(`File ${ebookFile.name} is not a valid PDF or EPUB`)
+      }
+      book.detectedFileType = detectedType
+      onProgress?.(book.id, { detectedFileType: detectedType })
+
       const bookPrepare = await prepareArweaveUpload({
-        arrayBuffer: await ebookFile.arrayBuffer(),
+        arrayBuffer,
         fileSize: ebookFile.size,
-        fileType: ebookFile.type,
+        fileType: detectedType === 'epub' ? 'application/epub+zip' : 'application/pdf',
         encrypt: book.enableDRM,
         sponsored
       })
@@ -176,7 +185,7 @@ export function useBulkUpload () {
     currentStep.value = 'creating_nft_class'
 
     const ebookFile = book.epubFile || book.pdfFile
-    const fileType = book.epubFilename ? 'epub' : 'pdf'
+    const fileType = book.detectedFileType ?? (book.epubFilename ? 'epub' : 'pdf')
     const arweaveLink = book.bookArweaveKey
       ? book.bookArweaveLink || `ar://${book.bookArweaveId}`
       : `ar://${book.bookArweaveId}`

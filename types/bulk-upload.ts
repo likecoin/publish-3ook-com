@@ -1,3 +1,5 @@
+import type { EbookType } from '~/utils/ebookType'
+
 export enum BookUploadStatus {
   PENDING = 'pending',
   UPLOADING_FILES = 'uploading',
@@ -70,6 +72,7 @@ export interface BulkUploadBook {
   coverFile?: File
   pdfFile?: File
   epubFile?: File
+  detectedFileType?: EbookType
   // Progress tracking (persisted for resume)
   coverArweaveId?: string
   coverIpfsHash?: string
@@ -105,6 +108,7 @@ export interface SerializedBulkUploadBook {
   status: BookUploadStatus
   error?: string
   // Progress tracking
+  detectedFileType?: EbookType
   coverArweaveId?: string
   coverIpfsHash?: string
   bookArweaveId?: string

@@ -184,6 +184,7 @@ export function serializeBook (book: BulkUploadBook): SerializedBulkUploadBook {
     language: book.language,
     status: book.status,
     error: book.error,
+    detectedFileType: book.detectedFileType,
     coverArweaveId: book.coverArweaveId,
     coverIpfsHash: book.coverIpfsHash,
     bookArweaveId: book.bookArweaveId,
