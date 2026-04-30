@@ -30,6 +30,15 @@
     </p>
     <p v-else class="text-sm text-gray-500" v-text="$t('preview_book.supported_formats')" />
 
+    <div v-if="fileBlob" class="flex">
+      <UButton
+        :label="$t('preview_book.download')"
+        variant="outline"
+        icon="i-heroicons-arrow-down-tray"
+        @click="triggerDownload"
+      />
+    </div>
+
     <UProgress v-if="isLoading" animation="carousel" />
 
     <img
@@ -76,8 +85,30 @@
 
 <script setup lang="ts">
 import type { PDFDocumentProxy } from 'pdfjs-dist'
+import { useObjectUrl } from '@vueuse/core'
 import { getApiEndpoints } from '~/constant/api'
 import { decryptDataWithAES } from '~/utils/encryption'
+
+type DetectedFileType = 'PNG' | 'JPEG' | 'GIF' | 'WebP' | 'BMP' | 'PDF' | 'EPUB' | null
+
+const downloadMimeMap: Record<Exclude<DetectedFileType, null>, string> = {
+  PNG: 'image/png',
+  JPEG: 'image/jpeg',
+  GIF: 'image/gif',
+  WebP: 'image/webp',
+  BMP: 'image/bmp',
+  PDF: 'application/pdf',
+  EPUB: 'application/epub+zip'
+}
+const downloadExtMap: Record<Exclude<DetectedFileType, null>, string> = {
+  PNG: 'png',
+  JPEG: 'jpg',
+  GIF: 'gif',
+  WebP: 'webp',
+  BMP: 'bmp',
+  PDF: 'pdf',
+  EPUB: 'epub'
+}
 
 const { t: $t } = useI18n()
 const route = useRoute()
@@ -88,19 +119,20 @@ const inputUrl = ref((route.query.url as string) || '')
 const isLoading = ref(false)
 const isBookLoaded = ref(false)
 const errorMessage = ref('')
-const imageObjectUrl = ref('')
 const detectedType = ref('')
 const viewerRef = ref<HTMLElement | null>(null)
 const pdfCanvasRef = ref<HTMLCanvasElement | null>(null)
 const isPdfLoaded = ref(false)
 const pdfCurrentPage = ref(1)
 const pdfTotalPages = ref(0)
+const imageBlob = shallowRef<Blob | null>(null)
+const fileBlob = shallowRef<Blob | null>(null)
+const imageObjectUrl = useObjectUrl(imageBlob)
+const downloadFilename = ref('')
 
 let rendition: { display: () => Promise<unknown>; prev: () => void; next: () => void; destroy: () => void } | null = null
 let pdfDocument: PDFDocumentProxy | null = null
 let pdfjsLib: typeof import('pdfjs-dist') | null = null
-
-type DetectedFileType = 'PNG' | 'JPEG' | 'GIF' | 'WebP' | 'BMP' | 'PDF' | 'EPUB' | null
 
 function detectFileType (buffer: ArrayBuffer): DetectedFileType {
   const bytes = new Uint8Array(buffer.slice(0, 12))
@@ -210,10 +242,9 @@ async function loadBook () {
   isLoading.value = true
   isBookLoaded.value = false
 
-  if (imageObjectUrl.value) {
-    URL.revokeObjectURL(imageObjectUrl.value)
-    imageObjectUrl.value = ''
-  }
+  imageBlob.value = null
+  fileBlob.value = null
+  downloadFilename.value = ''
 
   if (rendition) {
     rendition.destroy()
@@ -259,17 +290,20 @@ async function loadBook () {
     const fileType = detectFileType(arrayBuffer)
     detectedType.value = fileType || ''
 
+    if (fileType) {
+      const blob = new Blob([arrayBuffer], { type: downloadMimeMap[fileType] })
+      fileBlob.value = blob
+      downloadFilename.value = `book.${downloadExtMap[fileType]}`
+    }
+
     switch (fileType) {
       case 'PNG':
       case 'JPEG':
       case 'GIF':
       case 'WebP':
-      case 'BMP': {
-        const mimeMap: Record<string, string> = { PNG: 'image/png', JPEG: 'image/jpeg', GIF: 'image/gif', WebP: 'image/webp', BMP: 'image/bmp' }
-        const blob = new Blob([arrayBuffer], { type: mimeMap[fileType] })
-        imageObjectUrl.value = URL.createObjectURL(blob)
+      case 'BMP':
+        imageBlob.value = fileBlob.value
         break
-      }
 
       case 'PDF':
         try {
@@ -330,6 +364,12 @@ function nextPage () {
   rendition?.next()
 }
 
+async function triggerDownload () {
+  if (!fileBlob.value) { return }
+  const { saveAs } = await import('file-saver')
+  saveAs(fileBlob.value, downloadFilename.value || 'book')
+}
+
 onBeforeUnmount(() => {
   if (rendition) {
     rendition.destroy()
@@ -338,9 +378,6 @@ onBeforeUnmount(() => {
   if (pdfDocument) {
     pdfDocument.destroy()
     pdfDocument = null
-  }
-  if (imageObjectUrl.value) {
-    URL.revokeObjectURL(imageObjectUrl.value)
   }
 })
 

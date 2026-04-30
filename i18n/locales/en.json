@@ -671,6 +671,7 @@
   "pages.verified": "Verified",
   "pages.view_cart": "View Cart",
   "preview_book.detected_type": "Detected file type",
+  "preview_book.download": "Download",
   "preview_book.error_decrypt": "Failed to decrypt book file",
   "preview_book.error_fetch": "Failed to fetch book file",
   "preview_book.error_render": "Failed to render EPUB",

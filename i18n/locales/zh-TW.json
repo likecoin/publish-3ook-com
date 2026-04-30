@@ -671,6 +671,7 @@
   "pages.verified": "已驗證",
   "pages.view_cart": "查看購物車",
   "preview_book.detected_type": "偵測到的檔案類型",
+  "preview_book.download": "下載",
   "preview_book.error_decrypt": "無法解密書籍檔案",
   "preview_book.error_fetch": "無法取得書籍檔案",
   "preview_book.error_render": "無法顯示 EPUB",
