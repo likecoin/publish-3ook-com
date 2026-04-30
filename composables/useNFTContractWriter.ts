@@ -121,7 +121,9 @@ export const useNFTContractWriter = () => {
     value: bigint
     data?: `0x${string}`
   }) => {
-    if (isSponsoredMode.value) { return }
+    // Note: Arweave fee transfers go through wagmi's sendTransactionAsync,
+    // which is NOT routed through the sponsored smart wallet — so we must
+    // always check balance, even when isSponsoredMode is true.
     await assertSufficientBalanceForTx({
       wallet: params.wallet,
       tx: { to: params.to, value: params.value, data: params.data },

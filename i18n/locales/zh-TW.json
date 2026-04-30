@@ -876,6 +876,7 @@
   "upload_form.estimating_fees": "估算費用中...",
   "upload_form.fee_estimation_error": "上傳費用估算失敗",
   "upload_form.arweave_sponsored": "免費上傳（剩餘 {remaining} 次）",
+  "upload_form.arweave_sponsored_unlimited": "免費上傳（無上限）",
   "upload_form.arweave_quota_used": "免費上傳額度已用完，等待重置",
   "upload_form.file_size_suggestion": "建議檔案大小: < 50 MB",
   "upload_form.fix_files": "修正檔案",

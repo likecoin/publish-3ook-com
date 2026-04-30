@@ -3,10 +3,11 @@ import type { ArweaveEstimate } from '~/types'
 import { uploadToIrys } from '~/utils/irys'
 
 export function canSponsorArweaveUpload (
-  estimate: Pick<ArweaveEstimate, 'remainingBytes' | 'remainingUploads'>,
+  estimate: Pick<ArweaveEstimate, 'remainingBytes' | 'remainingUploads' | 'isUnlimited'>,
   totalSize: number,
   fileCount: number
 ): boolean {
+  if (estimate.isUnlimited) { return true }
   return estimate.remainingBytes !== undefined &&
     estimate.remainingUploads !== undefined &&
     estimate.remainingBytes >= totalSize &&

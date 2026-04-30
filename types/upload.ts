@@ -34,4 +34,5 @@ export interface ArweaveEstimate {
   ipfsHash?: string
   remainingBytes?: number
   remainingUploads?: number
+  isUnlimited?: boolean
 }
