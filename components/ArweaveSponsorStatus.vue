@@ -1,15 +1,11 @@
 <template>
   <div v-if="isSponsored || remainingUploads !== undefined" class="flex items-center gap-2 text-sm">
-    <template v-if="isSponsored && remainingUploads === undefined">
+    <template v-if="isSponsored">
       <UIcon name="i-heroicons-check-circle" class="w-4 h-4 shrink-0 text-green-500" />
       <span class="text-green-700">
-        {{ $t('upload_form.arweave_sponsored_unlimited') }}
-      </span>
-    </template>
-    <template v-else-if="isSponsored">
-      <UIcon name="i-heroicons-check-circle" class="w-4 h-4 shrink-0 text-green-500" />
-      <span class="text-green-700">
-        {{ $t('upload_form.arweave_sponsored', { remaining: remainingUploads }) }}
+        {{ remainingUploads === undefined
+          ? $t('upload_form.arweave_sponsored_unlimited')
+          : $t('upload_form.arweave_sponsored', { remaining: remainingUploads }) }}
       </span>
     </template>
     <template v-else-if="remainingUploads !== undefined && remainingUploads <= 0">
