@@ -882,8 +882,6 @@ const onSubmitInternal = async () => {
         }
         if (arweaveLink) {
           fileRecords.value[index].arweaveLink = arweaveLink
-        }
-        if (arweaveKey) {
           fileRecords.value[index].arweaveKey = arweaveKey
         }
       }
