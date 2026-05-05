@@ -674,6 +674,8 @@
   "preview_book.download": "下載",
   "preview_book.error_decrypt": "無法解密書籍檔案",
   "preview_book.error_fetch": "無法取得書籍檔案",
+  "preview_book.error_invalid_token": "Token 無效",
+  "preview_book.error_missing_token": "缺少 Token",
   "preview_book.error_render": "無法顯示 EPUB",
   "preview_book.error_render_pdf": "無法顯示 PDF",
   "preview_book.error_resolve": "無法解析書籍連結",

@@ -85,6 +85,7 @@
 
 <script setup lang="ts">
 import type { PDFDocumentProxy } from 'pdfjs-dist'
+import { FetchError } from 'ofetch'
 import { useObjectUrl } from '@vueuse/core'
 import { getApiEndpoints } from '~/constant/api'
 import { decryptDataWithAES } from '~/utils/encryption'
@@ -187,16 +188,25 @@ async function resolveUrl (rawUrl: string): Promise<{ fileUrl: string; key?: str
 
   if (rawUrl.startsWith(arweaveLinkEndpoint)) {
     const expectedOrigin = new URL(arweaveLinkEndpoint).origin
-    const actualOrigin = new URL(rawUrl).origin
-    if (actualOrigin !== expectedOrigin) {
+    const parsedRawUrl = new URL(rawUrl)
+    if (parsedRawUrl.origin !== expectedOrigin) {
       throw new Error('URL origin does not match expected API endpoint')
     }
-    const res = await $fetch<{ arweaveId?: string; key?: string; link?: string }>(rawUrl, {
-      headers: {
-        authorization: `Bearer ${bookstoreApiStore.token}`,
-        Accept: 'application/json'
+    let res: { arweaveId?: string; key?: string; link?: string }
+    try {
+      res = await $fetch<{ arweaveId?: string; key?: string; link?: string }>(rawUrl, {
+        headers: {
+          authorization: `Bearer ${bookstoreApiStore.token}`,
+          Accept: 'application/json'
+        }
+      })
+    } catch (err) {
+      if (err instanceof FetchError && err.response?.status === 403) {
+        const token = parsedRawUrl.searchParams.get('token')?.trim()
+        throw new Error(token ? 'invalid_token' : 'missing_token')
       }
-    })
+      throw err
+    }
     const arweaveId = (res.arweaveId || '').trim()
     const link = (res.link || '').trim()
     const key = res.key
@@ -265,8 +275,14 @@ async function loadBook () {
       const resolved = await resolveUrl(inputUrl.value)
       fileUrl = resolved.fileUrl
       key = resolved.key
-    } catch {
-      errorMessage.value = $t('preview_book.error_resolve')
+    } catch (err) {
+      if (err instanceof Error && err.message === 'missing_token') {
+        errorMessage.value = $t('preview_book.error_missing_token')
+      } else if (err instanceof Error && err.message === 'invalid_token') {
+        errorMessage.value = $t('preview_book.error_invalid_token')
+      } else {
+        errorMessage.value = $t('preview_book.error_resolve')
+      }
       return
     }
 

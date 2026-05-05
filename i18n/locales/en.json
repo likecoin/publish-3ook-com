@@ -674,6 +674,8 @@
   "preview_book.download": "Download",
   "preview_book.error_decrypt": "Failed to decrypt book file",
   "preview_book.error_fetch": "Failed to fetch book file",
+  "preview_book.error_invalid_token": "Invalid token",
+  "preview_book.error_missing_token": "Missing token",
   "preview_book.error_render": "Failed to render EPUB",
   "preview_book.error_render_pdf": "Failed to render PDF",
   "preview_book.error_resolve": "Failed to resolve book URL",
