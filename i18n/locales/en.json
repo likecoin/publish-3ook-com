@@ -186,7 +186,7 @@
   "bulk_upload.error_auto_memo_requires_auto_deliver": "auto_memo requires auto_deliver to be true",
   "bulk_upload.error_book_description_full_too_long": "Detailed book description must be {maxLength} characters or less",
   "bulk_upload.error_book_description_required": "Book description is required",
-  "bulk_upload.error_book_description_too_long": "Book description must be 1000 characters or less",
+  "bulk_upload.error_book_description_too_long": "Book description must be {maxLength} characters or less",
   "bulk_upload.error_book_title_required": "Book title is required",
   "bulk_upload.error_cover_required": "Cover image filename is required",
   "bulk_upload.error_duplicate_filename": "Duplicate filename \"{filename}\" (also used in row {otherRow} {otherField})",

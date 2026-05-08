@@ -6,6 +6,7 @@ import {
   CSV_DEFAULT_ENABLE_DRM,
   CSV_DEFAULT_EDITION_NAME,
   CSV_DEFAULT_EDITION_DESCRIPTION,
+  MAX_DESCRIPTION_LENGTH,
   MAX_DESCRIPTION_FULL_LENGTH
 } from '~/constant'
 import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUploadValidationError, ValidatedProgressFields } from '~/types/bulk-upload'
@@ -103,8 +104,8 @@ export function validateBook (book: BulkUploadBook, rawRow?: BulkUploadCSVRow): 
     errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_required' })
   }
 
-  if (book.description && book.description.length > 1000) {
-    errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_too_long' })
+  if (book.description && book.description.length > MAX_DESCRIPTION_LENGTH) {
+    errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_too_long', params: { maxLength: MAX_DESCRIPTION_LENGTH } })
   }
 
   if (book.descriptionFull && book.descriptionFull.length > MAX_DESCRIPTION_FULL_LENGTH) {

@@ -186,7 +186,7 @@
   "bulk_upload.error_auto_memo_requires_auto_deliver": "auto_memo 需要 auto_deliver 為 true",
   "bulk_upload.error_book_description_full_too_long": "詳細書籍描述不可超過 {maxLength} 字",
   "bulk_upload.error_book_description_required": "書籍描述為必填",
-  "bulk_upload.error_book_description_too_long": "書籍描述不可超過 1000 字",
+  "bulk_upload.error_book_description_too_long": "書籍描述不可超過 {maxLength} 字",
   "bulk_upload.error_book_title_required": "書名為必填",
   "bulk_upload.error_cover_required": "封面圖片檔案名稱為必填",
   "bulk_upload.error_duplicate_filename": "重複的檔案名稱「{filename}」（同時用於第 {otherRow} 列的 {otherField}）",
