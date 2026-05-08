@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is the canonical agent guide for this repository. It is consumed by AI coding assistants (Claude Code via the `CLAUDE.md` symlink, GitHub Copilot via `.github/copilot-instructions.md`, and any tool that follows the [AGENTS.md](https://agents.md) convention).
 
 ## Project Overview
 
@@ -15,12 +15,14 @@ yarn install                    # Install deps (runs nuxt prepare automatically)
 yarn dev                        # Dev server at localhost:3000 (uses .env / testnet)
 yarn dev:production             # Dev server with .env.production (mainnet)
 yarn lint                       # ESLint with --fix (~15 console warnings are normal)
-yarn typecheck                  # vue-tsc type checking (must pass with 0 errors)
-NODE_OPTIONS=--max_old_space_size=8192 yarn build   # Production build
+yarn typecheck                  # nuxt typecheck (vue-tsc under the hood, must pass with 0 errors)
+NODE_OPTIONS=--max_old_space_size=8192 yarn generate   # Static site generation (what CI runs)
+NODE_OPTIONS=--max_old_space_size=8192 yarn build      # SSR build
 yarn preview                    # Preview production build
 ```
 
-CI runs: `yarn lint` → `yarn typecheck` → `yarn build` (all must pass).
+CI runs: `yarn lint` → `yarn typecheck` → `yarn generate` (all must pass).
+CD: pushes to `master` deploy to GitHub Pages via `yarn generate:production`.
 
 **No automated tests exist** — changes are verified manually via `yarn dev` in the browser.
 
@@ -35,16 +37,25 @@ All stores use Composition API style (setup function pattern):
 - **orders.ts** / **stripe.ts** / **liker.ts** / **ui.ts** — Orders, payments, LikeCoin data, UI state
 
 ### Composables (`composables/`)
-- **useAuth.ts** — Auth orchestration, wallet connection, signature-based login
-- **useISCN.ts** — ISCN (intellectual property) registration on blockchain
-- **useNFTContractReader.ts** / **useNFTContractWriter.ts** — Smart contract read/write operations
-- **useArweaveUpload.ts** — Permanent file storage on Arweave
+- Auth & session: `useAuth.ts`, `useMagicSession.ts`
+- NFT contracts: `useNFTContractReader.ts`, `useNFTContractWriter.ts`, `useNFTClassCreator.ts`, `useNFTMinter.ts`, `useContractWrite.ts`, `useSponsoredTransaction.ts`
+- ISCN: `useISCN.ts`
+- Upload: `useFileUploadLocal.ts`, `useArweaveUpload.ts`, `useBulkUpload.ts`
+- UI / utilities: `useToast.ts`, `useTimePopup.ts`, `useRouteQuery.ts`, `useReadersTable.ts`, `useMessageCharCount.ts`, `useMaintenanceMode.ts`, `useLogEvent.ts`
 
-### Key Pages
-- **new-book.vue** — 4-step wizard: Upload EPUB/PDF → Register ISCN → Mint NFT → Create listing
-- **my-books/** — User's books management with detail/edit views
-- **purchase-link.vue** — Sales & affiliate link management (large, 33KB)
-- **sales-report/** / **readers/** — Analytics and order reporting
+### Pages (`pages/`)
+- **new-book.vue** — Multi-step wizard: Upload EPUB/PDF → Register ISCN → Mint NFT class → Create listing
+- **bulk-upload.vue** — CSV-driven bulk import of books (uses `useBulkUpload.ts` and `utils/bulk-upload.ts`)
+- **my-books/** — User's books management: `index.vue`, `send/[classId].vue` (send NFT to readers), `status/[classId].vue` (delivery status)
+- **purchase-link.vue** — Sales & purchase link management (large)
+- **affiliation-link.vue** — Affiliate link generation
+- **batch-qrcode.vue** / **batch-short-links.vue** — Batch QR-code and shortlink generation
+- **preview-book.vue** — Token-gated preview for an EPUB/PDF
+- **latest-books.vue** — Public listing of latest books
+- **sales-pos/** — Point-of-sale UI for in-person sales
+- **sales-report/** — `index.vue` (sales report) and `payouts/` (payout management)
+- **readers/** — Reader analytics
+- **settings/** — `index.vue` and `connect/` (Stripe Connect onboarding)
 
 ### Web3 Integration
 - Wallet plugin: `plugins/wagmi.ts` configures all wallet connectors
@@ -56,7 +67,11 @@ All stores use Composition API style (setup function pattern):
 - Uses `$fetch` (Nuxt native) with JWT bearer tokens
 - API endpoint builders in `constant/api.ts`
 - API types in `utils/api.ts`
-- Backend: LIKE_CO_API environment variable
+- Backend: `LIKE_CO_API` environment variable
+
+### Analytics
+- PostHog via `@nuxt/scripts` (`useScriptPostHog`)
+- Google Analytics via `@nuxt/scripts` (`useScriptGoogleAnalytics`)
 
 ### i18n
 - Default locale is **Traditional Chinese (zh-TW)**, not English
@@ -75,11 +90,11 @@ All stores use Composition API style (setup function pattern):
 | Feature | Key files |
 |---------|-----------|
 | Authentication | `composables/useAuth.ts`, `stores/user.ts`, `components/LoginPanel.vue` |
-| NFT operations | `stores/nft.ts`, `composables/useNFTContract*.ts`, `components/*NFT*.vue` |
+| NFT operations | `stores/nft.ts`, `composables/useNFTContract*.ts`, `composables/useNFTClassCreator.ts`, `composables/useNFTMinter.ts`, `components/*NFT*.vue` |
 | ISCN (IP registration) | `utils/iscn.ts`, `composables/useISCN.ts`, `components/ISCN*.vue` |
-| File upload | `composables/useFileUploadLocal.ts`, `composables/useArweaveUpload.ts`, `components/UploadForm.vue` |
+| File upload | `composables/useFileUploadLocal.ts`, `composables/useArweaveUpload.ts`, `composables/useBulkUpload.ts`, `utils/bulk-upload.ts`, `components/UploadForm.vue` |
 | Web3 wallet | `stores/wallet.ts`, `plugins/wagmi.ts`, `utils/wagmi/` |
-| Pricing/constants | `constant/index.ts` |
+| Pricing/constants | `constant/index.ts`, `constant/api.ts` |
 
 ## Known Issues
 
