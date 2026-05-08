@@ -199,7 +199,7 @@ export function useBulkUpload () {
       type: 'Book',
       title: book.title,
       description: book.description,
-      descriptionFull: book.descriptionFull || '',
+      descriptionFull: book.descriptionFull?.trim() || undefined,
       alternativeHeadline: '',
       isbn: book.isbn || '',
       publisher: book.publisher,
