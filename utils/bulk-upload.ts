@@ -1,4 +1,4 @@
-import { DEFAULT_PRICE, MINIMAL_PRICE, CSV_DEFAULT_LANGUAGE, CSV_DEFAULT_AUTO_DELIVER, CSV_DEFAULT_ENABLE_DRM, CSV_DEFAULT_EDITION_NAME, CSV_DEFAULT_EDITION_DESCRIPTION } from '~/constant'
+import { DEFAULT_PRICE, MINIMAL_PRICE, CSV_DEFAULT_LANGUAGE, CSV_DEFAULT_AUTO_DELIVER, CSV_DEFAULT_ENABLE_DRM, CSV_DEFAULT_EDITION_NAME, CSV_DEFAULT_EDITION_DESCRIPTION, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant'
 import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUploadValidationError, ValidatedProgressFields } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 
@@ -7,6 +7,7 @@ export const CSV_REQUIRED_COLUMNS = ['book_title', 'book_description', 'author_n
 export const CSV_ALL_COLUMNS = [
   'book_title',
   'book_description',
+  'book_description_full',
   'author_name',
   'author_description',
   'publisher',
@@ -58,6 +59,7 @@ export function parseCSVRow (row: BulkUploadCSVRow, rowIndex: number): BulkUploa
     rowIndex,
     title: row.book_title?.trim() || '',
     description: row.book_description?.trim() || '',
+    descriptionFull: row.book_description_full?.trim() || undefined,
     authorName: row.author_name?.trim() || '',
     authorDescription: row.author_description?.trim(),
     publisher: row.publisher?.trim() || '',
@@ -94,6 +96,10 @@ export function validateBook (book: BulkUploadBook, rawRow?: BulkUploadCSVRow): 
 
   if (book.description && book.description.length > 1000) {
     errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_too_long' })
+  }
+
+  if (book.descriptionFull && book.descriptionFull.length > MAX_DESCRIPTION_FULL_LENGTH) {
+    errors.push({ rowIndex, field: 'book_description_full', message: 'bulk_upload.error_book_description_full_too_long', params: { maxLength: MAX_DESCRIPTION_FULL_LENGTH } })
   }
 
   if (!book.authorName) {
@@ -166,6 +172,7 @@ export function serializeBook (book: BulkUploadBook): SerializedBulkUploadBook {
     rowIndex: book.rowIndex,
     title: book.title,
     description: book.description,
+    descriptionFull: book.descriptionFull,
     authorName: book.authorName,
     authorDescription: book.authorDescription,
     publisher: book.publisher,
@@ -245,6 +252,7 @@ export async function generateResultCSV (books: BulkUploadBook[]): Promise<void>
   const rows = books.map(book => [
     book.title,
     book.description,
+    book.descriptionFull || '',
     book.authorName,
     book.authorDescription || '',
     book.publisher,

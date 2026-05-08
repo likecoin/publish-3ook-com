@@ -16,6 +16,7 @@ export enum BookUploadStatus {
 export interface BulkUploadCSVRow {
   book_title: string
   book_description: string
+  book_description_full?: string
   author_name: string
   author_description?: string
   publisher?: string
@@ -49,6 +50,7 @@ export interface BulkUploadBook {
   // CSV fields
   title: string
   description: string
+  descriptionFull?: string
   authorName: string
   authorDescription?: string
   publisher: string
@@ -89,6 +91,7 @@ export interface SerializedBulkUploadBook {
   rowIndex: number
   title: string
   description: string
+  descriptionFull?: string
   authorName: string
   authorDescription?: string
   publisher: string

@@ -656,6 +656,7 @@ async function downloadCSVTemplate () {
   const sampleRow = [
     'My Book Title',
     'A great book about...',
+    '',
     'Author Name',
     'Author bio',
     'Publisher',
