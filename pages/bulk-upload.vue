@@ -231,7 +231,20 @@
           {{ $t('bulk_upload.review_description') }}
         </p>
 
-        <ArweaveSponsorStatus :is-sponsored="isArweaveSponsored" :remaining-uploads="arweaveRemainingUploads" />
+        <ArweaveSponsorStatus
+          :is-sponsored="arweaveQuota.isSponsored"
+          :remaining-uploads="arweaveQuota.remainingUploads"
+        />
+        <UAlert
+          v-if="quotaIsPartial"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          :title="$t('bulk_upload.arweave_quota_insufficient', {
+            shortfallUploads: quotaShortfallUploads,
+            shortfallBytes: formatBytes(quotaShortfallBytes),
+          })"
+        />
 
         <p class="font-medium">
           {{ $t('bulk_upload.total_transactions', { count: books.length }) }}
@@ -401,6 +414,7 @@ import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
 import { getTransactionReceipt } from '@wagmi/vue/actions'
 import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweave'
+import type { ArweaveEstimate } from '~/types'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -430,8 +444,45 @@ const selectedFiles = ref<File[]>([])
 const isProcessing = ref(false)
 const isPaused = ref(false)
 const hasExistingSession = ref(false)
-const isArweaveSponsored = ref(false)
-const arweaveRemainingUploads = ref<number | undefined>()
+
+interface ArweaveQuotaInfo extends Pick<ArweaveEstimate, 'remainingUploads' | 'remainingBytes' | 'isUnlimited'> {
+  isSponsored: boolean
+  requiredUploads: number
+  requiredBytes: number
+}
+
+const arweaveQuota = ref<ArweaveQuotaInfo>({
+  isSponsored: false,
+  isUnlimited: false,
+  requiredUploads: 0,
+  requiredBytes: 0
+})
+
+const quotaShortfallUploads = computed(() => {
+  const q = arweaveQuota.value
+  if (q.isSponsored || q.remainingUploads === undefined) { return 0 }
+  return Math.max(0, q.requiredUploads - q.remainingUploads)
+})
+
+const quotaShortfallBytes = computed(() => {
+  const q = arweaveQuota.value
+  if (q.isSponsored || q.remainingBytes === undefined) { return 0 }
+  return Math.max(0, q.requiredBytes - q.remainingBytes)
+})
+
+// Sponsorship is all-or-none across the batch — partial quota still means every upload pays gas.
+const quotaIsPartial = computed(() => {
+  if ((arweaveQuota.value.remainingUploads ?? 0) <= 0) { return false }
+  return quotaShortfallUploads.value > 0 || quotaShortfallBytes.value > 0
+})
+
+function formatBytes (bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) { return '0 B' }
+  const units = ['B', 'KB', 'MB', 'GB']
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
+  const value = bytes / Math.pow(1024, i)
+  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
+}
 
 // Computed
 const pendingBooks = computed(() =>
@@ -728,25 +779,63 @@ function handleFilesChange (event: Event) {
   })
 }
 
-async function goToReview () {
-  currentStep.value = 'review'
+function collectPendingFiles () {
+  const files: File[] = []
+  for (const b of books.value) {
+    if (b.status === BookUploadStatus.COMPLETED) { continue }
+    if (!b.coverArweaveId && b.coverFile) { files.push(b.coverFile) }
+    if (!b.bookArweaveId) {
+      const ebook = b.epubFile || b.pdfFile
+      if (ebook) { files.push(ebook) }
+    }
+  }
+  return files
+}
+
+async function evaluateArweaveQuota (): Promise<ArweaveQuotaInfo> {
+  const pendingFiles = collectPendingFiles()
+  const requiredUploads = pendingFiles.length
+  const requiredBytes = pendingFiles.reduce((sum, f) => sum + f.size, 0)
+
+  const fallback: ArweaveQuotaInfo = {
+    isSponsored: false,
+    isUnlimited: false,
+    requiredUploads,
+    requiredBytes
+  }
+
+  if (requiredUploads === 0) {
+    arweaveQuota.value = fallback
+    return fallback
+  }
+
   try {
-    const totalSize = books.value.reduce((sum, b) => {
-      return sum + (b.coverFile?.size || 0) + (b.epubFile?.size || 0) + (b.pdfFile?.size || 0)
-    }, 0)
-    const fileCount = books.value.reduce((count, b) => {
-      return count + (b.coverFile ? 1 : 0) + (b.epubFile || b.pdfFile ? 1 : 0)
-    }, 0)
-    if (fileCount === 0) { return }
-    const quota = await estimateBundlrFilePrice({ fileSize: totalSize, token: token.value })
-    arweaveRemainingUploads.value = quota.remainingUploads
-    isArweaveSponsored.value = canSponsorArweaveUpload(quota, totalSize, fileCount)
+    const quota = await estimateBundlrFilePrice({ fileSize: requiredBytes, token: token.value })
+    const info: ArweaveQuotaInfo = {
+      isSponsored: canSponsorArweaveUpload(quota, requiredBytes, requiredUploads),
+      isUnlimited: !!quota.isUnlimited,
+      remainingUploads: quota.remainingUploads,
+      remainingBytes: quota.remainingBytes,
+      requiredUploads,
+      requiredBytes
+    }
+    arweaveQuota.value = info
+    return info
   } catch {
-    // Non-critical — proceed without sponsored info
+    arweaveQuota.value = fallback
+    return fallback
   }
 }
 
+async function goToReview () {
+  currentStep.value = 'review'
+  await evaluateArweaveQuota()
+}
+
 async function startProcessing () {
+  // Resumed sessions can skip goToReview — re-evaluate here.
+  const quotaInfo = await evaluateArweaveQuota()
+
   currentStep.value = 'processing'
   isProcessing.value = true
   isPaused.value = false
@@ -755,7 +844,7 @@ async function startProcessing () {
   saveBulkUploadSession(books.value, 0)
 
   await processBooksSequentially(books.value, {
-    sponsored: isArweaveSponsored.value,
+    sponsored: quotaInfo.isSponsored,
     onStatusChange: (bookId, status, error) => {
       const book = books.value.find(b => b.id === bookId)
       if (book) {
