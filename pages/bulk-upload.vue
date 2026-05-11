@@ -234,6 +234,7 @@
         <ArweaveSponsorStatus
           :is-sponsored="arweaveQuota.isSponsored"
           :remaining-uploads="arweaveQuota.remainingUploads"
+          :required-uploads="arweaveQuota.requiredUploads"
         />
         <UAlert
           v-if="quotaIsPartial"
@@ -291,6 +292,8 @@
           <UButton
             :label="$t('bulk_upload.start_upload')"
             color="primary"
+            :disabled="isEvaluatingQuota"
+            :loading="isEvaluatingQuota"
             @click="startProcessing"
           />
         </div>
@@ -457,6 +460,7 @@ const arweaveQuota = ref<ArweaveQuotaInfo>({
   requiredUploads: 0,
   requiredBytes: 0
 })
+const isEvaluatingQuota = ref(false)
 
 const quotaShortfallUploads = computed(() => {
   const q = arweaveQuota.value
@@ -809,6 +813,10 @@ async function evaluateArweaveQuota (): Promise<ArweaveQuotaInfo> {
     return fallback
   }
 
+  // Clear stale remaining* so ArweaveSponsorStatus hides until the new estimate resolves.
+  arweaveQuota.value = fallback
+  isEvaluatingQuota.value = true
+
   try {
     const quota = await estimateBundlrFilePrice({ fileSize: requiredBytes, token: token.value })
     const info: ArweaveQuotaInfo = {
@@ -824,6 +832,8 @@ async function evaluateArweaveQuota (): Promise<ArweaveQuotaInfo> {
   } catch {
     arweaveQuota.value = fallback
     return fallback
+  } finally {
+    isEvaluatingQuota.value = false
   }
 }
 

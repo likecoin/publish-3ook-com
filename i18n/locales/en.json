@@ -887,6 +887,7 @@
   "upload_form.fee_estimation_error": "Failed to estimate upload fees",
   "upload_form.arweave_sponsored": "Free upload ({remaining} remaining)",
   "upload_form.arweave_sponsored_unlimited": "Free upload (unlimited)",
+  "upload_form.arweave_sponsored_with_required": "Free upload (using {required} of {remaining} remaining)",
   "upload_form.arweave_quota_used": "Free upload quota used, pending reset",
   "upload_form.file_size_suggestion": "Suggested file size: < 50 MB",
   "upload_form.fix_files": "Fix files",

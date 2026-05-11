@@ -101,7 +101,11 @@
         </UTooltip>
       </template>
     </URadioGroup>
-    <ArweaveSponsorStatus :is-sponsored="isArweaveSponsored" :remaining-uploads="arweaveRemainingUploads" />
+    <ArweaveSponsorStatus
+      :is-sponsored="isArweaveSponsored"
+      :remaining-uploads="arweaveRemainingUploads"
+      :required-uploads="arweaveRequiredUploads"
+    />
     <UModal
       :open="!!uploadStatus"
       :dismissible="false"
@@ -256,6 +260,7 @@ const arweaveFeeMap = ref({} as Record<string, string>)
 const arweaveFeeTargetAddress = ref('')
 const isArweaveSponsored = ref(false)
 const arweaveRemainingUploads = ref<number | undefined>()
+const arweaveRequiredUploads = ref<number | undefined>()
 const sentArweaveTransactionInfo = ref(new Map())
 const drmOption = ref(props.defaultEncrypted ? 'encrypted' : 'open')
 const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
@@ -675,6 +680,7 @@ const estimateArweaveFee = async (): Promise<void> => {
       const totalSize = fileRecords.value.reduce((sum, r) => sum + (r.fileBlob?.size || 0), 0)
       const fileCount = fileRecords.value.filter(r => r.fileBlob).length
       isArweaveSponsored.value = canSponsorArweaveUpload(firstResult, totalSize, fileCount)
+      arweaveRequiredUploads.value = fileCount
     }
 
     let totalFee = new BigNumber(0)
