@@ -241,6 +241,28 @@
               </UTooltip>
             </UFormField>
 
+            <UFormField v-if="props.isNewClassPage" :label="$t('nft_book_form.ai_audio')">
+              <URadioGroup
+                v-model="hideAudioRadio"
+                :items="[
+                  { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
+                  { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
+                ]"
+                orientation="vertical"
+              />
+            </UFormField>
+
+            <UFormField v-if="props.isNewClassPage" :label="$t('nft_book_form.plus_reading')">
+              <URadioGroup
+                v-model="isPlusReadingEnabledRadio"
+                :items="[
+                  { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
+                  { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
+                ]"
+                orientation="vertical"
+              />
+            </UFormField>
+
             <!-- Stripe connect list -->
             <UFormField :label="$t('nft_book_form.stripe_connect_wallets')">
               <div
@@ -383,8 +405,21 @@ const classId = computed(() => {
 })
 const nextPriceIndex = ref(1)
 const hideDownload = ref(false)
+const hideAudio = ref(false)
 const isAdultOnly = ref(false)
+// New titles opt into Plus all-you-can-read by default; the edit page defaults to false for legacy books.
+const isPlusReadingEnabled = ref(true)
 const isAllowCustomPrice = ref(true)
+
+const hideAudioRadio = computed({
+  get: () => (hideAudio.value ? 'forbid' : 'allow'),
+  set: (val: string) => { hideAudio.value = val === 'forbid' }
+})
+
+const isPlusReadingEnabledRadio = computed({
+  get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
+  set: (val: string) => { isPlusReadingEnabled.value = val === 'join' }
+})
 const tableOfContents = ref(getUploadFileData()?.epubMetadata?.tableOfContents || '')
 
 interface PriceFormItem {
@@ -779,7 +814,9 @@ async function submitNewClass () {
       mustClaimToView: true,
       enableCustomMessagePage: shouldEnableCustomMessagePage,
       hideDownload: hideDownload.value,
+      hideAudio: hideAudio.value,
       isAdultOnly: isAdultOnly.value,
+      isPlusReadingEnabled: isPlusReadingEnabled.value,
       tableOfContents: tableOfContents.value || undefined
     })
   } catch (err) {

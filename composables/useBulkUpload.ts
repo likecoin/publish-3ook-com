@@ -297,7 +297,8 @@ export function useBulkUpload () {
       prices: [price],
       mustClaimToView: true,
       enableCustomMessagePage: !!book.autoMemo,
-      hideDownload: book.enableDRM
+      hideDownload: book.enableDRM,
+      isPlusReadingEnabled: true
     })
   }
 

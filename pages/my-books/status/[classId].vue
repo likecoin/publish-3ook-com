@@ -463,6 +463,28 @@
               </UTooltip>
             </UFormField>
 
+            <UFormField :label="$t('nft_book_form.ai_audio')">
+              <URadioGroup
+                v-model="hideAudioRadio"
+                :items="[
+                  { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
+                  { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
+                ]"
+                orientation="vertical"
+              />
+            </UFormField>
+
+            <UFormField :label="$t('nft_book_form.plus_reading')">
+              <URadioGroup
+                v-model="isPlusReadingEnabledRadio"
+                :items="[
+                  { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
+                  { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
+                ]"
+                orientation="vertical"
+              />
+            </UFormField>
+
             <UFormField :label="$t('form.table_of_content')">
               <UTextarea
                 v-model="tableOfContents"
@@ -566,8 +588,20 @@ const stripeConnectWallet = ref('')
 const connectedWallets = ref<Record<string, number>>({})
 const mustClaimToView = ref(true)
 const hideDownload = ref(false)
+const hideAudio = ref(false)
 const isAdultOnly = ref(false)
+const isPlusReadingEnabled = ref(false)
 const enableCustomMessagePage = ref(true)
+
+const hideAudioRadio = computed({
+  get: () => (hideAudio.value ? 'forbid' : 'allow'),
+  set: (val: string) => { hideAudio.value = val === 'forbid' }
+})
+
+const isPlusReadingEnabledRadio = computed({
+  get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
+  set: (val: string) => { isPlusReadingEnabled.value = val === 'join' }
+})
 const useLikerLandPurchaseLink = ref(true)
 const shouldDisableStripeConnectSetting = ref(false)
 const isUsingDefaultAccount = ref(true)
@@ -917,7 +951,9 @@ onMounted(async () => {
       tableOfContents: classTableOfContent,
       enableCustomMessagePage: classEnableCustomMessagePage,
       hideDownload: classHideDownload,
-      isAdultOnly: classIsAdultOnly
+      hideAudio: classHideAudio,
+      isAdultOnly: classIsAdultOnly,
+      isPlusReadingEnabled: classIsPlusReadingEnabled
     } = classData
     moderatorWallets.value = classModeratorWallets || []
     isStripeConnectChecked.value = !!(classConnectedWallets && Object.keys(classConnectedWallets).length)
@@ -938,7 +974,10 @@ onMounted(async () => {
     }
     mustClaimToView.value = classMustClaimToView ?? true
     hideDownload.value = classHideDownload ?? false
+    hideAudio.value = classHideAudio ?? false
     isAdultOnly.value = classIsAdultOnly ?? false
+    // Legacy books without isPlusReadingEnabled default to opt-out; new books opt in via NewNFTBook.vue.
+    isPlusReadingEnabled.value = classIsPlusReadingEnabled ?? false
     enableCustomMessagePage.value = classEnableCustomMessagePage ?? true
     tableOfContents.value = classTableOfContent ?? ''
     await ordersStore.fetchOrdersByClassId([classId.value])
@@ -1098,7 +1137,9 @@ async function updateSettings () {
       moderatorWallets: moderatorWallets.value,
       connectedWallets: newConnectedWallets,
       hideDownload: hideDownload.value,
+      hideAudio: hideAudio.value,
       isAdultOnly: isAdultOnly.value,
+      isPlusReadingEnabled: isPlusReadingEnabled.value,
       mustClaimToView: mustClaimToView.value,
       tableOfContents: tableOfContents.value,
       enableCustomMessagePage: enableCustomMessagePage.value
