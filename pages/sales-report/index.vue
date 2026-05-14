@@ -170,17 +170,16 @@ const payoutHistory = ref<PayoutRow[]>([])
 
 whenever(isLoading, () => { error.value = '' })
 
-onMounted(async () => {
-  await Promise.all([
-    loadCommissionHistory(),
-    loadPayoutHistory(),
-    stripeStore.refreshStripeConnectStatus(wallet.value)
-
-  ])
-})
-
 const currentStripeAccount = computed(() => getStripeConnectStatusByWallet.value(wallet.value))
 const isStripeConnectReady = computed(() => currentStripeAccount.value?.isReady)
+
+onMounted(async () => {
+  await stripeStore.refreshStripeConnectStatus(wallet.value)
+  await Promise.all([
+    loadCommissionHistory(),
+    loadPayoutHistory()
+  ])
+})
 
 const commissionHistoryRows = computed(() => {
   return commissionHistory.value.map((row: CommissionRow) => {
@@ -249,6 +248,7 @@ async function loadCommissionHistory () {
 }
 
 async function loadPayoutHistory () {
+  if (!isStripeConnectReady.value) return
   try {
     isLoading.value = true
     const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/payouts/list`, {
