@@ -227,7 +227,7 @@ function handleAffiliationSetupButtonClick() {
   navigateTo(localeRoute({ name: 'settings' }))
 }
 
-function selectTableRow(row: { original: { url: string } }) {
+function selectTableRow(_e: Event, row: { original: { url: string } }) {
   useLogEvent('latest_books_click_table_row')
   window.open(row.original.url, '_blank')
 }
