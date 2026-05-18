@@ -46,7 +46,7 @@
           :columns="saleItemTableColumns"
           :data="saleItemTableRows"
           :ui="{ root: 'static h-full', thead: 'sticky top-0' }"
-          @select="(row: TableRow<SaleItem>) => {
+          @select="(_e: Event, row: TableRow<SaleItem>) => {
             const idx = selectedSaleItemTableRows.findIndex(r => r.index === row.original.index)
             if (idx >= 0) {
               selectedSaleItemTableRows.splice(idx, 1)
