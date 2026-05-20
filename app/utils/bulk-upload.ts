@@ -72,8 +72,8 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     : []
 
   const listPrice = row.list_price ? parseFloat(row.list_price) : DEFAULT_PRICE
-  const listPriceHkd = parseOptionalDecimalPrice(row.list_price_hkd)
-  const listPriceTwd = parseOptionalDecimalPrice(row.list_price_twd)
+  const listPriceHKD = parseOptionalDecimalPrice(row.list_price_hkd)
+  const listPriceTWD = parseOptionalDecimalPrice(row.list_price_twd)
 
   return {
     id: crypto.randomUUID(),
@@ -87,8 +87,8 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     isbn: row.isbn?.trim(),
     publishDate: row.publish_date?.trim() || '',
     listPrice: isNaN(listPrice) ? DEFAULT_PRICE : listPrice,
-    listPriceHkd,
-    listPriceTwd,
+    listPriceHKD,
+    listPriceTWD,
     tags,
     coverImageFilename: row.cover_image_filename?.trim() || '',
     pdfFilename: row.pdf_filename?.trim() || undefined,
@@ -139,8 +139,8 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
   }
 
   for (const [field, value] of [
-    ['list_price_hkd', book.listPriceHkd],
-    ['list_price_twd', book.listPriceTwd],
+    ['list_price_hkd', book.listPriceHKD],
+    ['list_price_twd', book.listPriceTWD],
   ] as const) {
     if (value === undefined) { continue }
     if (!Number.isFinite(value) || value < 0) {
@@ -150,11 +150,11 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
 
   // Setting any per-currency price triggers custom mode, which requires all 3 cells filled.
   if (rawRow) {
-    const hasUsd = !!rawRow.list_price?.trim()
-    const hasHkd = !!rawRow.list_price_hkd?.trim()
-    const hasTwd = !!rawRow.list_price_twd?.trim()
-    const isCustomMode = hasHkd || hasTwd
-    if (isCustomMode && !(hasUsd && hasHkd && hasTwd)) {
+    const hasUSD = !!rawRow.list_price?.trim()
+    const hasHKD = !!rawRow.list_price_hkd?.trim()
+    const hasTWD = !!rawRow.list_price_twd?.trim()
+    const isCustomMode = hasHKD || hasTWD
+    if (isCustomMode && !(hasUSD && hasHKD && hasTWD)) {
       errors.push({ rowIndex, field: 'list_price/list_price_hkd/list_price_twd', message: 'bulk_upload.error_custom_pricing_all_required' })
     }
   }
@@ -229,8 +229,8 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     isbn: book.isbn,
     publishDate: book.publishDate,
     listPrice: book.listPrice,
-    listPriceHkd: book.listPriceHkd,
-    listPriceTwd: book.listPriceTwd,
+    listPriceHKD: book.listPriceHKD,
+    listPriceTWD: book.listPriceTWD,
     tags: book.tags,
     coverImageFilename: book.coverImageFilename,
     pdfFilename: book.pdfFilename,
@@ -311,8 +311,8 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.isbn || '',
     book.publishDate || '',
     book.listPrice,
-    book.listPriceHkd ?? '',
-    book.listPriceTwd ?? '',
+    book.listPriceHKD ?? '',
+    book.listPriceTWD ?? '',
     book.tags.join(','),
     book.coverImageFilename,
     book.pdfFilename || '',

@@ -79,7 +79,7 @@
                     </p>
                     <UFormField :label="$t('nft_book_form.custom_price_usd')">
                       <UInput
-                        v-model="p.priceUsdInput"
+                        v-model="p.priceUSDInput"
                         type="number"
                         step="0.01"
                         min="0"
@@ -88,7 +88,7 @@
                     </UFormField>
                     <UFormField :label="$t('nft_book_form.custom_price_hkd')">
                       <UInput
-                        v-model="p.priceHkdInput"
+                        v-model="p.priceHKDInput"
                         type="number"
                         step="1"
                         min="0"
@@ -97,7 +97,7 @@
                     </UFormField>
                     <UFormField :label="$t('nft_book_form.custom_price_twd')">
                       <UInput
-                        v-model="p.priceTwdInput"
+                        v-model="p.priceTWDInput"
                         type="number"
                         step="1"
                         min="0"
@@ -531,9 +531,9 @@ interface PriceFormItem {
   oldStock?: number
   // Custom pricing mode: USD tier dropdown vs free-form USD/HKD/TWD trio (mutually exclusive).
   isCustomPricing: boolean
-  priceUsdInput: string
-  priceHkdInput: string
-  priceTwdInput: string
+  priceUSDInput: string
+  priceHKDInput: string
+  priceTWDInput: string
 }
 
 const prices = ref<PriceFormItem[]>([
@@ -547,9 +547,9 @@ const prices = ref<PriceFormItem[]>([
     isAllowCustomPrice: isAllowCustomPrice.value,
     isListed: true,
     isCustomPricing: false,
-    priceUsdInput: '',
-    priceHkdInput: '',
-    priceTwdInput: '',
+    priceUSDInput: '',
+    priceHKDInput: '',
+    priceTWDInput: '',
   },
 ])
 
@@ -560,8 +560,8 @@ function shouldShowCustomPricingUI(p: PriceFormItem): boolean {
   return isAdvancedPricingEnabled.value || p.isCustomPricing
 }
 function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
-  if (enabled && p.priceUsdInput === '' && p.price && p.price !== '-1') {
-    p.priceUsdInput = p.price
+  if (enabled && p.priceUSDInput === '' && p.price && p.price !== '-1') {
+    p.priceUSDInput = p.price
   }
 }
 const hasMultiplePrices = computed(() => prices.value.length > 1)
@@ -669,9 +669,9 @@ onMounted(async () => {
             if (!currentEdition) {
               throw new Error('Edition not found')
             }
-            const overrideHkd = currentEdition.priceInDecimalByCurrency?.hkd
-            const overrideTwd = currentEdition.priceInDecimalByCurrency?.twd
-            const hasExistingCustomPricing = typeof overrideHkd === 'number' || typeof overrideTwd === 'number'
+            const overrideHKD = currentEdition.priceInDecimalByCurrency?.hkd
+            const overrideTWD = currentEdition.priceInDecimalByCurrency?.twd
+            const hasExistingCustomPricing = typeof overrideHKD === 'number' || typeof overrideTWD === 'number'
             const tierPriceStr = currentEdition.price?.toString() || ''
             prices.value = [{
               price: tierPriceStr,
@@ -685,9 +685,9 @@ onMounted(async () => {
               oldIsAutoDeliver: currentEdition.isAutoDeliver,
               oldStock: currentEdition.stock,
               isCustomPricing: hasExistingCustomPricing,
-              priceUsdInput: hasExistingCustomPricing ? tierPriceStr : '',
-              priceHkdInput: typeof overrideHkd === 'number' ? (overrideHkd / 100).toString() : '',
-              priceTwdInput: typeof overrideTwd === 'number' ? (overrideTwd / 100).toString() : '',
+              priceUSDInput: hasExistingCustomPricing ? tierPriceStr : '',
+              priceHKDInput: typeof overrideHKD === 'number' ? (overrideHKD / 100).toString() : '',
+              priceTWDInput: typeof overrideTWD === 'number' ? (overrideTWD / 100).toString() : '',
             }]
             isAllowCustomPrice.value = currentEdition.isAllowCustomPrice
           }
@@ -811,9 +811,9 @@ function addMorePrice() {
     isAllowCustomPrice: true,
     isListed: true,
     isCustomPricing: false,
-    priceUsdInput: '',
-    priceHkdInput: '',
-    priceTwdInput: '',
+    priceUSDInput: '',
+    priceHKDInput: '',
+    priceTWDInput: '',
   })
 }
 
@@ -823,7 +823,7 @@ function deletePrice(index: number) {
 
 function mapPrices(prices: PriceFormItem[]) {
   return prices.map((p: PriceFormItem) => {
-    const usdValue = p.isCustomPricing ? Number(p.priceUsdInput) : Number(p.price)
+    const usdValue = p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
     const mapped: MappedPrice = {
       name: {
         en: escapeHtml(p.name),
@@ -843,8 +843,8 @@ function mapPrices(prices: PriceFormItem[]) {
     }
     if (p.isCustomPricing) {
       mapped.priceInDecimalByCurrency = {
-        hkd: Math.round(Number(p.priceHkdInput) * 100),
-        twd: Math.round(Number(p.priceTwdInput) * 100),
+        hkd: Math.round(Number(p.priceHKDInput) * 100),
+        twd: Math.round(Number(p.priceTWDInput) * 100),
       }
     }
     return mapped
@@ -868,9 +868,9 @@ function validateRawForm(rawPrices: PriceFormItem[]): FormError[] {
   const errors: FormError[] = []
   for (const raw of rawPrices) {
     if (!raw.isCustomPricing) { continue }
-    const isMissing = raw.priceUsdInput.trim() === ''
-      || raw.priceHkdInput.trim() === ''
-      || raw.priceTwdInput.trim() === ''
+    const isMissing = raw.priceUSDInput.trim() === ''
+      || raw.priceHKDInput.trim() === ''
+      || raw.priceTWDInput.trim() === ''
     if (isMissing) {
       errors.push({
         name: 'customPricing',

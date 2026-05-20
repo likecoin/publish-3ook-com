@@ -60,8 +60,8 @@ export interface BulkUploadBook {
   publishDate?: string
   listPrice: number
   // Per-currency override (decimal units, e.g. 35 for HK$35). undefined means use tier conversion.
-  listPriceHkd?: number
-  listPriceTwd?: number
+  listPriceHKD?: number
+  listPriceTWD?: number
   tags: string[]
   coverImageFilename: string
   pdfFilename?: string
@@ -103,8 +103,8 @@ export interface SerializedBulkUploadBook {
   isbn?: string
   publishDate?: string
   listPrice: number
-  listPriceHkd?: number
-  listPriceTwd?: number
+  listPriceHKD?: number
+  listPriceTWD?: number
   tags: string[]
   coverImageFilename: string
   pdfFilename?: string

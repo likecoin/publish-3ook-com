@@ -278,11 +278,11 @@ export function useBulkUpload() {
     }
 
     const priceInDecimalByCurrency: BookPriceInDecimalByCurrency = {}
-    if (typeof book.listPriceHkd === 'number') {
-      priceInDecimalByCurrency.hkd = Math.round(book.listPriceHkd * 100)
+    if (typeof book.listPriceHKD === 'number') {
+      priceInDecimalByCurrency.hkd = Math.round(book.listPriceHKD * 100)
     }
-    if (typeof book.listPriceTwd === 'number') {
-      priceInDecimalByCurrency.twd = Math.round(book.listPriceTwd * 100)
+    if (typeof book.listPriceTWD === 'number') {
+      priceInDecimalByCurrency.twd = Math.round(book.listPriceTWD * 100)
     }
     const price = {
       name: {

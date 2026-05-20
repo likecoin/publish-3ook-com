@@ -594,8 +594,8 @@ const csvColumnRefData = CSV_ALL_COLUMNS.map((col) => {
 function formatPriceCell(book: BulkUploadBook): string {
   const base = book.listPrice === 0 ? 'Free' : `$${book.listPrice}`
   const overrides: string[] = []
-  if (typeof book.listPriceHkd === 'number') { overrides.push(`HK$${book.listPriceHkd}`) }
-  if (typeof book.listPriceTwd === 'number') { overrides.push(`NT$${book.listPriceTwd}`) }
+  if (typeof book.listPriceHKD === 'number') { overrides.push(`HK$${book.listPriceHKD}`) }
+  if (typeof book.listPriceTWD === 'number') { overrides.push(`NT$${book.listPriceTWD}`) }
   if (overrides.length === 0) { return base }
   return `${base} (${overrides.join(', ')})`
 }
