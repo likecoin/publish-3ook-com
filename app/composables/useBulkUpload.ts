@@ -1,5 +1,6 @@
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
+import type { BookPriceInDecimalByCurrency } from '~/types'
 import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { detectEbookType } from '~/utils/ebookType'
@@ -276,6 +277,13 @@ export function useBulkUpload() {
       throw new Error('Class ID not found')
     }
 
+    const priceInDecimalByCurrency: BookPriceInDecimalByCurrency = {}
+    if (typeof book.listPriceHkd === 'number') {
+      priceInDecimalByCurrency.hkd = Math.round(book.listPriceHkd * 100)
+    }
+    if (typeof book.listPriceTwd === 'number') {
+      priceInDecimalByCurrency.twd = Math.round(book.listPriceTwd * 100)
+    }
     const price = {
       name: {
         en: book.editionName,
@@ -292,6 +300,7 @@ export function useBulkUpload() {
       isAllowCustomPrice: true,
       isUnlisted: false,
       autoMemo: book.autoMemo,
+      ...(Object.keys(priceInDecimalByCurrency).length > 0 ? { priceInDecimalByCurrency } : {}),
     }
 
     await newBookListing(book.classId, {

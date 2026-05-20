@@ -1,8 +1,14 @@
+export interface BookPriceInDecimalByCurrency {
+  hkd?: number
+  twd?: number
+}
+
 export interface ClassListingPrice {
   index: number
   name: { en?: string, zh?: string } | string
   description: { en?: string, zh?: string } | string
   price: number | string
+  priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
   stock: number
   isAutoDeliver: boolean
   isAllowCustomPrice: boolean

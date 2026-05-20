@@ -591,12 +591,21 @@ const csvColumnRefData = CSV_ALL_COLUMNS.map((col) => {
   }
 })
 
+function formatPriceCell(book: BulkUploadBook): string {
+  const base = book.listPrice === 0 ? 'Free' : `$${book.listPrice}`
+  const overrides: string[] = []
+  if (typeof book.listPriceHkd === 'number') { overrides.push(`HK$${book.listPriceHkd}`) }
+  if (typeof book.listPriceTwd === 'number') { overrides.push(`NT$${book.listPriceTwd}`) }
+  if (overrides.length === 0) { return base }
+  return `${base} (${overrides.join(', ')})`
+}
+
 const reviewData = computed(() =>
   books.value.map(book => ({
     rowIndex: book.rowIndex,
     title: book.title,
     authorName: book.authorName,
-    listPrice: book.listPrice === 0 ? 'Free' : `$${book.listPrice}`,
+    listPrice: formatPriceCell(book),
     editionName: book.editionName,
     language: book.language,
     enableDRM: book.enableDRM,
@@ -761,6 +770,8 @@ async function downloadCSVTemplate() {
     '978-1234567890',
     '2024-01-15',
     '4.99',
+    '',
+    '',
     'fiction,novel',
     'cover.jpg',
     '',

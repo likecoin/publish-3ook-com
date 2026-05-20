@@ -1,5 +1,5 @@
 export type { ISCNContentMetadata, ISCNData, PotentialActionTarget, PotentialAction, ClassMetadataHasPart, ClassMetadata, ISCNRegisterPayload, ISCNFormData, ISCNTxPayload, ISCNValidationData } from './iscn'
-export type { ClassListingPrice, ClassListingData, BookRecord, ProductData, EditionTableRow } from './book'
+export type { BookPriceInDecimalByCurrency, ClassListingPrice, ClassListingData, BookRecord, ProductData, EditionTableRow } from './book'
 export type { PurchaseItem } from './purchase'
 export type { CommissionRow, PayoutRow, PayoutData, PayoutItemDetail } from './payout'
 export type { FileRecord, EpubMetadata, ArweaveEstimate } from './upload'

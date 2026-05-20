@@ -56,13 +56,58 @@
               <UFormField
                 :label="$t('nft_book_form.unit_price_label')"
               >
-                <USelect
-                  v-model="p.price"
-                  class="w-full"
-                  :items="USD_PRICING_OPTIONS"
-                  value-key="value"
-                />
+                <div class="space-y-3">
+                  <UCheckbox
+                    v-if="shouldShowCustomPricingUI(p)"
+                    v-model="p.isCustomPricing"
+                    :label="$t('nft_book_form.use_custom_pricing')"
+                    @update:model-value="(v: boolean | 'indeterminate') => onCustomPricingToggle(p, v === true)"
+                  />
+                  <USelect
+                    v-if="!p.isCustomPricing"
+                    v-model="p.price"
+                    class="w-full"
+                    :items="USD_PRICING_OPTIONS"
+                    value-key="value"
+                  />
+                  <div
+                    v-else
+                    class="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <p class="text-xs text-gray-600">
+                      {{ $t('nft_book_form.custom_pricing_description') }}
+                    </p>
+                    <UFormField :label="$t('nft_book_form.custom_price_usd')">
+                      <UInput
+                        v-model="p.priceUsdInput"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0"
+                      />
+                    </UFormField>
+                    <UFormField :label="$t('nft_book_form.custom_price_hkd')">
+                      <UInput
+                        v-model="p.priceHkdInput"
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                      />
+                    </UFormField>
+                    <UFormField :label="$t('nft_book_form.custom_price_twd')">
+                      <UInput
+                        v-model="p.priceTwdInput"
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                      />
+                    </UFormField>
+                  </div>
+                </div>
               </UFormField>
+
               <UFormField
                 :label="$t('nft_book_form.copies_label')"
               >
@@ -419,7 +464,7 @@ import {
 } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
 import { getUploadFileData } from '~/utils/uploadFile'
-import type { ClassListingData, ClassListingPrice } from '~/types'
+import type { BookPriceInDecimalByCurrency, ClassListingData, ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
 
@@ -484,6 +529,11 @@ interface PriceFormItem {
   isListed: boolean
   oldIsAutoDeliver?: boolean
   oldStock?: number
+  // Custom pricing mode: USD tier dropdown vs free-form USD/HKD/TWD trio (mutually exclusive).
+  isCustomPricing: boolean
+  priceUsdInput: string
+  priceHkdInput: string
+  priceTwdInput: string
 }
 
 const prices = ref<PriceFormItem[]>([
@@ -496,8 +546,24 @@ const prices = ref<PriceFormItem[]>([
     description: '',
     isAllowCustomPrice: isAllowCustomPrice.value,
     isListed: true,
+    isCustomPricing: false,
+    priceUsdInput: '',
+    priceHkdInput: '',
+    priceTwdInput: '',
   },
 ])
+
+const route = useRoute()
+// Backdoor: ?advanced_pricing=1 reveals the custom USD/HKD/TWD pricing UI.
+const isAdvancedPricingEnabled = computed(() => route.query.advanced_pricing === '1')
+function shouldShowCustomPricingUI(p: PriceFormItem): boolean {
+  return isAdvancedPricingEnabled.value || p.isCustomPricing
+}
+function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
+  if (enabled && p.priceUsdInput === '' && p.price && p.price !== '-1') {
+    p.priceUsdInput = p.price
+  }
+}
 const hasMultiplePrices = computed(() => prices.value.length > 1)
 const moderatorWallets = ref<string[]>([
   '0xa037Feb6508A8C2F93bb19f6721730C45921f2D0',
@@ -603,8 +669,12 @@ onMounted(async () => {
             if (!currentEdition) {
               throw new Error('Edition not found')
             }
+            const overrideHkd = currentEdition.priceInDecimalByCurrency?.hkd
+            const overrideTwd = currentEdition.priceInDecimalByCurrency?.twd
+            const hasExistingCustomPricing = typeof overrideHkd === 'number' || typeof overrideTwd === 'number'
+            const tierPriceStr = currentEdition.price?.toString() || ''
             prices.value = [{
-              price: currentEdition.price?.toString() || '',
+              price: tierPriceStr,
               deliveryMethod: currentEdition.isAutoDeliver ? 'auto' : 'manual',
               autoMemo: currentEdition.autoMemo || '',
               stock: currentEdition.stock,
@@ -614,6 +684,10 @@ onMounted(async () => {
               isListed: !currentEdition.isUnlisted,
               oldIsAutoDeliver: currentEdition.isAutoDeliver,
               oldStock: currentEdition.stock,
+              isCustomPricing: hasExistingCustomPricing,
+              priceUsdInput: hasExistingCustomPricing ? tierPriceStr : '',
+              priceHkdInput: typeof overrideHkd === 'number' ? (overrideHkd / 100).toString() : '',
+              priceTwdInput: typeof overrideTwd === 'number' ? (overrideTwd / 100).toString() : '',
             }]
             isAllowCustomPrice.value = currentEdition.isAllowCustomPrice
           }
@@ -736,6 +810,10 @@ function addMorePrice() {
     description: '',
     isAllowCustomPrice: true,
     isListed: true,
+    isCustomPricing: false,
+    priceUsdInput: '',
+    priceHkdInput: '',
+    priceTwdInput: '',
   })
 }
 
@@ -744,29 +822,40 @@ function deletePrice(index: number) {
 }
 
 function mapPrices(prices: PriceFormItem[]) {
-  return prices.map((p: PriceFormItem) => ({
-    name: {
-      en: escapeHtml(p.name),
-      zh: escapeHtml(p.name),
-    },
-    description: {
-      en: escapeHtml(p.description),
-      zh: escapeHtml(p.description),
-    },
-    priceInDecimal: Math.round(Number(p.price) * 100),
-    price: Number(p.price),
-    stock: p.deliveryMethod === 'auto' ? 0 : Number(p.stock),
-    isAutoDeliver: p.deliveryMethod === 'auto',
-    isAllowCustomPrice: p.isAllowCustomPrice,
-    isUnlisted: !p.isListed,
-    autoMemo: p.deliveryMethod === 'auto' ? p.autoMemo || '' : '',
-  }))
+  return prices.map((p: PriceFormItem) => {
+    const usdValue = p.isCustomPricing ? Number(p.priceUsdInput) : Number(p.price)
+    const mapped: MappedPrice = {
+      name: {
+        en: escapeHtml(p.name),
+        zh: escapeHtml(p.name),
+      },
+      description: {
+        en: escapeHtml(p.description),
+        zh: escapeHtml(p.description),
+      },
+      priceInDecimal: Math.round(usdValue * 100),
+      price: usdValue,
+      stock: p.deliveryMethod === 'auto' ? 0 : Number(p.stock),
+      isAutoDeliver: p.deliveryMethod === 'auto',
+      isAllowCustomPrice: p.isAllowCustomPrice,
+      isUnlisted: !p.isListed,
+      autoMemo: p.deliveryMethod === 'auto' ? p.autoMemo || '' : '',
+    }
+    if (p.isCustomPricing) {
+      mapped.priceInDecimalByCurrency = {
+        hkd: Math.round(Number(p.priceHkdInput) * 100),
+        twd: Math.round(Number(p.priceTwdInput) * 100),
+      }
+    }
+    return mapped
+  })
 }
 
 interface MappedPrice {
   name: { en: string, zh: string }
   description: { en: string, zh: string }
   priceInDecimal: number
+  priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
   price: number
   stock: number
   isAutoDeliver: boolean
@@ -775,10 +864,27 @@ interface MappedPrice {
   autoMemo: string
 }
 
+function validateRawForm(rawPrices: PriceFormItem[]): FormError[] {
+  const errors: FormError[] = []
+  for (const raw of rawPrices) {
+    if (!raw.isCustomPricing) { continue }
+    const isMissing = raw.priceUsdInput.trim() === ''
+      || raw.priceHkdInput.trim() === ''
+      || raw.priceTwdInput.trim() === ''
+    if (isMissing) {
+      errors.push({
+        name: 'customPricing',
+        message: $t('errors.custom_pricing_all_required'),
+      })
+    }
+  }
+  return errors
+}
+
 function validate(prices: MappedPrice[]) {
   const errors: FormError[] = []
   prices.forEach((price: MappedPrice) => {
-    if (price.price !== 0 && price.price < MINIMAL_PRICE) {
+    if (!Number.isFinite(price.priceInDecimal) || (price.price !== 0 && price.price < MINIMAL_PRICE)) {
       errors.push({
         name: 'price',
         message: $t('errors.price_validation', { minPrice: MINIMAL_PRICE }),
@@ -789,6 +895,16 @@ function validate(prices: MappedPrice[]) {
         name: 'name',
         message: $t('errors.product_name_required'),
       })
+    }
+    if (price.priceInDecimalByCurrency) {
+      for (const [currency, value] of Object.entries(price.priceInDecimalByCurrency)) {
+        if (!Number.isFinite(value) || value < 0) {
+          errors.push({
+            name: `priceInDecimalByCurrency.${currency}`,
+            message: $t('errors.invalid_price_override', { currency: currency.toUpperCase() }),
+          })
+        }
+      }
     }
   })
 
@@ -811,6 +927,12 @@ function reportSubmitError(err: unknown): never {
 
 async function onSubmit() {
   try {
+    const rawErrors = validateRawForm(prices.value)
+    if (rawErrors.length > 0) {
+      error.value = rawErrors.map(e => e.message).join('\n')
+      showErrorToast(error.value)
+      return
+    }
     const p = mapPrices(prices.value)
     if (!validate(p)) {
       return

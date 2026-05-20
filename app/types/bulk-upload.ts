@@ -23,6 +23,8 @@ export interface BulkUploadCSVRow {
   isbn?: string
   publish_date?: string
   list_price?: string
+  list_price_hkd?: string
+  list_price_twd?: string
   tags?: string
   cover_image_filename: string
   pdf_filename?: string
@@ -57,6 +59,9 @@ export interface BulkUploadBook {
   isbn?: string
   publishDate?: string
   listPrice: number
+  // Per-currency override (decimal units, e.g. 35 for HK$35). undefined means use tier conversion.
+  listPriceHkd?: number
+  listPriceTwd?: number
   tags: string[]
   coverImageFilename: string
   pdfFilename?: string
@@ -98,6 +103,8 @@ export interface SerializedBulkUploadBook {
   isbn?: string
   publishDate?: string
   listPrice: number
+  listPriceHkd?: number
+  listPriceTwd?: number
   tags: string[]
   coverImageFilename: string
   pdfFilename?: string
