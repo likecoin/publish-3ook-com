@@ -92,6 +92,7 @@ export interface OrderData {
   wallet: string
   classId: string
   price: number
+  quantity?: number
   status: string
   timestamp: number
   message: string

@@ -16,6 +16,12 @@ export interface BookInfo {
   classId: string
 }
 
+// Order statuses that represent a real, paid sale and should count toward a
+// reader's lifetime value. Mirrors the "paid" states surfaced in
+// my-books/status/[classId].vue. Anything else (e.g. unpaid/abandoned orders
+// or refunds) is excluded.
+const PAID_ORDER_STATUSES = new Set(['paid', 'pendingNFT', 'completed'])
+
 export const useOrdersStore = defineStore('orders', () => {
   const bookstoreApiStore = useBookstoreApiStore()
   const { token, isAuthenticated } = storeToRefs(bookstoreApiStore)
@@ -57,9 +63,10 @@ export const useOrdersStore = defineStore('orders', () => {
     allOrders.value.forEach((order) => {
       const readerEmail = order.email
       if (!readerEmail) { return }
+      if (!PAID_ORDER_STATUSES.has(order.status)) { return }
 
       const purchaseTime = new Date(order.timestamp).toISOString()
-      const amount = order.price || 0
+      const amount = (order.price || 0) * (order.quantity || 1)
       const hasMessage = !!(order.message && order.message.trim())
       const wallet = order.wallet
 
