@@ -28,8 +28,6 @@
     "@nuxt/ui": "^4.7.1",
     "@pinia/nuxt": "^0.11.1",
     "@sentry/nuxt": "^10.46.0",
-    "@stablelib/ed25519": "^2.0.2",
-    "@stablelib/random": "^2.0.1",
     "@tanstack/vue-query": "^5.91.4",
     "@wagmi/core": "^3.4.1",
     "@wagmi/vue": "^0.5.1",
