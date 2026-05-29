@@ -207,7 +207,10 @@ export function useBulkUpload() {
       descriptionFull: book.descriptionFull?.trim() || undefined,
       alternativeHeadline: '',
       isbn: book.isbn || '',
-      publisher: book.publisher,
+      publisher: {
+        name: book.publisher,
+        description: book.publisherDescription || '',
+      },
       publicationDate: book.publishDate || '',
       author: {
         name: book.authorName,

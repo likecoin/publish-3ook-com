@@ -37,6 +37,7 @@ export function formatISCNTxPayload(payload: ISCNRegisterPayload): ISCNTxPayload
     authorDescription,
     contentFingerprints: contentFingerprintsInput = [],
     publisher: publisherInput,
+    publisherDescription,
     ...data
   } = payload
 
@@ -49,9 +50,16 @@ export function formatISCNTxPayload(payload: ISCNRegisterPayload): ISCNTxPayload
       }
     : author
 
+  const publisherEntity = (publisherInput && publisherDescription)
+    ? {
+        name: publisherInput,
+        description: publisherDescription,
+      }
+    : publisherInput
+
   return {
     ...data,
-    publisher: publisherInput,
+    publisher: publisherEntity,
     author: authorEntity,
     keywords: tagsString.split(',').map(k => k.trim()).filter(Boolean),
     usageInfo: license,

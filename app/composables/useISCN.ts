@@ -63,10 +63,10 @@ export function useISCN({
         value: data.author.name || data.author,
       })
     }
-    if (data.publisher) {
+    if (data.publisher.name) {
       attributes.push({
         trait_type: 'Publisher',
-        value: data.publisher,
+        value: data.publisher.name,
       })
     }
     if (data.publicationDate) {
@@ -96,7 +96,8 @@ export function useISCN({
       (f: { url: string }) => f.url,
     ),
     'inLanguage': iscnFormData.value.language,
-    'publisher': iscnFormData.value.publisher,
+    'publisher': iscnFormData.value.publisher.name,
+    'publisherDescription': iscnFormData.value.publisher.description,
     'isbn': iscnFormData.value.isbn,
     'datePublished': iscnFormData.value.publicationDate
       ? new Date(iscnFormData.value.publicationDate).toISOString().split('T')[0]

@@ -44,7 +44,10 @@ const iscnFormData = ref<ISCNFormData>({
   description: '',
   alternativeHeadline: '',
   isbn: '',
-  publisher: '',
+  publisher: {
+    name: '',
+    description: '',
+  },
   publicationDate: '',
   author: {
     name: '',
@@ -95,7 +98,10 @@ const initializeFromSessionStorage = () => {
     title: data.epubMetadata?.title || '',
     description: stripHtmlTags(data.epubMetadata?.description || ''),
     isbn: '',
-    publisher: '',
+    publisher: {
+      name: '',
+      description: '',
+    },
     publicationDate: new Date().toISOString().split('T')[0] || '',
     author: {
       name: data.epubMetadata?.author ?? '',

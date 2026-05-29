@@ -49,7 +49,7 @@ export interface ClassMetadata {
   'author'?: string | { name?: string, description?: string, url?: string }
   'usageInfo'?: string
   'isbn'?: string
-  'publisher'?: string
+  'publisher'?: string | { name?: string, description?: string, url?: string }
   'genre'?: string
   'contentFingerprints'?: string[]
   'sameAs'?: string[]
@@ -69,6 +69,7 @@ export interface ISCNRegisterPayload {
   'author': string
   'fileSHA256'?: string | string[]
   'publisher'?: string
+  'publisherDescription'?: string
   'authorDescription'?: string
   'contentFingerprints'?: string[]
   'recordNotes'?: string
@@ -87,7 +88,11 @@ export interface ISCNFormData {
   previewContent?: string
   alternativeHeadline?: string
   isbn: string
-  publisher: string
+  publisher: {
+    name: string
+    description: string
+    url?: string
+  }
   publicationDate: string
   author: {
     name: string
@@ -114,7 +119,7 @@ export interface ISCNTxPayload {
   description: string
   url?: string
   thumbnailUrl?: string
-  publisher?: string
+  publisher?: string | { name: string, description: string }
   author: string | { name: string, description: string }
   keywords: string[]
   usageInfo: string

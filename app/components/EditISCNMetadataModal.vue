@@ -90,7 +90,10 @@ const iscnFormData = ref<ISCNFormData>({
   previewContent: '',
   alternativeHeadline: '',
   isbn: '',
-  publisher: '',
+  publisher: {
+    name: '',
+    description: '',
+  },
   publicationDate: '',
   author: {
     name: '',
@@ -167,7 +170,10 @@ watchEffect(async () => {
           previewContent: getPreviewContentFromHasPart(metadata.hasPart) || '',
           alternativeHeadline: metadata.alternativeHeadline || '',
           isbn: metadata.isbn || '',
-          publisher: metadata.publisher || '',
+          publisher: {
+            name: (typeof metadata.publisher === 'object' ? metadata.publisher?.name : metadata.publisher) || '',
+            description: (typeof metadata.publisher === 'object' ? metadata.publisher?.description : '') || '',
+          },
           publicationDate: metadata.datePublished || '',
           author: {
             name: (typeof metadata.author === 'object' ? metadata.author?.name : metadata.author) || '',

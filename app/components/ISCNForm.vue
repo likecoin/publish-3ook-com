@@ -62,13 +62,6 @@
         />
       </UFormField>
 
-      <UFormField :label="$t('form.publisher')">
-        <UInput
-          v-model="formData.publisher"
-          :placeholder="$t('form.enter_publisher_name')"
-        />
-      </UFormField>
-
       <UFormField :label="$t('form.publication_date')">
         <UInput
           v-model="formData.publicationDate"
@@ -135,6 +128,27 @@
         <UTextarea
           v-model="formData.author.description"
           :placeholder="$t('iscn_form.enter_author_description')"
+          autoresize
+        />
+      </UFormField>
+    </div>
+
+    <!-- Publisher Info -->
+    <div class="grid grid-cols-2 gap-4">
+      <UFormField
+        :label="$t('form.publisher')"
+        class="text-left"
+      >
+        <UInput
+          v-model="formData.publisher.name"
+          :placeholder="$t('form.enter_publisher_name')"
+        />
+      </UFormField>
+
+      <UFormField :label="$t('iscn_form.publisher_description')">
+        <UTextarea
+          v-model="formData.publisher.description"
+          :placeholder="$t('iscn_form.enter_publisher_description')"
           autoresize
         />
       </UFormField>

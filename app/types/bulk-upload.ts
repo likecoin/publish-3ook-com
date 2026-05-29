@@ -20,6 +20,7 @@ export interface BulkUploadCSVRow {
   author_name: string
   author_description?: string
   publisher?: string
+  publisher_description?: string
   isbn?: string
   publish_date?: string
   list_price?: string
@@ -56,6 +57,7 @@ export interface BulkUploadBook {
   authorName: string
   authorDescription?: string
   publisher: string
+  publisherDescription?: string
   isbn?: string
   publishDate?: string
   listPrice: number
@@ -100,6 +102,7 @@ export interface SerializedBulkUploadBook {
   authorName: string
   authorDescription?: string
   publisher: string
+  publisherDescription?: string
   isbn?: string
   publishDate?: string
   listPrice: number
