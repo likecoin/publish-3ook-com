@@ -19,8 +19,12 @@ export function useNFTMinter() {
     classId: string
     mintCount: number
     buildTokenMetadata: (index: number, fromTokenId: bigint) => NFTTokenMetadata
+    // Called as soon as the mint tx is broadcast, before waiting for the
+    // receipt. Lets callers persist the hash so an interrupted confirmation
+    // wait doesn't lead to a duplicate mint on retry.
+    onSubmitted?: (txHash: string) => void
   }): Promise<{ txHash: string, fromTokenId: bigint }> {
-    const { classId, mintCount, buildTokenMetadata } = params
+    const { classId, mintCount, buildTokenMetadata, onSubmitted } = params
 
     await checkAndGrantMinter({
       classId,
@@ -51,6 +55,7 @@ export function useNFTMinter() {
     })
 
     const txHash = await writeContractAsync(txParams)
+    onSubmitted?.(txHash)
     const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
 
     if (!receipt || receipt.status !== 'success') {

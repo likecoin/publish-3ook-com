@@ -1,3 +1,4 @@
+import { getTransactionReceipt } from '@wagmi/vue/actions'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import type { BookPriceInDecimalByCurrency } from '~/types'
@@ -22,6 +23,7 @@ export function useBulkUpload() {
   const { createNFTClass } = useNFTClassCreator()
   const { mintNFT } = useNFTMinter()
   const { BOOK3_URL } = useRuntimeConfig().public
+  const { $wagmiConfig } = useNuxtApp()
 
   const isProcessing = ref(false)
   const currentBook = ref<BulkUploadBook | null>(null)
@@ -55,11 +57,9 @@ export function useBulkUpload() {
         await createNFTClassForBook(book, callbacks)
       }
 
-      // Step 3: Mint NFT
-      if (!book.mintTxHash) {
-        onStatusChange?.(book.id, BookUploadStatus.MINTING)
-        await mintNFTForBook(book, callbacks)
-      }
+      // Step 3: Mint NFT (mintNFTForBook is idempotent — see its receipt check)
+      onStatusChange?.(book.id, BookUploadStatus.MINTING)
+      await mintNFTForBook(book, callbacks)
 
       // Step 4: Create book listing
       onStatusChange?.(book.id, BookUploadStatus.LISTING)
@@ -247,6 +247,21 @@ export function useBulkUpload() {
       throw new Error('Class ID not found')
     }
 
+    const setMintTxHash = (hash: string | undefined) => {
+      book.mintTxHash = hash
+      onProgress?.(book.id, { mintTxHash: hash })
+    }
+
+    // A prior attempt may have broadcast a mint whose confirmation we never
+    // recorded; re-minting reuses the same fromTokenId and would revert against
+    // the already-minted token, so verify any persisted hash before re-minting.
+    if (book.mintTxHash) {
+      if (await isMintTransactionConfirmed(book.mintTxHash)) {
+        return
+      }
+      setMintTxHash(undefined)
+    }
+
     const mintCount = NFT_DEFAULT_MINT_AMOUNT
 
     const buildTokenMetadata = (index: number, fromTokenId: bigint): NFTTokenMetadata => ({
@@ -260,14 +275,26 @@ export function useBulkUpload() {
       ],
     })
 
-    const { txHash } = await mintNFT({
+    // onSubmitted persists the hash as soon as the mint is broadcast, before the
+    // confirmation wait — so an interruption there can't trigger a duplicate mint.
+    await mintNFT({
       classId: book.classId,
       mintCount,
       buildTokenMetadata,
+      onSubmitted: setMintTxHash,
     })
+  }
 
-    book.mintTxHash = txHash
-    onProgress?.(book.id, { mintTxHash: txHash })
+  // Returns true only for a confirmed-successful receipt and false for a
+  // confirmed-reverted one. Receipt lookup throws while the tx is still pending
+  // (TransactionReceiptNotFoundError) or on a transient RPC error — we let that
+  // propagate so callers treat "unknown" as pending and keep the hash, rather
+  // than clearing it and risking a duplicate re-mint.
+  async function isMintTransactionConfirmed(txHash: string): Promise<boolean> {
+    const receipt = await getTransactionReceipt($wagmiConfig, {
+      hash: txHash as `0x${string}`,
+    })
+    return receipt?.status === 'success'
   }
 
   async function createBookListing(
@@ -364,5 +391,6 @@ export function useBulkUpload() {
     currentStep: readonly(currentStep),
     processBook,
     processBooksSequentially,
+    isMintTransactionConfirmed,
   }
 }

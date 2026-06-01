@@ -10,6 +10,23 @@ export interface SponsoredWriteContractParams {
   args?: readonly unknown[]
 }
 
+/**
+ * Thrown when a sponsored transaction has already been broadcast (sendCalls
+ * resolved) but we failed to read back its status/receipt. The transaction may
+ * well have executed on-chain, so the caller MUST NOT retry it via a direct
+ * transaction — doing so double-executes the call (e.g. a second mint of an
+ * already-minted tokenId, which reverts).
+ */
+export class SponsoredTransactionBroadcastError extends Error {
+  callsId?: string
+  constructor(message: string, options?: { cause?: unknown, callsId?: string }) {
+    super(message)
+    this.name = 'SponsoredTransactionBroadcastError'
+    this.cause = options?.cause
+    this.callsId = options?.callsId
+  }
+}
+
 let alchemyModules: Awaited<ReturnType<typeof loadAlchemyModules>> | null = null
 let cachedSmartWalletClient: any | null = null
 let cachedMagicInstance: Magic | null = null
@@ -126,9 +143,12 @@ export function useSponsoredTransaction() {
       throw new Error('No connected account')
     }
 
-    let txHash: Hash | undefined
+    // Pre-broadcast phase: failures here mean nothing was submitted, so the
+    // caller is free to fall back to a direct transaction.
+    let client: any
+    let result: { id: string }
     try {
-      const client = await getOrCreateSmartWalletClient()
+      client = await getOrCreateSmartWalletClient()
 
       const callData = encodeFunctionData({
         abi: params.abi as Abi,
@@ -136,7 +156,7 @@ export function useSponsoredTransaction() {
         args: params.args || [],
       })
 
-      const result = await client.sendCalls({
+      result = await client.sendCalls({
         from: address.value,
         calls: [{
           to: params.address,
@@ -147,19 +167,29 @@ export function useSponsoredTransaction() {
           eip7702Auth: true,
         },
       })
-
-      const status = await client.waitForCallsStatus({ id: result.id })
-      txHash = status.receipts?.[0]?.transactionHash as Hash | undefined
     }
     catch (error) {
       clearSponsoredClientCache()
       throw error
     }
 
-    if (!txHash) {
-      throw new Error('Sponsored transaction failed: no receipt returned')
+    // Post-broadcast phase: the calls have been submitted. If we can't confirm
+    // the status, surface a dedicated error so the caller does NOT re-submit.
+    try {
+      const status = await client.waitForCallsStatus({ id: result.id })
+      const txHash = status.receipts?.[0]?.transactionHash as Hash | undefined
+      if (!txHash) {
+        throw new Error('no receipt returned')
+      }
+      return txHash
     }
-    return txHash
+    catch (error) {
+      clearSponsoredClientCache()
+      throw new SponsoredTransactionBroadcastError(
+        'Sponsored transaction was broadcast but its status could not be confirmed',
+        { cause: error, callsId: result.id },
+      )
+    }
   }
 
   watch(isSponsoredMode, (newVal) => {

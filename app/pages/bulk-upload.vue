@@ -454,7 +454,6 @@
 <script setup lang="ts">
 import { parse as csvParse } from 'csv-parse/sync'
 import { stringify as csvStringify } from 'csv-stringify/sync'
-import { getTransactionReceipt } from '@wagmi/vue/actions'
 import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweave'
 import type { ArweaveEstimate } from '~/types'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
@@ -471,9 +470,8 @@ const { t: $t } = useI18n()
 const toast = useToast()
 const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
-const { processBooksSequentially, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
+const { processBooksSequentially, isMintTransactionConfirmed, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
 const { getClassMetadata } = useNFTContractReader()
-const { $wagmiConfig } = useNuxtApp()
 
 // State
 const currentStep = ref<'csv' | 'files' | 'review' | 'processing'>('csv')
@@ -748,10 +746,13 @@ async function verifyProgressFieldsOnChain(booksToVerify: BulkUploadBook[]) {
 
     if (book.mintTxHash) {
       try {
-        await getTransactionReceipt($wagmiConfig, { hash: book.mintTxHash as `0x${string}` })
+        if (!(await isMintTransactionConfirmed(book.mintTxHash))) {
+          book.mintTxHash = undefined
+        }
       }
       catch {
-        book.mintTxHash = undefined
+        // Receipt not available yet (pending tx / transient RPC issue) — keep
+        // the hash so resume verification can't trigger a duplicate mint.
       }
     }
   }
