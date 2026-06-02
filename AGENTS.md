@@ -84,6 +84,7 @@ All stores use Composition API style (setup function pattern):
 - `defineModel` and props destructuring are enabled
 - Tailwind CSS with custom `like-green` color theme; use @nuxt/ui components
 - Commit messages use gitmoji convention (e.g., `✨ Add feature`, `🐛 Fix bug`, `♻️ Refactor`, `💄 Style`, `⬆️ Upgrade deps`)
+- Comments — keep concise, at most 3 lines. Avoid breaking lines mid-sentence; break at punctuation when needed.
 
 ## Feature Location Quick Reference
 
