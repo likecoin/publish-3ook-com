@@ -36,7 +36,7 @@ export interface ClassListingData {
   isAdultOnly?: boolean
   isPlusReadingEnabled?: boolean
   pendingNFTCount?: number
-  enableSignatureImage?: boolean
+  enableSignatureImage?: boolean | 'signed'
 }
 
 export interface BookRecord {
