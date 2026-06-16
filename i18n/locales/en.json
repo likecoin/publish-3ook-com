@@ -711,7 +711,7 @@
   "plus_reading_report.summary_total": "Total Earnings",
   "plus_reading_report.title": "Plus Reading Library Earnings",
   "plus_reading_report.tts_rate": "Listening Rate (USD/min)",
-  "plus_reading_stats.description": "Live Plus reading-library engagement for this book (current, not-yet-settled). Reading counts borrowed reads; listening counts any read by a paid Plus member.",
+  "plus_reading_stats.description": "Live Plus reading-library engagement for this book (current, not-yet-settled). Reading and listening both count only borrowed reads by a paid Plus member.",
   "plus_reading_stats.listening_minutes": "Listening (min)",
   "plus_reading_stats.period": "Period",
   "plus_reading_stats.reading_minutes": "Reading (min)",

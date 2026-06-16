@@ -688,9 +688,9 @@ const isPlusReadingEnabledRadio = computed({
   set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
 })
 
-// Live Plus reading-library engagement for this book (current, not-yet-settled usage). Reading
-// time counts only borrowed (Plus-library) reads; listening (TTS) counts any read by a paid
-// Plus member — so these are rev-share-eligible durations, not gross engagement.
+// Live Plus reading-library engagement for this book (current, not-yet-settled usage). Both
+// reading time and listening (TTS) count only borrowed (Plus-library) reads by a paid Plus
+// member — so these are rev-share-eligible durations, not gross engagement.
 const plusReadingStats = ref<PlusReadingStats['stats']>([])
 const plusReadingStatsSummary = ref<PlusReadingStats['summary']>({
   totalReadingTimeMs: 0,

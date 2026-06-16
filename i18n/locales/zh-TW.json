@@ -711,7 +711,7 @@
   "plus_reading_report.summary_total": "總收益",
   "plus_reading_report.title": "Plus 圖書館閱覽分成報表",
   "plus_reading_report.tts_rate": "朗讀單價（USD/分鐘）",
-  "plus_reading_stats.description": "此書即時的 Plus 圖書館閱覽數據（當期、尚未結算）。閱讀時間只計入借閱，朗讀時間計入付費 Plus 會員的任何閱讀。",
+  "plus_reading_stats.description": "此書即時的 Plus 圖書館閱覽數據（當期、尚未結算）。閱讀與朗讀時間均只計入付費 Plus 會員的借閱。",
   "plus_reading_stats.listening_minutes": "朗讀時間（分鐘）",
   "plus_reading_stats.period": "期間",
   "plus_reading_stats.reading_minutes": "閱讀時間（分鐘）",
