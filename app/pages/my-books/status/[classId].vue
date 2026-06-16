@@ -268,6 +268,16 @@
               variant="soft"
               :label="$t('plus_reading_stats.total_listening', { value: convertMsToMinutes(plusReadingStatsSummary.totalTTSTimeMs) })"
             />
+            <UBadge
+              color="primary"
+              variant="outline"
+              :label="$t('plus_reading_stats.total_non_library_reading', { value: convertMsToMinutes(plusReadingStatsSummary.totalNonLibraryReadingTimeMs || 0) })"
+            />
+            <UBadge
+              color="neutral"
+              variant="outline"
+              :label="$t('plus_reading_stats.total_non_library_listening', { value: convertMsToMinutes(plusReadingStatsSummary.totalNonLibraryTTSTimeMs || 0) })"
+            />
           </div>
         </template>
         <UTable
@@ -688,13 +698,16 @@ const isPlusReadingEnabledRadio = computed({
   set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
 })
 
-// Live Plus reading-library engagement for this book (current, not-yet-settled usage). Both
-// reading time and listening (TTS) count only borrowed (Plus-library) reads by a paid Plus
-// member — so these are rev-share-eligible durations, not gross engagement.
+// Live Plus reading engagement for this book (current, not-yet-settled usage). The library
+// columns count only borrowed (Plus-library) reads by a paid Plus member — the rev-share-eligible
+// durations. The non-library columns count the rest (owned copies, trial/non-Plus reads), shown
+// for total engagement but never part of the payout.
 const plusReadingStats = ref<PlusReadingStats['stats']>([])
 const plusReadingStatsSummary = ref<PlusReadingStats['summary']>({
   totalReadingTimeMs: 0,
   totalTTSTimeMs: 0,
+  totalNonLibraryReadingTimeMs: 0,
+  totalNonLibraryTTSTimeMs: 0,
   bookCount: 0,
   periodCount: 0,
 })
@@ -702,11 +715,16 @@ const plusReadingStatsRows = computed(() => plusReadingStats.value.map(row => ({
   periodId: row.periodId,
   readingMinutes: convertMsToMinutes(row.readingTimeMs),
   listeningMinutes: convertMsToMinutes(row.ttsTimeMs),
+  // `|| 0` guards an older API response that predates the non-library fields.
+  nonLibraryReadingMinutes: convertMsToMinutes(row.nonLibraryReadingTimeMs || 0),
+  nonLibraryListeningMinutes: convertMsToMinutes(row.nonLibraryTtsTimeMs || 0),
 })))
 const plusReadingStatsColumns = computed(() => [
   { accessorKey: 'periodId', header: $t('plus_reading_stats.period') },
   { accessorKey: 'readingMinutes', header: $t('plus_reading_stats.reading_minutes') },
   { accessorKey: 'listeningMinutes', header: $t('plus_reading_stats.listening_minutes') },
+  { accessorKey: 'nonLibraryReadingMinutes', header: $t('plus_reading_stats.non_library_reading_minutes') },
+  { accessorKey: 'nonLibraryListeningMinutes', header: $t('plus_reading_stats.non_library_listening_minutes') },
 ])
 
 async function fetchPlusReadingStats() {

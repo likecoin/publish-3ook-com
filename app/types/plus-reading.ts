@@ -28,6 +28,10 @@ export interface PlusReadingStatsEntry {
   periodId: string
   readingTimeMs: number
   ttsTimeMs: number
+  // Non-rev-share engagement (owned/non-Plus reads). Optional: absent from older
+  // API responses that predate the field.
+  nonLibraryReadingTimeMs?: number
+  nonLibraryTtsTimeMs?: number
 }
 
 export interface PlusReadingStats {
@@ -35,6 +39,8 @@ export interface PlusReadingStats {
   summary: {
     totalReadingTimeMs: number
     totalTTSTimeMs: number
+    totalNonLibraryReadingTimeMs?: number
+    totalNonLibraryTTSTimeMs?: number
     bookCount: number
     periodCount: number
   }
