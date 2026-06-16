@@ -245,7 +245,7 @@
       </UCard>
 
       <UCard
-        v-if="plusReadingStatsRows.length"
+        v-if="plusReadingStats.length"
         :ui="{ body: 'p-0 sm:p-0' }"
       >
         <template #header>
@@ -257,28 +257,6 @@
             class="text-xs text-gray-500"
             v-text="$t('plus_reading_stats.description')"
           />
-          <div class="flex gap-2 mt-2">
-            <UBadge
-              color="primary"
-              variant="soft"
-              :label="$t('plus_reading_stats.total_reading', { value: convertMsToMinutes(plusReadingStatsSummary.totalReadingTimeMs) })"
-            />
-            <UBadge
-              color="neutral"
-              variant="soft"
-              :label="$t('plus_reading_stats.total_listening', { value: convertMsToMinutes(plusReadingStatsSummary.totalTTSTimeMs) })"
-            />
-            <UBadge
-              color="primary"
-              variant="outline"
-              :label="$t('plus_reading_stats.total_non_library_reading', { value: convertMsToMinutes(plusReadingStatsSummary.totalNonLibraryReadingTimeMs || 0) })"
-            />
-            <UBadge
-              color="neutral"
-              variant="outline"
-              :label="$t('plus_reading_stats.total_non_library_listening', { value: convertMsToMinutes(plusReadingStatsSummary.totalNonLibraryTTSTimeMs || 0) })"
-            />
-          </div>
         </template>
         <UTable
           :columns="plusReadingStatsColumns"
@@ -711,14 +689,26 @@ const plusReadingStatsSummary = ref<PlusReadingStats['summary']>({
   bookCount: 0,
   periodCount: 0,
 })
-const plusReadingStatsRows = computed(() => plusReadingStats.value.map(row => ({
-  periodId: row.periodId,
-  readingMinutes: convertMsToMinutes(row.readingTimeMs),
-  listeningMinutes: convertMsToMinutes(row.ttsTimeMs),
-  // `|| 0` guards an older API response that predates the non-library fields.
-  nonLibraryReadingMinutes: convertMsToMinutes(row.nonLibraryReadingTimeMs || 0),
-  nonLibraryListeningMinutes: convertMsToMinutes(row.nonLibraryTtsTimeMs || 0),
-})))
+const plusReadingStatsRows = computed(() => {
+  if (!plusReadingStats.value.length) return []
+  const rows = plusReadingStats.value.map(row => ({
+    periodId: row.periodId,
+    readingMinutes: convertMsToMinutes(row.readingTimeMs),
+    listeningMinutes: convertMsToMinutes(row.ttsTimeMs),
+    // `|| 0` guards an older API response that predates the non-library fields.
+    nonLibraryReadingMinutes: convertMsToMinutes(row.nonLibraryReadingTimeMs || 0),
+    nonLibraryListeningMinutes: convertMsToMinutes(row.nonLibraryTtsTimeMs || 0),
+  }))
+  const summary = plusReadingStatsSummary.value
+  rows.push({
+    periodId: $t('plus_reading_stats.total'),
+    readingMinutes: convertMsToMinutes(summary.totalReadingTimeMs),
+    listeningMinutes: convertMsToMinutes(summary.totalTTSTimeMs),
+    nonLibraryReadingMinutes: convertMsToMinutes(summary.totalNonLibraryReadingTimeMs || 0),
+    nonLibraryListeningMinutes: convertMsToMinutes(summary.totalNonLibraryTTSTimeMs || 0),
+  })
+  return rows
+})
 const plusReadingStatsColumns = computed(() => [
   { accessorKey: 'periodId', header: $t('plus_reading_stats.period') },
   { accessorKey: 'readingMinutes', header: $t('plus_reading_stats.reading_minutes') },
