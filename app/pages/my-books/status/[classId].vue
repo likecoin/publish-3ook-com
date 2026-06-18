@@ -245,7 +245,7 @@
       </UCard>
 
       <UCard
-        v-if="plusReadingStats.length"
+        v-if="isPlusReadingStatsEnabled && plusReadingStats.length"
         :ui="{ body: 'p-0 sm:p-0' }"
       >
         <template #header>
@@ -632,6 +632,7 @@ const { fetchStripeConnectStatusByWallet } = stripeStore
 const { getBalanceOf } = useNFTContractReader()
 
 const route = useRoute()
+const isPlusReadingStatsEnabled = computed(() => route.query.time_stats === '1')
 const localeRoute = useLocaleRoute()
 const toast = useToast()
 const userStore = useUserStore()
@@ -718,6 +719,7 @@ const plusReadingStatsColumns = computed(() => [
 ])
 
 async function fetchPlusReadingStats() {
+  if (!isPlusReadingStatsEnabled.value) return
   try {
     const data = await $fetch<PlusReadingStats>(`${LIKE_CO_API}/likernft/book/user/plus-reading/stats`, {
       headers: { authorization: `Bearer ${token.value}` },
