@@ -2205,10 +2205,10 @@
   dependencies:
     jszip "^3.10.1"
 
-"@likecoin/epubcheck-ts@^0.6.1":
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.6.1.tgz#a4bb353ffc5e8149ff3e21ef2d86217e43aafb40"
-  integrity sha512-AnYpOTqvaPfwNYh3hhrcbz2F4O0v94Ma7vuB/kQCry2SSNalYlas8adQhm+ZT6NAFAdfrEaNWV/oNMWUhE0vcg==
+"@likecoin/epubcheck-ts@^0.6.2":
+  version "0.6.2"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.6.2.tgz#7de21b9b36e4a792fe6577b150b8099e674c62e9"
+  integrity sha512-dKZ6g6kzQYJELiqneuJJ2+d16ocbjW2GepxdJSBMVZjYpYKKpYPVTALV68CswXhMUPtzpVrIyJ2IVD+bilGsEQ==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
