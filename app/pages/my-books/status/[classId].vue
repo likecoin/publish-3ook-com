@@ -549,11 +549,17 @@
             <UFormField :label="$t('nft_book_form.plus_reading')">
               <URadioGroup
                 v-model="isPlusReadingEnabledRadio"
+                :disabled="isFreeBook"
                 :items="[
                   { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
                   { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
                 ]"
                 orientation="vertical"
+              />
+              <p
+                v-if="isFreeBook"
+                class="text-muted text-[12px] mt-1"
+                v-text="$t('nft_book_form.plus_reading_free_forced')"
               />
             </UFormField>
 
@@ -675,6 +681,13 @@ const hideAudioRadio = computed({
 const isPlusReadingEnabledRadio = computed({
   get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
   set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
+})
+
+const isFreeBook = computed(() => prices.value.some(p => Number(p.price) === 0))
+
+// Free books always opt into Plus all-you-can-read; force the flag on if a price drops to 0.
+watch(isFreeBook, (isFree) => {
+  if (isFree) { isPlusReadingEnabled.value = true }
 })
 
 // Live Plus reading engagement for this book (current, not-yet-settled usage). The library
@@ -1111,8 +1124,8 @@ onMounted(async () => {
     hideDownload.value = classHideDownload ?? false
     hideAudio.value = classHideAudio ?? false
     isAdultOnly.value = classIsAdultOnly ?? false
-    // Legacy books without isPlusReadingEnabled default to opt-out; new books opt in via NewNFTBook.vue.
-    isPlusReadingEnabled.value = classIsPlusReadingEnabled ?? false
+    // Legacy books default to opt-out; free books always opt in regardless of stored value.
+    isPlusReadingEnabled.value = isFreeBook.value || (classIsPlusReadingEnabled ?? false)
     enableCustomMessagePage.value = classEnableCustomMessagePage ?? true
     tableOfContents.value = classTableOfContent ?? ''
     // Independent fetches — run concurrently to keep them off each other's critical path.

@@ -333,11 +333,17 @@
             >
               <URadioGroup
                 v-model="isPlusReadingEnabledRadio"
+                :disabled="isFreeBook"
                 :items="[
                   { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
                   { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
                 ]"
                 orientation="vertical"
+              />
+              <p
+                v-if="isFreeBook"
+                class="text-muted text-[12px] mt-1"
+                v-text="$t('nft_book_form.plus_reading_free_forced')"
               />
             </UFormField>
 
@@ -565,6 +571,11 @@ function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
   }
 }
 const hasMultiplePrices = computed(() => prices.value.length > 1)
+function getPriceUSDValue(p: PriceFormItem): number {
+  return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
+}
+// A free price tier (0) always opts the book into Plus all-you-can-read.
+const isFreeBook = computed(() => prices.value.some(p => getPriceUSDValue(p) === 0))
 const moderatorWallets = ref<string[]>([
   '0xa037Feb6508A8C2F93bb19f6721730C45921f2D0',
 ])
@@ -744,6 +755,11 @@ watch(isAllowCustomPrice, (newValue: boolean) => {
   })
 })
 
+// Free books always opt into Plus all-you-can-read; force the flag on.
+watch(isFreeBook, (isFree) => {
+  if (isFree) { isPlusReadingEnabled.value = true }
+}, { immediate: true })
+
 watch(classId, async (newClassId) => {
   if (newClassId) {
     const data = await lazyFetchClassMetadataById(newClassId as string)
@@ -823,7 +839,7 @@ function deletePrice(index: number) {
 
 function mapPrices(prices: PriceFormItem[]) {
   return prices.map((p: PriceFormItem) => {
-    const usdValue = p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
+    const usdValue = getPriceUSDValue(p)
     const mapped: MappedPrice = {
       name: {
         en: escapeHtml(p.name),

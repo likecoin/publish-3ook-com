@@ -78,9 +78,12 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     ? row.tags.split(',').map(t => t.trim()).filter(Boolean)
     : []
 
-  const listPrice = row.list_price ? parseFloat(row.list_price) : DEFAULT_PRICE
+  const parsedListPrice = parseOptionalDecimalPrice(row.list_price) ?? DEFAULT_PRICE
+  const listPrice = isNaN(parsedListPrice) ? DEFAULT_PRICE : parsedListPrice
   const listPriceHKD = parseOptionalDecimalPrice(row.list_price_hkd)
   const listPriceTWD = parseOptionalDecimalPrice(row.list_price_twd)
+  // Free books always opt into Plus all-you-can-read, regardless of enable_library.
+  const isPlusReadingEnabled = listPrice === 0 || row.enable_library?.trim().toLowerCase() !== 'false'
 
   return {
     id: crypto.randomUUID(),
@@ -94,7 +97,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     publisherDescription: row.publisher_description?.trim(),
     isbn: row.isbn?.trim(),
     publishDate: row.publish_date?.trim() || '',
-    listPrice: isNaN(listPrice) ? DEFAULT_PRICE : listPrice,
+    listPrice,
     listPriceHKD,
     listPriceTWD,
     tags,
@@ -107,7 +110,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     autoMemo: row.auto_memo?.trim() || '',
     enableDRM: row.enable_drm?.trim().toLowerCase() === 'true',
     enableTTS: row.enable_tts?.trim().toLowerCase() !== 'false',
-    isPlusReadingEnabled: row.enable_library?.trim().toLowerCase() !== 'false',
+    isPlusReadingEnabled,
     language: row.language?.trim() || CSV_DEFAULT_LANGUAGE,
     status: BookUploadStatus.PENDING,
   }

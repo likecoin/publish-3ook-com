@@ -538,6 +538,7 @@
   "nft_book_form.plus_reading": "Plus member unlimited reading",
   "nft_book_form.plus_reading_join": "Join — revenue shared by reading time",
   "nft_book_form.plus_reading_skip": "Do not join — sell individually only",
+  "nft_book_form.plus_reading_free_forced": "Free books automatically join Plus unlimited reading.",
   "nft_book_form.limited": "Batch minting, author messages one by one, manual delivery",
   "nft_book_form.link_wallet": "Link my wallet",
   "nft_book_form.loading_progress_text": "Please do not close this window until operation is complete.",

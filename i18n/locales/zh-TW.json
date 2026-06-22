@@ -538,6 +538,7 @@
   "nft_book_form.plus_reading": "Plus 會員暢讀",
   "nft_book_form.plus_reading_join": "加入，按閱讀時間比例分成",
   "nft_book_form.plus_reading_skip": "不加入，只單賣",
+  "nft_book_form.plus_reading_free_forced": "免費書自動加入 Plus 會員暢讀。",
   "nft_book_form.limited": "批量印鑄、作者逐一留言、手動發送",
   "nft_book_form.link_wallet": "連結我的錢包",
   "nft_book_form.loading_progress_text": "請勿關閉此視窗，直到操作完成。",
