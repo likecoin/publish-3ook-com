@@ -85,7 +85,6 @@ export interface ISCNFormData {
   title: string
   description: string
   descriptionFull?: string
-  previewContent?: string
   alternativeHeadline?: string
   isbn: string
   publisher: {
@@ -131,7 +130,6 @@ export interface ISCNValidationData {
   title?: string
   description?: string
   descriptionFull?: string
-  previewContent?: string
   author?: { name: string }
   contentFingerprints?: Array<{ url: string }>
   coverUrl?: string

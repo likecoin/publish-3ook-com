@@ -106,13 +106,9 @@ export function useISCN({
     'tagsString': iscnFormData.value.tags?.join(', ') || '',
     'thumbnailUrl': iscnFormData.value.coverUrl,
     'genre': iscnFormData.value.genre || undefined,
-    'hasPart': iscnFormData.value.previewContent
-      ? {
-          '@type': 'Chapter',
-          'isAccessibleForFree': true,
-          'text': iscnFormData.value.previewContent,
-        }
-      : undefined,
+    // Actively remove legacy preview content (hasPart) from existing metadata
+    // on update. Spreading existingIscnData would otherwise re-inject it.
+    'hasPart': undefined,
     'potentialAction': formattedPotentialActionList.value,
     'attributes': getAttributes(iscnFormData.value),
   }))

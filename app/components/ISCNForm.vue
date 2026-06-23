@@ -46,14 +46,6 @@
       :max-length="MAX_DESCRIPTION_FULL_LENGTH"
     />
 
-    <ToggleTextarea
-      v-model="formData.previewContent"
-      :label="$t('iscn_form.preview_content')"
-      :toggle-label="$t('iscn_form.enable_preview_content')"
-      :placeholder="$t('iscn_form.enter_preview_content', { maxLength: MAX_PREVIEW_CONTENT_LENGTH })"
-      :max-length="MAX_PREVIEW_CONTENT_LENGTH"
-    />
-
     <div class="grid grid-cols-3 gap-4">
       <UFormField :label="$t('form.isbn')">
         <UInput
@@ -360,7 +352,6 @@ import {
   languageOptions,
   MAX_DESCRIPTION_LENGTH,
   MAX_DESCRIPTION_FULL_LENGTH,
-  MAX_PREVIEW_CONTENT_LENGTH,
   MAX_ALTERNATIVE_HEADLINE_LENGTH,
   BOOK_CATEGORIES,
 } from '~/constant/index'
