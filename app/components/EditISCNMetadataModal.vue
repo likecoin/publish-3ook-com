@@ -27,6 +27,7 @@
         v-else
         ref="iscnFormRef"
         v-model="iscnFormData"
+        :show-description-full="false"
       />
     </template>
     <template #footer>

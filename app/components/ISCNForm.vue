@@ -39,11 +39,13 @@
     </UFormField>
 
     <ToggleTextarea
+      v-if="showDescriptionFull"
       v-model="formData.descriptionFull"
       :label="$t('iscn_form.description_full')"
       :toggle-label="$t('iscn_form.enable_description_full')"
       :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
       :max-length="MAX_DESCRIPTION_FULL_LENGTH"
+      :force-open="isDescriptionOverMax"
     />
 
     <div class="grid grid-cols-3 gap-4">
@@ -384,6 +386,13 @@ const uploadFormRef = ref()
 const fileRecords = ref<FileRecord[]>([])
 const uploadStatus = ref('')
 
+// descriptionFull now lives in the store listing, not on-chain metadata. Edit
+// surfaces hide it here and edit it via listing settings instead; the new-book
+// flow keeps showing it and bridges the value to listing creation.
+withDefaults(defineProps<{ showDescriptionFull?: boolean }>(), {
+  showDescriptionFull: true,
+})
+
 const formData = defineModel<ISCNFormData>({ required: true })
 
 // Bridge the empty stored genre to the dropdown's non-empty sentinel option.
@@ -448,12 +457,15 @@ const shouldDisableAction = computed(() => {
   return uploadStatus.value !== ''
 })
 
+const isDescriptionOverMax = computed(() => {
+  return (formData.value.description || '').length > MAX_DESCRIPTION_LENGTH
+})
+
 const descriptionError = computed(() => {
-  const desc = formData.value.description || ''
-  if (!desc) {
-    return 'Description is required'
+  if (!formData.value.description) {
+    return $t('iscn_form.description_required')
   }
-  else if (desc.length > MAX_DESCRIPTION_LENGTH) {
+  else if (isDescriptionOverMax.value) {
     return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH })
   }
   return false

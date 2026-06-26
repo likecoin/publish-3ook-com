@@ -10,6 +10,7 @@
       v-else
       ref="iscnFormRef"
       v-model="iscnFormData"
+      :show-description-full="false"
     />
     <div class="w-full flex justify-center items-center gap-2 my-4">
       <UButton

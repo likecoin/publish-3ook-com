@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-2 text-left">
     <UCheckbox
       :model-value="isOpen"
       :label="toggleLabel"
@@ -28,16 +28,25 @@ const props = defineProps<{
   toggleLabel: string
   placeholder: string
   maxLength: number
+  forceOpen?: boolean
 }>()
 
 const modelValue = defineModel<string>()
 
 const { t: $t } = useI18n()
 
-const isOpen = ref(!!modelValue.value)
+const isOpen = ref(!!modelValue.value || !!props.forceOpen)
 
 watch(modelValue, (val, oldVal) => {
   if (val && !oldVal && !isOpen.value) {
+    isOpen.value = true
+  }
+})
+
+// Auto-expand when the parent signals the field is required (e.g. the main
+// description exceeds its limit and the overflow belongs in the full description).
+watch(() => props.forceOpen, (val) => {
+  if (val) {
     isOpen.value = true
   }
 })

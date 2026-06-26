@@ -87,6 +87,16 @@ onMounted(() => {
   if (initialData) {
     iscnFormData.value = initialData
   }
+  // descriptionFull is no longer written on-chain; carry the author's input via
+  // the bridge so it survives navigation to mint and lands on listing creation.
+  const pendingDescriptionFull = getPendingDescriptionFull()
+  if (pendingDescriptionFull) {
+    iscnFormData.value.descriptionFull = pendingDescriptionFull
+  }
+})
+
+watch(() => iscnFormData.value.descriptionFull, (value) => {
+  setPendingDescriptionFull(value || '')
 })
 
 const initializeFromSessionStorage = () => {

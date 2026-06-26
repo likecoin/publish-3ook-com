@@ -204,7 +204,6 @@ export function useBulkUpload() {
       type: 'Book',
       title: book.title,
       description: book.description,
-      descriptionFull: book.descriptionFull?.trim() || undefined,
       alternativeHeadline: '',
       isbn: book.isbn || '',
       publisher: {
@@ -343,6 +342,7 @@ export function useBulkUpload() {
       hideDownload: book.enableDRM,
       hideAudio: !book.enableTTS,
       isPlusReadingEnabled: book.isPlusReadingEnabled,
+      descriptionFull: book.descriptionFull?.trim() || undefined,
     })
   }
 

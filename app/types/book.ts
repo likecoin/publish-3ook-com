@@ -30,6 +30,7 @@ export interface ClassListingData {
   connectedWallets?: Record<string, number>
   mustClaimToView?: boolean
   tableOfContents?: string
+  descriptionFull?: string
   enableCustomMessagePage?: boolean
   hideDownload?: boolean
   hideAudio?: boolean

@@ -176,7 +176,14 @@ onMounted(() => {
     handleMintNFTSubmit({ classId: classId.value })
   }
   else if (data?.epubMetadata && data?.fileRecords) {
-    bookName.value = data?.epubMetadata?.title
+    // Resuming an in-progress upload (e.g. a refresh before ISCN registration):
+    // keep the descriptionFull draft so the ISCN step can restore it.
+    bookName.value = data.epubMetadata.title
+  }
+  else {
+    // Truly fresh start (no upload session): drop any descriptionFull left over
+    // from an abandoned book in this tab so it can't bleed into the new one.
+    clearPendingDescriptionFull()
   }
 })
 
@@ -253,6 +260,7 @@ const handleMintNFTSubmit = async (res: { classId: string, nftMintCount?: number
 const handleNewBookSubmit = async () => {
   useLogEvent('book_listing_created', { class_id: classId.value })
   clearUploadFileData()
+  clearPendingDescriptionFull()
   await navigateTo(localeRoute({ name: 'my-books' }))
 }
 </script>

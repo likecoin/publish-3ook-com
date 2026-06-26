@@ -563,6 +563,14 @@
               />
             </UFormField>
 
+            <ToggleTextarea
+              v-model="descriptionFull"
+              :label="$t('iscn_form.description_full')"
+              :toggle-label="$t('iscn_form.enable_description_full')"
+              :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
+              :max-length="MAX_DESCRIPTION_FULL_LENGTH"
+            />
+
             <UFormField :label="$t('form.table_of_content')">
               <UTextarea
                 v-model="tableOfContents"
@@ -619,6 +627,7 @@ import { whenever } from '@vueuse/core'
 import { getPortfolioURL, downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink, copyToClipboard, convertMsToMinutes } from '~/utils'
 import type { PurchaseItem, ClassListingData, ClassListingPrice, EditionTableRow, PlusReadingStats } from '~/types'
 import { getApiEndpoints } from '~/constant/api'
+import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
 
 const { t: $t } = useI18n()
 
@@ -659,6 +668,7 @@ const showEditISCN = ref(false)
 const searchInput = ref('')
 
 const tableOfContents = ref('')
+const descriptionFull = ref<string | undefined>('')
 
 const moderatorWallets = ref<string[]>([])
 const moderatorWalletInput = ref('')
@@ -1096,6 +1106,7 @@ onMounted(async () => {
       connectedWallets: classConnectedWallets,
       mustClaimToView: classMustClaimToView,
       tableOfContents: classTableOfContent,
+      descriptionFull: classDescriptionFull,
       enableCustomMessagePage: classEnableCustomMessagePage,
       hideDownload: classHideDownload,
       hideAudio: classHideAudio,
@@ -1128,6 +1139,7 @@ onMounted(async () => {
     isPlusReadingEnabled.value = isFreeBook.value || (classIsPlusReadingEnabled ?? false)
     enableCustomMessagePage.value = classEnableCustomMessagePage ?? true
     tableOfContents.value = classTableOfContent ?? ''
+    descriptionFull.value = classDescriptionFull ?? ''
     // Independent fetches — run concurrently to keep them off each other's critical path.
     await Promise.all([
       ordersStore.fetchOrdersByClassId([classId.value]),
@@ -1300,6 +1312,9 @@ async function updateSettings() {
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       mustClaimToView: mustClaimToView.value,
       tableOfContents: tableOfContents.value,
+      // Toggling the field off sets this to undefined; send '' so the listing
+      // value is cleared instead of omitted (which would keep the old value).
+      descriptionFull: descriptionFull.value ?? '',
       enableCustomMessagePage: enableCustomMessagePage.value,
     })
     await navigateTo(localeRoute({

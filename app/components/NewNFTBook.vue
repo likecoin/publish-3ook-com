@@ -469,7 +469,7 @@ import {
   MINIMAL_PRICE,
 } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
-import { getUploadFileData } from '~/utils/uploadFile'
+import { getUploadFileData, getPendingDescriptionFull } from '~/utils/uploadFile'
 import type { BookPriceInDecimalByCurrency, ClassListingData, ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
@@ -1027,6 +1027,10 @@ async function submitNewClass() {
       isAdultOnly: isAdultOnly.value,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       tableOfContents: tableOfContents.value || undefined,
+      // Not on-chain anymore; read the ISCN-step value from the bridge (wizard
+      // only). The non-wizard "create missing listing" path must not pick up a
+      // stale value left over from an abandoned new-book session in this tab.
+      descriptionFull: (props.isNewClassPage && getPendingDescriptionFull()) || undefined,
     })
   }
   catch (err) {

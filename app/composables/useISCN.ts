@@ -84,7 +84,6 @@ export function useISCN({
     '@type': iscnFormData.value.type,
     'name': iscnFormData.value.title,
     'description': iscnFormData.value.description,
-    'descriptionFull': iscnFormData.value.descriptionFull || undefined,
     'alternativeHeadline': iscnFormData.value.alternativeHeadline || undefined,
     'author': iscnFormData.value.author.name,
     'authorDescription': iscnFormData.value.author.description,
@@ -106,8 +105,10 @@ export function useISCN({
     'tagsString': iscnFormData.value.tags?.join(', ') || '',
     'thumbnailUrl': iscnFormData.value.coverUrl,
     'genre': iscnFormData.value.genre || undefined,
-    // Actively remove legacy preview content (hasPart) from existing metadata
-    // on update. Spreading existingIscnData would otherwise re-inject it.
+    // Actively remove legacy fields from existing metadata on update; they now
+    // live in the store listing (descriptionFull) or are deprecated (hasPart).
+    // Spreading existingIscnData would otherwise re-inject them.
+    'descriptionFull': undefined,
     'hasPart': undefined,
     'potentialAction': formattedPotentialActionList.value,
     'attributes': getAttributes(iscnFormData.value),
