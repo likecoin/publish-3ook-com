@@ -2198,10 +2198,10 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.4.0"
 
-"@likecoin/epub-ts@^0.6.7":
-  version "0.6.7"
-  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.6.7.tgz#db1176dbd38e3bc32607c53134fe9c71bd16e8c6"
-  integrity sha512-ACbc0h7N0axwgCrf6nrQ7fupYIbHHpmYBo0i0SAI34VuoGG96iosi4kpAIQmA6id6EE7nhMUbgRbMkD66MdQSw==
+"@likecoin/epub-ts@^0.6.8":
+  version "0.6.8"
+  resolved "https://registry.yarnpkg.com/@likecoin/epub-ts/-/epub-ts-0.6.8.tgz#0c8521732ebb41993f97a9f27511b6c7c77e879f"
+  integrity sha512-dq2TKFhIUArXecssKVWNFqeHu3IvHG6Qv12vjzH2BdBi9rSwKMqIlA3yP4QmMnsyfe6gTBIqIdEvqLXHNtCACQ==
   dependencies:
     jszip "^3.10.1"
 
