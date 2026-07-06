@@ -144,7 +144,20 @@ const route = useRoute()
 const bookstoreApiStore = useBookstoreApiStore()
 const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
 
-const inputUrl = ref((route.query.url as string) || '')
+// Read the raw query string so an unencoded inner URL (e.g. ?url=https://host/path?a=b&key=c)
+// is not truncated at the first `&`, which is how route.query.url would parse it.
+function getInitialInputUrl(): string {
+  if (import.meta.client && window.location.search) {
+    const match = window.location.search.match(/[?&]url=(.*)$/s)
+    if (match?.[1]) {
+      try { return decodeURIComponent(match[1]) }
+      catch { return match[1] }
+    }
+  }
+  return (route.query.url as string) || ''
+}
+
+const inputUrl = ref(getInitialInputUrl())
 const isLoading = ref(false)
 const isBookLoaded = ref(false)
 const errorMessage = ref('')
