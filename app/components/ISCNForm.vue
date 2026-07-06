@@ -1,8 +1,15 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <UForm
+    ref="formRef"
+    :state="formData"
+    :validate="onFormValidate"
+    :validate-on="['change', 'blur']"
+    class="flex flex-col gap-6"
+    @submit.prevent
+  >
     <UFormField
+      name="title"
       :label="$t('common.title')"
-      :error="!formData.title && $t('iscn_form.title_required')"
       class="flex-1 text-left"
       required
     >
@@ -13,10 +20,10 @@
     </UFormField>
 
     <UFormField
+      name="alternativeHeadline"
       :label="$t('iscn_form.subtitle')"
       class="flex-1 text-left"
       :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
-      :error="alternativeHeadlineError"
     >
       <UInput
         v-model="formData.alternativeHeadline"
@@ -25,10 +32,10 @@
     </UFormField>
 
     <UFormField
+      name="description"
       :label="$t('common.description')"
       class="flex-1 text-left"
       :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
-      :error="descriptionError"
       required
     >
       <UTextarea
@@ -86,9 +93,9 @@
 
       <UFormField
         v-if="showFileFields"
+        name="coverUrl"
         required
         :label="$t('form.cover_image')"
-        :error="!formData.coverUrl && $t('iscn_form.cover_image_required')"
         class="text-left"
       >
         <UInput
@@ -109,8 +116,8 @@
     <!-- Author Info -->
     <div class="grid grid-cols-2 gap-4">
       <UFormField
+        name="author.name"
         :label="$t('iscn_form.author_name')"
-        :error="!formData.author.name && $t('iscn_form.author_name_required')"
         class="text-left"
         required
       >
@@ -193,6 +200,7 @@
       >
         <div class="flex justify-between items-end w-full gap-[8px]">
           <UFormField
+            :name="`contentFingerprints.${index}.url`"
             class="w-full"
             :label="`URL #${index + 1}`"
           >
@@ -351,12 +359,14 @@
         </div>
       </template>
     </UModal>
-  </div>
+  </UForm>
 </template>
 
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
+import type { FormError } from '#ui/types'
 import type { FileRecord, ISCNFormData } from '~/types'
+import { isValidImageUrl } from '~/utils/iscn'
 
 import {
   licenseOptions,
@@ -391,8 +401,10 @@ const bookCategoryOptions = [
 
 const shouldShowUploadModal = ref(false)
 const uploadFormRef = ref()
+const formRef = ref()
 const fileRecords = ref<FileRecord[]>([])
 const uploadStatus = ref('')
+const { validateWithFeedback } = useFormValidateFeedback()
 
 // descriptionFull now lives in the store listing, not on-chain metadata. Edit
 // surfaces hide it here and edit it via listing settings instead; the new-book
@@ -466,6 +478,7 @@ nextTick(() => {
 defineExpose({
   resetSnapshot,
   hasUnsavedChanges,
+  validate,
 })
 
 const hasFiles = computed(() => {
@@ -480,23 +493,53 @@ const isDescriptionOverMax = computed(() => {
   return (formData.value.description || '').length > MAX_DESCRIPTION_LENGTH
 })
 
-const descriptionError = computed(() => {
-  if (!formData.value.description) {
-    return $t('iscn_form.description_required')
+// UForm routes each returned error to the UFormField with the matching name;
+// errors without a matching field (fingerprints, descriptionFull) surface via
+// the validate() toast only.
+function onFormValidate(): FormError[] {
+  const errors: FormError[] = []
+  const data = formData.value
+  if (!data.title) {
+    errors.push({ name: 'title', message: $t('iscn_form.title_required') })
+  }
+  if (!data.description) {
+    errors.push({ name: 'description', message: $t('iscn_form.description_required') })
   }
   else if (isDescriptionOverMax.value) {
-    return $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH })
+    errors.push({ name: 'description', message: $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH }) })
   }
-  return false
-})
+  if ((data.alternativeHeadline || '').length > MAX_ALTERNATIVE_HEADLINE_LENGTH) {
+    errors.push({ name: 'alternativeHeadline', message: $t('validation.text_cannot_exceed', { max: MAX_ALTERNATIVE_HEADLINE_LENGTH }) })
+  }
+  if (!data.author.name) {
+    errors.push({ name: 'author.name', message: $t('iscn_form.author_name_required') })
+  }
+  if ((data.descriptionFull || '').length > MAX_DESCRIPTION_FULL_LENGTH) {
+    errors.push({ message: $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH }) })
+  }
+  // File-derived URLs only exist where the file fields are shown; the wizard
+  // injects them at publish time instead.
+  if (props.showFileFields) {
+    if (!data.contentFingerprints?.some(f => !!f.url)) {
+      // Bind to the first row's field (always rendered) so the error shows
+      // inline and useFormValidateFeedback can scroll to it.
+      errors.push({ name: 'contentFingerprints.0.url', message: $t('iscn_form.content_fingerprint_required') })
+    }
+    if (!data.coverUrl) {
+      errors.push({ name: 'coverUrl', message: $t('iscn_form.cover_image_required') })
+    }
+    else if (!isValidImageUrl(data.coverUrl)) {
+      errors.push({ name: 'coverUrl', message: $t('iscn_form.cover_image_invalid') })
+    }
+  }
+  return errors
+}
 
-const alternativeHeadlineError = computed(() => {
-  const headline = formData.value.alternativeHeadline || ''
-  if (headline.length > MAX_ALTERNATIVE_HEADLINE_LENGTH) {
-    return $t('validation.text_cannot_exceed', { max: MAX_ALTERNATIVE_HEADLINE_LENGTH })
-  }
-  return false
-})
+// Hosts call this on submit: shows inline errors on invalid fields, toasts
+// the messages, and scrolls the first offender into view.
+async function validate(): Promise<boolean> {
+  return validateWithFeedback(formRef.value)
+}
 
 const hasValidReadAction = computed(() => {
   return formData.value.downloadableUrls?.some(d => !!d.url)

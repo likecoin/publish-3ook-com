@@ -39,48 +39,45 @@ export function mapPriceFormItemsToPayload(prices: PriceFormItem[]): MappedPrice
   })
 }
 
-// Custom-pricing rows must fill all three currency inputs before mapping.
+// Validates the raw price form items. Error names use the `prices.{i}.{field}`
+// path convention so UForm can route each error to its UFormField by name.
 export function validatePriceFormItems(rawPrices: PriceFormItem[], t: TranslateFn): FormError[] {
   const errors: FormError[] = []
-  for (const raw of rawPrices) {
-    if (!raw.isCustomPricing) { continue }
-    const isMissing = raw.priceUSDInput.trim() === ''
-      || raw.priceHKDInput.trim() === ''
-      || raw.priceTWDInput.trim() === ''
-    if (isMissing) {
+  rawPrices.forEach((p, index) => {
+    const priceFieldName = `prices.${index}.price`
+    if (!p.name) {
       errors.push({
-        name: 'customPricing',
-        message: t('errors.custom_pricing_all_required'),
-      })
-    }
-  }
-  return errors
-}
-
-export function validateMappedPrices(prices: MappedPrice[], t: TranslateFn): FormError[] {
-  const errors: FormError[] = []
-  prices.forEach((price: MappedPrice) => {
-    if (!Number.isFinite(price.priceInDecimal) || (price.price !== 0 && price.price < MINIMAL_PRICE)) {
-      errors.push({
-        name: 'price',
-        message: t('errors.price_validation', { minPrice: MINIMAL_PRICE }),
-      })
-    }
-    if (!price.name.en || !price.name.zh) {
-      errors.push({
-        name: 'name',
+        name: `prices.${index}.name`,
         message: t('errors.product_name_required'),
       })
     }
-    if (price.priceInDecimalByCurrency) {
-      for (const [currency, value] of Object.entries(price.priceInDecimalByCurrency)) {
+    if (p.isCustomPricing) {
+      const isMissing = p.priceUSDInput.trim() === ''
+        || p.priceHKDInput.trim() === ''
+        || p.priceTWDInput.trim() === ''
+      if (isMissing) {
+        errors.push({
+          name: priceFieldName,
+          message: t('errors.custom_pricing_all_required'),
+        })
+        return
+      }
+      for (const [currency, input] of [['HKD', p.priceHKDInput], ['TWD', p.priceTWDInput]] as const) {
+        const value = Number(input)
         if (!Number.isFinite(value) || value < 0) {
           errors.push({
-            name: `priceInDecimalByCurrency.${currency}`,
-            message: t('errors.invalid_price_override', { currency: currency.toUpperCase() }),
+            name: priceFieldName,
+            message: t('errors.invalid_price_override', { currency }),
           })
         }
       }
+    }
+    const usdValue = getPriceItemUSDValue(p)
+    if (!Number.isFinite(usdValue) || (usdValue !== 0 && usdValue < MINIMAL_PRICE)) {
+      errors.push({
+        name: priceFieldName,
+        message: t('errors.price_validation', { minPrice: MINIMAL_PRICE }),
+      })
     }
   })
   return errors

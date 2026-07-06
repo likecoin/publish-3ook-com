@@ -17,6 +17,7 @@
     <!-- Per-edition fields only; class-level listing settings live in the
          status page's Book details tab. -->
     <PublishPricingForm
+      ref="pricingFormRef"
       v-model:prices="prices"
       v-model:settings="settings"
       v-model:signature-image="signatureImage"
@@ -66,11 +67,7 @@
 import { DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import type { ClassListingData, ClassListingPrice } from '~/types'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import {
-  mapPriceFormItemsToPayload,
-  validatePriceFormItems,
-  validateMappedPrices,
-} from '~/utils/listing'
+import { mapPriceFormItemsToPayload } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const { LIKE_CO_API } = useRuntimeConfig().public
@@ -91,6 +88,7 @@ const error = ref('')
 const isLoading = ref(false)
 const hasExistingSignatureImage = ref(false)
 const signatureImage = ref<File | null>(null)
+const pricingFormRef = ref()
 
 const displayEditIndex = computed(() => Number(editionIndex) + 1)
 
@@ -180,19 +178,11 @@ onMounted(async () => {
 
 async function onSubmit() {
   try {
-    const rawErrors = validatePriceFormItems(prices.value, $t)
-    if (rawErrors.length > 0) {
-      error.value = rawErrors.map(e => e.message).join('\n')
-      showErrorToast(error.value)
+    // UForm surfaces validation errors inline on the offending fields.
+    if (!(await pricingFormRef.value?.validate())) {
       return
     }
     const mapped = mapPriceFormItemsToPayload(prices.value)
-    const mappedErrors = validateMappedPrices(mapped, $t)
-    if (mappedErrors.length > 0) {
-      error.value = mappedErrors.map(e => e.message).join('\n')
-      showErrorToast(error.value)
-      return
-    }
     const price = mapped[0]
 
     isLoading.value = true

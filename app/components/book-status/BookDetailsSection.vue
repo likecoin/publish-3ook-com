@@ -81,7 +81,7 @@
 
       <h4
         class="font-bold font-mono"
-        v-text="$t('nft_book_form.settings')"
+        v-text="$t('nft_book_form.sale_settings')"
       />
 
       <UFormField class="flex items-center">
@@ -208,7 +208,7 @@ import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
-import { isContentFingerprintEncrypted, validateISCNForm } from '~/utils/iscn'
+import { isContentFingerprintEncrypted } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
 const toast = useToast()
@@ -450,9 +450,9 @@ async function handleSave() {
     }
 
     if (isChainDirty) {
-      const errors = validateISCNForm(iscnFormData.value)
-      if (errors.length) {
-        throw new Error(errors.join(', '))
+      // Inline errors + toast + scroll are handled by the form itself.
+      if (!(await iscnFormRef.value?.validate())) {
+        return
       }
       const { metadata } = await saveClassMetadata(classId, payload.value)
       useLogEvent('iscn_metadata_updated', { class_id: classId })

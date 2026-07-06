@@ -12,7 +12,7 @@ export function isContentFingerprintEncrypted(contentFingerprints: string[]): bo
   })
 }
 
-function isValidImageUrl(urlString: string): boolean {
+export function isValidImageUrl(urlString: string): boolean {
   if (!urlString) { return false }
 
   // Check that non-ASCII characters are percent-encoded

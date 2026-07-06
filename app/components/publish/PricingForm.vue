@@ -1,5 +1,12 @@
 <template>
-  <div class="flex flex-col gap-[24px]">
+  <UForm
+    ref="formRef"
+    :state="formState"
+    :validate="onFormValidate"
+    :validate-on="['change', 'blur']"
+    class="flex flex-col gap-[24px]"
+    @submit.prevent
+  >
     <ul class="flex flex-col gap-[12px]">
       <UCard
         :ui="{
@@ -25,7 +32,10 @@
             </template>
 
             <!-- 1. What this edition is -->
-            <UFormField :ui="{ container: 'space-y-2' }">
+            <UFormField
+              :name="`prices.${index}.name`"
+              :ui="{ container: 'space-y-2' }"
+            >
               <template #label>
                 {{ $t('nft_book_form.product_name') }}
                 <ToolTips :image-style="{ width: '250px' }">
@@ -60,6 +70,7 @@
 
             <!-- 2. Price -->
             <UFormField
+              :name="`prices.${index}.price`"
               :label="$t('nft_book_form.unit_price_label')"
             >
               <div class="space-y-3">
@@ -252,7 +263,7 @@
       <div class="flex justify-between items-center w-full">
         <h3
           class="font-bold font-mono"
-          v-text="$t('nft_book_form.settings')"
+          v-text="$t('nft_book_form.sale_settings')"
         />
         <UButton
           color="neutral"
@@ -395,7 +406,7 @@
         </div>
       </template>
     </UCard>
-  </div>
+  </UForm>
 </template>
 
 <script setup lang="ts">
@@ -405,6 +416,7 @@ import 'md-editor-v3/lib/style.css'
 
 import { v4 as uuidv4 } from 'uuid'
 
+import type { FormError } from '#ui/types'
 import {
   DEFAULT_PRICE_STRING,
   DEFAULT_STOCK,
@@ -412,11 +424,12 @@ import {
   DEFAULT_MAX_SUPPLY,
 } from '~/constant'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import { getPriceItemUSDValue } from '~/utils/listing'
+import { getPriceItemUSDValue, validatePriceFormItems } from '~/utils/listing'
 import { sanitizeHtml } from '~/utils/newClass'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()
+const { validateWithFeedback } = useFormValidateFeedback()
 const stripeStore = useStripeStore()
 const { fetchStripeConnectStatusByWallet } = stripeStore
 const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
@@ -491,6 +504,23 @@ function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
 const hasMultiplePrices = computed(() => prices.value.length > 1)
 // A free price tier (0) always opts the book into Plus all-you-can-read.
 const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p) === 0))
+
+// UForm routes each returned error to the UFormField whose name matches
+// (prices.{i}.{field}); no per-field :error piping needed.
+const formRef = ref()
+const formState = computed(() => ({ prices: prices.value }))
+
+function onFormValidate(): FormError[] {
+  return validatePriceFormItems(prices.value, $t)
+}
+
+// Hosts call this on submit: shows inline errors on invalid fields, toasts
+// the messages, and scrolls the first offender into view.
+async function validate(): Promise<boolean> {
+  return validateWithFeedback(formRef.value)
+}
+
+defineExpose({ validate })
 
 const stripeConnectWallets = computed(() => Object.keys(settings.value.connectedWallets || {}))
 const sessionWalletStripeStatus = computed(() => {

@@ -42,6 +42,7 @@
           class="text-left flex flex-col gap-6"
         >
           <ISCNForm
+            ref="detailsFormRef"
             v-model="iscnFormData"
             :show-file-fields="false"
             :guard-unsaved-changes="false"
@@ -58,6 +59,7 @@
         </div>
         <div v-else-if="step === 'pricing'">
           <PublishPricingForm
+            ref="pricingFormRef"
             v-model:prices="listingDraft.prices"
             v-model:settings="listingDraft"
             v-model:signature-image="signatureImage"
@@ -180,12 +182,7 @@ import {
   updatePublishSession,
   clearPublishSession,
 } from '~/utils/publishSession'
-import {
-  validatePriceFormItems,
-  validateMappedPrices,
-  mapPriceFormItemsToPayload,
-} from '~/utils/listing'
-import { validateISCNForm } from '~/utils/iscn'
+import { validatePriceFormItems } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 
@@ -206,6 +203,8 @@ const STEP_KEYS: WizardStep[] = ['files', 'details', 'pricing', 'review']
 const step = ref<WizardStep>('files')
 const maxVisitedStepIndex = ref(0)
 const uploadFormRef = ref()
+const detailsFormRef = ref()
+const pricingFormRef = ref()
 
 // Collected draft state; persisted to localStorage so an accidental tab close
 // or browser quit keeps everything except the raw file blobs.
@@ -471,14 +470,10 @@ async function goToNextStep() {
     await uploadFormRef.value?.onSubmit()
     return
   }
-  if (step.value === 'details') {
-    const errors = validateISCNForm(iscnFormData.value, { requireFileUrls: false })
-    if (errors.length) {
-      showErrorToast(errors.join(', '))
-      return
-    }
+  if (step.value === 'details' && !(await detailsFormRef.value?.validate())) {
+    return
   }
-  if (step.value === 'pricing' && !validatePricingStep()) {
+  if (step.value === 'pricing' && !(await validatePricingStep())) {
     return
   }
   advanceStep()
@@ -491,18 +486,15 @@ function advanceStep() {
   maxVisitedStepIndex.value = Math.max(maxVisitedStepIndex.value, nextIndex)
 }
 
-function validatePricingStep(): boolean {
-  const rawErrors = validatePriceFormItems(listingDraft.value.prices, $t)
-  if (rawErrors.length) {
-    showErrorToast(rawErrors.map(e => e.message).join('\n'))
-    return false
+async function validatePricingStep(): Promise<boolean> {
+  // When the pricing form is mounted, UForm surfaces errors inline on the
+  // offending fields; the toast fallback covers the review-step publish path.
+  if (pricingFormRef.value) {
+    return await pricingFormRef.value.validate()
   }
-  const mappedErrors = validateMappedPrices(
-    mapPriceFormItemsToPayload(listingDraft.value.prices),
-    $t,
-  )
-  if (mappedErrors.length) {
-    showErrorToast(mappedErrors.map(e => e.message).join('\n'))
+  const errors = validatePriceFormItems(listingDraft.value.prices, $t)
+  if (errors.length) {
+    showErrorToast(errors.map(e => e.message).join('\n'))
     return false
   }
   return true
@@ -560,7 +552,7 @@ async function handlePublish() {
     }))
     return
   }
-  if (!validatePricingStep()) { return }
+  if (!(await validatePricingStep())) { return }
 
   isPublishFailed.value = false
   hasPublishStarted.value = true
