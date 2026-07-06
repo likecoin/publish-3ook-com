@@ -19,9 +19,7 @@
       </template>
 
       <template #body>
-        <NewNFTBook
-          class="flex flex-col gap-4"
-          :is-edit-mode="true"
+        <BookStatusEditionEditForm
           :edition-index="editionIndex"
           :class-id="classId"
           @submit="handleSubmit"

@@ -167,8 +167,9 @@ export const useWalletStore = defineStore('wallet', () => {
     }
   }
 
+  // The publish draft intentionally survives disconnects (localStorage);
+  // the wizard's resume prompt lets the user discard it.
   function disconnect() {
-    clearUploadFileData()
     return wagmiDisconnect()
   }
 

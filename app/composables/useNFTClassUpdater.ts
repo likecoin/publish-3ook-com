@@ -5,9 +5,8 @@ import { formatISCNTxPayload } from '~/utils/iscn'
 import { getFileTypeFromMime } from '~/composables/useISCN'
 
 // Loads on-chain class metadata into the shared ISCNForm shape and saves
-// edits back via the class `update` tx. Extracted from EditISCNMetadataForm
-// so the status page's unified edit mode and the wizard's legacy-link resume
-// can share it.
+// edits back via the class `update` tx. Shared by the status page's unified
+// edit mode and the wizard's legacy-link resume.
 export function useNFTClassUpdater() {
   const nftStore = useNftStore()
   const walletStore = useWalletStore()
