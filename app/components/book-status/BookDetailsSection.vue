@@ -1,0 +1,516 @@
+<template>
+  <UCard
+    :ui="{
+      header: 'flex justify-between items-center',
+      body: 'p-4',
+    }"
+  >
+    <template #header>
+      <h3
+        class="font-bold font-mono"
+        v-text="$t('status_page.book_details_title')"
+      />
+      <UButton
+        v-if="!isEditing"
+        icon="i-heroicons-pencil-square"
+        variant="outline"
+        :label="$t('common.edit')"
+        :disabled="isISCNLoading"
+        @click="isEditing = true"
+      />
+      <div
+        v-else
+        class="flex gap-2"
+      >
+        <UButton
+          variant="outline"
+          color="neutral"
+          :label="$t('status_page.cancel_edit')"
+          :disabled="isSaving"
+          @click="handleCancel"
+        />
+        <UButton
+          :label="$t('common.save')"
+          :loading="isSaving"
+          :disabled="isSaving"
+          @click="handleSave"
+        />
+      </div>
+    </template>
+
+    <UProgress
+      v-if="isISCNLoading"
+      animation="carousel"
+      color="primary"
+      class="w-full"
+    />
+
+    <!-- Read-only combined view: on-chain metadata + listing settings -->
+    <div
+      v-else-if="!isEditing"
+      class="flex flex-col gap-6 text-left"
+    >
+      <dl class="grid grid-cols-[minmax(120px,auto)_1fr] gap-x-6 gap-y-2 text-sm">
+        <template
+          v-for="row in readOnlyRows"
+          :key="row.label"
+        >
+          <dt
+            class="text-gray-500"
+            v-text="row.label"
+          />
+          <dd
+            class="text-gray-700 whitespace-pre-wrap break-words"
+            :class="row.mono ? 'font-mono' : ''"
+            v-text="row.value || '—'"
+          />
+        </template>
+      </dl>
+    </div>
+
+    <!-- Edit mode: one form, smart save (chain tx and/or settings POST) -->
+    <div
+      v-else
+      class="flex flex-col gap-6 text-left"
+    >
+      <ISCNForm
+        ref="iscnFormRef"
+        v-model="iscnFormData"
+        :show-description-full="false"
+      />
+
+      <h4
+        class="font-bold font-mono"
+        v-text="$t('nft_book_form.settings')"
+      />
+
+      <UFormField class="flex items-center">
+        <UTooltip
+          class="flex items-center gap-2"
+          :text="$t('nft_book_form.is_adult_only_tooltip')"
+        >
+          <UCheckbox
+            v-model="isAdultOnly"
+            name="isAdultOnly"
+            :label="$t('nft_book_form.is_adult_only')"
+          />
+
+          <UIcon name="i-heroicons-question-mark-circle" />
+        </UTooltip>
+      </UFormField>
+
+      <UFormField :label="$t('nft_book_form.ai_audio')">
+        <URadioGroup
+          v-model="hideAudioRadio"
+          :items="[
+            { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
+            { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
+          ]"
+          orientation="vertical"
+        />
+      </UFormField>
+
+      <UFormField :label="$t('nft_book_form.plus_reading')">
+        <URadioGroup
+          v-model="isPlusReadingEnabledRadio"
+          :disabled="isFreeBook"
+          :items="[
+            { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
+            { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
+          ]"
+          orientation="vertical"
+        />
+        <p
+          v-if="isFreeBook"
+          class="text-muted text-[12px] mt-1"
+          v-text="$t('nft_book_form.plus_reading_free_forced')"
+        />
+      </UFormField>
+
+      <ToggleTextarea
+        v-model="descriptionFull"
+        :label="$t('iscn_form.description_full')"
+        :toggle-label="$t('iscn_form.enable_description_full')"
+        :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
+        :max-length="MAX_DESCRIPTION_FULL_LENGTH"
+      />
+
+      <UFormField :label="$t('form.table_of_content')">
+        <UTextarea
+          v-model="tableOfContents"
+          :rows="8"
+          placeholder="- Chapter 1&#10;- Chapter 2&#10;  - Section 2.1"
+        />
+      </UFormField>
+
+      <!-- Share sales data (moderator wallets) -->
+      <UCard
+        :ui="{
+          header: 'flex justify-between items-center',
+          body: 'space-y-8 p-0',
+        }"
+      >
+        <template #header>
+          <h4
+            class="text-sm font-bold font-mono"
+            v-text="$t('form.share_sales_data')"
+          />
+          <div class="flex gap-2">
+            <UInput
+              v-model="moderatorWalletInput"
+              class="font-mono"
+              placeholder="0x..."
+            />
+            <UButton
+              :label="$t('common.add')"
+              :variant="moderatorWalletInput ? 'outline' : 'solid'"
+              :color="moderatorWalletInput ? 'primary' : 'neutral'"
+              :disabled="!moderatorWalletInput"
+              @click="addModeratorWallet"
+            />
+          </div>
+        </template>
+        <UTable
+          :columns="moderatorWalletsTableColumns"
+          :data="moderatorWalletsTableRows"
+        >
+          <template #wallet-cell="{ row }">
+            <UTooltip :text="row.original.wallet">
+              <UButton
+                class="font-mono"
+                :label="row.original.shortenWallet"
+                :to="row.original.walletLink"
+                variant="link"
+
+                size="xs"
+              />
+            </UTooltip>
+          </template>
+          <template #remove-cell="{ row }">
+            <div class="flex justify-end items-center">
+              <UButton
+                icon="i-heroicons-x-mark"
+                variant="soft"
+                color="error"
+                @click="() => { moderatorWallets.splice(row.original.index, 1) }"
+              />
+            </div>
+          </template>
+        </UTable>
+      </UCard>
+    </div>
+  </UCard>
+</template>
+
+<script setup lang="ts">
+import { getPortfolioURL } from '~/utils'
+import type { ClassListingData } from '~/types'
+import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
+import type ISCNForm from '~/components/ISCNForm.vue'
+import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
+import { isContentFingerprintEncrypted, validateISCNForm } from '~/utils/iscn'
+
+const { t: $t } = useI18n()
+const toast = useToast()
+
+const bookstoreApiStore = useBookstoreApiStore()
+const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+const { updateBookListingSetting } = bookstoreApiStore
+const { loadClassMetadataIntoForm, saveClassMetadata } = useNFTClassUpdater()
+
+const { classId, classListingInfo } = defineProps<{
+  classId: string
+  classListingInfo: ClassListingData
+}>()
+
+const emit = defineEmits<{ saved: [] }>()
+
+const isEditing = ref(false)
+const isISCNLoading = ref(false)
+const isSaving = ref(false)
+const iscnFormRef = ref<InstanceType<typeof ISCNForm> | null>(null)
+
+// On-chain metadata form state
+const iscnFormData = ref<ISCNFormData>({
+  type: 'Book',
+  title: '',
+  description: '',
+  descriptionFull: '',
+  alternativeHeadline: '',
+  isbn: '',
+  publisher: { name: '', description: '' },
+  publicationDate: '',
+  author: { name: '', description: '' },
+  license: 'All Rights Reserved',
+  customLicense: '',
+  contentFingerprints: [{ url: '' }],
+  downloadableUrls: [{ url: '', type: '', fileName: '' }],
+  language: '',
+  bookInfoUrl: '',
+  tags: [],
+  coverUrl: '',
+  genre: '',
+})
+const iscnChainData = ref({} as ClassMetadata)
+const { payload } = useISCN({ iscnFormData, iscnChainData })
+
+// Listing-owned fields (REST /settings)
+const isAdultOnly = ref(false)
+const hideAudio = ref(false)
+const hideDownload = ref(false)
+const isPlusReadingEnabled = ref(false)
+const mustClaimToView = ref(true)
+const enableCustomMessagePage = ref(true)
+const descriptionFull = ref<string | undefined>('')
+const tableOfContents = ref('')
+const moderatorWallets = ref<string[]>([])
+const moderatorWalletInput = ref('')
+const connectedWallets = ref<Record<string, number> | null>(null)
+// Snapshot of the listing fields taken on load/save; save only POSTs when the
+// current values diverge from it.
+const listingSnapshot = ref('')
+
+const hideAudioRadio = computed({
+  get: () => (hideAudio.value ? 'forbid' : 'allow'),
+  set: (val: string) => { hideAudio.value = val === 'forbid' },
+})
+
+const isPlusReadingEnabledRadio = computed({
+  get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
+  set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
+})
+
+const isFreeBook = computed(() => (classListingInfo.prices || []).some(p => Number(p.price) === 0))
+
+// Free books always opt into Plus all-you-can-read; force the flag on.
+watch(isFreeBook, (isFree) => {
+  if (isFree) { isPlusReadingEnabled.value = true }
+})
+
+const userIsOwner = computed(() => sessionWallet.value && classListingInfo.ownerWallet === sessionWallet.value)
+
+const moderatorWalletsTableColumns = computed(() => {
+  const columns = [{ accessorKey: 'wallet', header: $t('table.wallet') }]
+
+  if (userIsOwner.value) {
+    columns.push(
+      { accessorKey: 'remove', header: '' },
+    )
+  }
+
+  return columns
+})
+
+const moderatorWalletsTableRows = computed(() => moderatorWallets.value.map((wallet, index) => {
+  return {
+    index,
+    wallet,
+    shortenWallet: shortenWalletAddress(wallet),
+    walletLink: getPortfolioURL(wallet),
+  }
+}))
+
+const readOnlyRows = computed(() => [
+  { label: $t('common.title'), value: iscnFormData.value.title },
+  { label: $t('iscn_form.subtitle'), value: iscnFormData.value.alternativeHeadline },
+  { label: $t('common.description'), value: iscnFormData.value.description },
+  { label: $t('iscn_form.author_name'), value: iscnFormData.value.author.name },
+  { label: $t('form.publisher'), value: iscnFormData.value.publisher.name },
+  { label: $t('form.isbn'), value: iscnFormData.value.isbn },
+  { label: $t('form.publication_date'), value: iscnFormData.value.publicationDate },
+  { label: $t('form.language'), value: iscnFormData.value.language },
+  { label: $t('form.genre'), value: iscnFormData.value.genre },
+  { label: $t('iscn_form.license'), value: iscnFormData.value.license },
+  { label: $t('form.cover_image'), value: iscnFormData.value.coverUrl, mono: true },
+  {
+    label: $t('nft_book_form.is_adult_only'),
+    value: isAdultOnly.value ? $t('status_page.value_yes') : $t('status_page.value_no'),
+  },
+  {
+    label: $t('nft_book_form.ai_audio'),
+    value: hideAudio.value ? $t('nft_book_form.ai_audio_forbid') : $t('nft_book_form.ai_audio_allow'),
+  },
+  {
+    label: $t('nft_book_form.plus_reading'),
+    value: isPlusReadingEnabled.value ? $t('nft_book_form.plus_reading_join') : $t('nft_book_form.plus_reading_skip'),
+  },
+  { label: $t('iscn_form.description_full'), value: descriptionFull.value },
+  { label: $t('form.table_of_content'), value: tableOfContents.value },
+  {
+    label: $t('form.share_sales_data'),
+    value: moderatorWallets.value.map(shortenWalletAddress).join('\n'),
+    mono: true,
+  },
+])
+
+function currentListingSnapshot(): string {
+  return JSON.stringify({
+    isAdultOnly: isAdultOnly.value,
+    hideAudio: hideAudio.value,
+    hideDownload: hideDownload.value,
+    isPlusReadingEnabled: isPlusReadingEnabled.value,
+    descriptionFull: descriptionFull.value ?? '',
+    tableOfContents: tableOfContents.value,
+    moderatorWallets: moderatorWallets.value,
+  })
+}
+
+function initListingFieldsFromInfo() {
+  moderatorWallets.value = [...(classListingInfo.moderatorWallets || [])]
+  connectedWallets.value = classListingInfo.connectedWallets || null
+  mustClaimToView.value = classListingInfo.mustClaimToView ?? true
+  hideDownload.value = classListingInfo.hideDownload ?? false
+  hideAudio.value = classListingInfo.hideAudio ?? false
+  isAdultOnly.value = classListingInfo.isAdultOnly ?? false
+  // Legacy books default to opt-out; free books always opt in regardless of stored value.
+  isPlusReadingEnabled.value = isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
+  enableCustomMessagePage.value = classListingInfo.enableCustomMessagePage ?? true
+  tableOfContents.value = classListingInfo.tableOfContents ?? ''
+  descriptionFull.value = classListingInfo.descriptionFull ?? ''
+  listingSnapshot.value = currentListingSnapshot()
+}
+
+watch(() => classListingInfo.ownerWallet, () => {
+  // The page fetches listing info async; (re-)init once it arrives.
+  initListingFieldsFromInfo()
+}, { immediate: true })
+
+async function loadChainMetadata() {
+  try {
+    isISCNLoading.value = true
+    const loaded = await loadClassMetadataIntoForm(classId)
+    if (loaded) {
+      iscnFormData.value = loaded.formData
+      iscnChainData.value = loaded.chainData
+    }
+  }
+  catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error fetching ISCN data:', error)
+  }
+  finally {
+    isISCNLoading.value = false
+  }
+}
+
+watch(() => classId, () => {
+  if (classId) {
+    loadChainMetadata()
+  }
+}, { immediate: true })
+
+function addModeratorWallet() {
+  if (!moderatorWalletInput.value) { return }
+  moderatorWallets.value.push(moderatorWalletInput.value)
+  moderatorWalletInput.value = ''
+}
+
+async function handleCancel() {
+  // Discard edits: reload chain form from (cached) metadata and restore the
+  // listing fields from the last saved snapshot.
+  await loadChainMetadata()
+  try {
+    const snapshot = JSON.parse(listingSnapshot.value)
+    isAdultOnly.value = snapshot.isAdultOnly
+    hideAudio.value = snapshot.hideAudio
+    hideDownload.value = snapshot.hideDownload
+    isPlusReadingEnabled.value = snapshot.isPlusReadingEnabled
+    descriptionFull.value = snapshot.descriptionFull
+    tableOfContents.value = snapshot.tableOfContents
+    moderatorWallets.value = snapshot.moderatorWallets
+  }
+  catch {
+    initListingFieldsFromInfo()
+  }
+  moderatorWalletInput.value = ''
+  isEditing.value = false
+}
+
+async function handleSave() {
+  try {
+    if (moderatorWalletInput.value) {
+      throw new Error($t('errors.add_moderator_wallet'))
+    }
+    isSaving.value = true
+
+    // Decide both dirty states up-front: chain tx only if on-chain fields
+    // changed, settings POST only if listing fields changed.
+    const isChainDirty = !!iscnFormRef.value?.hasUnsavedChanges
+    let isListingDirty = listingSnapshot.value !== currentListingSnapshot()
+
+    if (!isChainDirty && !isListingDirty) {
+      toast.add({
+        icon: 'i-heroicons-information-circle',
+        title: $t('status_page.no_changes'),
+        duration: 2000,
+        color: 'info',
+      })
+      isEditing.value = false
+      return
+    }
+
+    if (isChainDirty) {
+      const errors = validateISCNForm(iscnFormData.value)
+      if (errors.length) {
+        throw new Error(errors.join(', '))
+      }
+      const { metadata } = await saveClassMetadata(classId, payload.value)
+      useLogEvent('iscn_metadata_updated', { class_id: classId })
+      iscnFormRef.value?.resetSnapshot()
+      // Fingerprints may have switched between encrypted and open; keep the
+      // listing's hideDownload in sync within the same settings POST.
+      const contentFingerprints = metadata.contentFingerprints as string[] | undefined
+      if (contentFingerprints) {
+        const shouldHideDownload = isContentFingerprintEncrypted(contentFingerprints)
+        if (shouldHideDownload !== hideDownload.value) {
+          hideDownload.value = shouldHideDownload
+          isListingDirty = true
+        }
+      }
+    }
+
+    if (isListingDirty) {
+      // Echo back loaded-but-uneditable fields (mustClaimToView,
+      // connectedWallets, enableCustomMessagePage) so the API keeps them.
+      await updateBookListingSetting(classId, {
+        moderatorWallets: moderatorWallets.value,
+        connectedWallets: connectedWallets.value,
+        hideDownload: hideDownload.value,
+        hideAudio: hideAudio.value,
+        isAdultOnly: isAdultOnly.value,
+        isPlusReadingEnabled: isPlusReadingEnabled.value,
+        mustClaimToView: mustClaimToView.value,
+        tableOfContents: tableOfContents.value,
+        // Toggling the field off sets this to undefined; send '' so the listing
+        // value is cleared instead of omitted (which would keep the old value).
+        descriptionFull: descriptionFull.value ?? '',
+        enableCustomMessagePage: enableCustomMessagePage.value,
+      })
+      listingSnapshot.value = currentListingSnapshot()
+    }
+
+    toast.add({
+      icon: 'i-heroicons-check-circle',
+      title: $t('status_page.settings_saved'),
+      duration: 2000,
+      color: 'success',
+    })
+    isEditing.value = false
+    emit('saved')
+  }
+  catch (err) {
+    const errorData = (err as { data?: string }).data || err
+    // eslint-disable-next-line no-console
+    console.error(errorData)
+    toast.add({
+      icon: 'i-heroicons-exclamation-circle',
+      title: String(errorData),
+      duration: 5000,
+      color: 'error',
+    })
+  }
+  finally {
+    isSaving.value = false
+  }
+}
+</script>
