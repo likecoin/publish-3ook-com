@@ -13,6 +13,18 @@ const getFileMimeType = (fileType: string): string => {
   }
 }
 
+export const getFileTypeFromMime = (fileType: string): string => {
+  switch (fileType) {
+    case 'application/epub+zip':
+      return 'epub'
+    case 'application/pdf':
+      return 'pdf'
+    case 'application/octet-stream':
+    default:
+      return ''
+  }
+}
+
 export function useISCN({
   iscnFormData,
   iscnChainData = ref({}),
@@ -20,18 +32,6 @@ export function useISCN({
   iscnFormData: Ref<ISCNFormData>
   iscnChainData?: Ref<ClassMetadata>
 }) {
-  const getFileTypeFromMime = (fileType: string): string => {
-    switch (fileType) {
-      case 'application/epub+zip':
-        return 'epub'
-      case 'application/pdf':
-        return 'pdf'
-      case 'application/octet-stream':
-      default:
-        return ''
-    }
-  }
-
   const formattedPotentialActionList = computed(() => {
     const apiEndpoints = getApiEndpoints()
     const arweaveLinkEndpoint = apiEndpoints.API_GET_ARWEAVE_V2_LINK

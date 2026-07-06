@@ -78,9 +78,20 @@
                   <p class="text-gray-500 text-sm">
                     {{ Math.round((fileSize || 0) * 0.001) }} KB
                   </p>
+                  <p
+                    v-if="needsReselect(fileRecords[index])"
+                    class="text-yellow-600 text-xs"
+                    v-text="$t('upload_form.file_needs_reselect')"
+                  />
                 </div>
               </td>
               <td class="flex items-center gap-2">
+                <UIcon
+                  v-if="fileRecords[index]?.arweaveId"
+                  name="i-heroicons-check-circle"
+                  class="w-5 h-5 text-green-500"
+                  :title="$t('upload_form.file_already_uploaded')"
+                />
                 <UIcon
                   v-if="fileRecords[index]?.hasValidationIssues"
                   name="i-heroicons-exclamation-triangle"
@@ -292,9 +303,25 @@ export type { FileRecord }
 
 const props = defineProps({
   defaultEncrypted: { type: Boolean, default: true },
+  // Collect-only mode (new-book wizard): onSubmit validates and emits the
+  // selected files without uploading; the publish pipeline uploads later.
+  collectOnly: { type: Boolean, default: false },
+  // Restores a previously collected selection (e.g. resumed wizard draft);
+  // records restored without a blob must be re-selected before publish.
+  initialFileRecords: {
+    type: Array as PropType<FileRecord[]>,
+    default: () => [],
+  },
 })
 
 const fileRecords = ref<FileRecord[]>([])
+
+onMounted(() => {
+  if (props.initialFileRecords.length && !fileRecords.value.length) {
+    fileRecords.value = props.initialFileRecords.map(record => ({ ...record }))
+    emit('fileReady', fileRecords.value)
+  }
+})
 
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
@@ -314,7 +341,7 @@ const drmOptions = computed(() => [
   { label: $t('upload_form.drm_option_open'), value: 'open' },
 ])
 
-const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
+const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus', 'drmChange'])
 const uploadStatus = ref('')
 const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
@@ -349,7 +376,8 @@ const computedFormClasses = computed(() => [
   'hover:bg-gray-200',
 ])
 
-watch(isEncryptEBookData, async () => {
+watch(isEncryptEBookData, async (value: boolean) => {
+  emit('drmChange', value)
   uploadStatus.value = $t('upload_form.loading')
   await estimateArweaveFee()
   uploadStatus.value = ''
@@ -501,7 +529,7 @@ const onFileUpload = async (event: Event) => {
         else {
           isSizeExceeded.value = true
         }
-        fileRecords.value.push(fileRecord)
+        upsertFileRecord(fileRecord)
         uploadStatus.value = ''
       }
     }
@@ -520,6 +548,20 @@ const onFileUpload = async (event: Event) => {
     }
     uploadStatus.value = ''
     emit('fileReady', fileRecords.value)
+  }
+}
+
+// Replaces a blob-less record restored from a resumed draft when the user
+// re-selects the same file; otherwise appends.
+const upsertFileRecord = (record: FileRecord) => {
+  const staleIndex = fileRecords.value.findIndex(
+    r => r.fileName === record.fileName && !r.fileBlob,
+  )
+  if (staleIndex >= 0) {
+    fileRecords.value.splice(staleIndex, 1, record)
+  }
+  else {
+    fileRecords.value.push(record)
   }
 }
 
@@ -658,7 +700,7 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }
               return
             }
             coverFileRecord.fileData = e.target.result as string
-            fileRecords.value.push(coverFileRecord)
+            upsertFileRecord(coverFileRecord)
             epubMetadata.coverData = e.target.result as string
             epubMetadataList.value.push(epubMetadata)
           }
@@ -680,6 +722,10 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }
       color: 'error',
     })
   }
+}
+
+const needsReselect = (record?: FileRecord) => {
+  return !!record && !record.fileBlob && !record.arweaveId
 }
 
 const showEpubIssuesForFile = (fileRecord: FileRecord) => {
@@ -1024,10 +1070,25 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
   return { valid: true }
 }
 
+// Collect-only submit: hand the selection (blobs included) to the wizard
+// without uploading anything.
+const emitCollected = () => {
+  emit('submit', {
+    fileRecords: fileRecords.value,
+    epubMetadata: epubMetadataList.value[0],
+    isEncrypt: isEncryptEBookData.value,
+    isSponsored: isArweaveSponsored.value,
+  })
+}
+
 const confirmProceedAnyway = async () => {
   showValidationWarning.value = false
   if (pendingSubmitAfterConfirm.value) {
     pendingSubmitAfterConfirm.value = false
+    if (props.collectOnly) {
+      emitCollected()
+      return
+    }
     await onSubmitInternal()
   }
 }
@@ -1039,6 +1100,10 @@ const onSubmit = async () => {
     canProceedAnyway.value = validation.canProceedAnyway !== false
     showValidationWarning.value = true
     pendingSubmitAfterConfirm.value = true
+    return
+  }
+  if (props.collectOnly) {
+    emitCollected()
     return
   }
   await onSubmitInternal()

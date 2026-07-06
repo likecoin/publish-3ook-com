@@ -85,6 +85,7 @@
       </UFormField>
 
       <UFormField
+        v-if="showFileFields"
         required
         :label="$t('form.cover_image')"
         :error="!formData.coverUrl && $t('iscn_form.cover_image_required')"
@@ -168,7 +169,10 @@
     </UFormField>
 
     <!-- Content Fingerprints -->
-    <div class="flex flex-col border p-4 rounded-lg gap-4">
+    <div
+      v-if="showFileFields"
+      class="flex flex-col border p-4 rounded-lg gap-4"
+    >
       <div class="flex flex-col gap-2 mb-4">
         <div class="flex justify-between items-center">
           <h3
@@ -236,7 +240,10 @@
     </div>
 
     <!-- Downloadable URLs -->
-    <div class="border p-4 rounded-lg">
+    <div
+      v-if="showFileFields"
+      class="border p-4 rounded-lg"
+    >
       <div class="flex justify-between items-center mb-4">
         <h3
           class="font-medium"
@@ -303,6 +310,7 @@
     </div>
 
     <UModal
+      v-if="showFileFields"
       v-model:open="shouldShowUploadModal"
       :dismissible="false"
       class="w-full max-w-[80vw]"
@@ -389,8 +397,18 @@ const uploadStatus = ref('')
 // descriptionFull now lives in the store listing, not on-chain metadata. Edit
 // surfaces hide it here and edit it via listing settings instead; the new-book
 // flow keeps showing it and bridges the value to listing creation.
-withDefaults(defineProps<{ showDescriptionFull?: boolean }>(), {
+// showFileFields=false hides coverUrl/fingerprints/downloadableUrls for the
+// collect-only wizard, where those URLs only exist after publish uploads.
+// guardUnsavedChanges=false disables the leave-confirmation guards for hosts
+// that persist the form some other way (the wizard's localStorage draft).
+const props = withDefaults(defineProps<{
+  showDescriptionFull?: boolean
+  showFileFields?: boolean
+  guardUnsavedChanges?: boolean
+}>(), {
   showDescriptionFull: true,
+  showFileFields: true,
+  guardUnsavedChanges: true,
 })
 
 const formData = defineModel<ISCNFormData>({ required: true })
@@ -424,7 +442,7 @@ const hasUnsavedChanges = computed(() => {
 })
 
 useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
-  if (hasUnsavedChanges.value) {
+  if (props.guardUnsavedChanges && hasUnsavedChanges.value) {
     e.preventDefault()
     e.returnValue = $t('unsaved_changes_warning')
     return $t('unsaved_changes_warning')
@@ -432,7 +450,7 @@ useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
 })
 
 onBeforeRouteLeave(() => {
-  if (hasUnsavedChanges.value) {
+  if (props.guardUnsavedChanges && hasUnsavedChanges.value) {
     return window.confirm($t('unsaved_changes_warning'))
   }
 })
@@ -447,6 +465,7 @@ nextTick(() => {
 
 defineExpose({
   resetSnapshot,
+  hasUnsavedChanges,
 })
 
 const hasFiles = computed(() => {
@@ -516,37 +535,13 @@ const startUpload = async () => {
   await uploadFormRef.value.onSubmit()
 }
 
-const { getFileType } = useFileUploadLocal()
-
 const handleUploadSubmit = (uploadData: { fileRecords: FileRecord[], epubMetadata?: { thumbnailArweaveId?: string } }) => {
   const { fileRecords, epubMetadata } = uploadData
   if (!fileRecords.length) {
     return
   }
 
-  const downloadableUrls = fileRecords
-    .filter((r: FileRecord) => r.fileType === 'application/pdf' || r.fileType === 'application/epub+zip')
-    .map((file: FileRecord) => ({
-      url: file.arweaveKey ? (file.arweaveLink || '') : `ar://${file.arweaveId}`,
-      type: getFileType(file.fileType || ''),
-      fileName: file.fileName || '',
-    }))
-
-  const contentFingerprints = [
-    ...new Set<string>(
-      fileRecords
-        .map((r: FileRecord) => {
-          const arweaveUrl: string = r.arweaveKey
-            ? (r.arweaveLink || '')
-            : `ar://${r.arweaveId}`
-          return r.fileType === 'application/epub+zip' || r.fileType === 'application/pdf'
-            ? arweaveUrl
-            : `ar://${r.arweaveId}`
-        })
-        .filter((r: string) => !!r),
-    ),
-  ].map(url => ({ url }))
-
+  const { downloadableUrls, contentFingerprints } = buildIscnLinksFromFileRecords(fileRecords)
   formData.value.downloadableUrls = downloadableUrls
   formData.value.contentFingerprints = contentFingerprints
 
