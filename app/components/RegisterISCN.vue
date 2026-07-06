@@ -35,7 +35,7 @@ const walletStore = useWalletStore()
 const { wallet, signer } = storeToRefs(walletStore)
 const { validateWalletConsistency } = walletStore
 const { createNFTClass } = useNFTClassCreator()
-const { stripHtmlTags, formatLanguage, getFileType } = useFileUploadLocal()
+const { stripHtmlTags, formatLanguage } = useFileUploadLocal()
 const { showErrorToast } = useToastComposable()
 
 const iscnFormData = ref<ISCNFormData>({
@@ -130,28 +130,9 @@ const initializeFromSessionStorage = () => {
     genre: '',
   }
 
-  baseData.downloadableUrls = data.fileRecords
-    .filter(r => r.fileType === 'application/pdf' || r.fileType === 'application/epub+zip')
-    .map(file => ({
-      url: file.arweaveKey ? file.arweaveLink : `ar://${file.arweaveId}`,
-      type: getFileType(file.fileType),
-      fileName: file.fileName,
-    }))
-
-  baseData.contentFingerprints = [
-    ...new Set(
-      data.fileRecords
-        .map((r) => {
-          const arweaveUrl = r.arweaveKey
-            ? r.arweaveLink
-            : `ar://${r.arweaveId}`
-          return r.fileType === 'application/epub+zip' || r.fileType === 'application/pdf'
-            ? arweaveUrl
-            : `ar://${r.arweaveId}`
-        })
-        .filter(Boolean),
-    ),
-  ].map(url => ({ url }))
+  const links = buildIscnLinksFromFileRecords(data.fileRecords)
+  baseData.downloadableUrls = links.downloadableUrls
+  baseData.contentFingerprints = links.contentFingerprints
 
   return baseData
 }

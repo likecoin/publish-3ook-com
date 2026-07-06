@@ -459,18 +459,23 @@ import { MdEditor, config, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 
 import { v4 as uuidv4 } from 'uuid'
-import type { FormError } from '#ui/types'
 
 import {
   DEFAULT_PRICE_STRING,
   DEFAULT_STOCK,
   USD_PRICING_OPTIONS,
   DEFAULT_MAX_SUPPLY,
-  MINIMAL_PRICE,
 } from '~/constant'
-import { getApiEndpoints } from '~/constant/api'
 import { getUploadFileData, getPendingDescriptionFull } from '~/utils/uploadFile'
-import type { BookPriceInDecimalByCurrency, ClassListingData, ClassListingPrice } from '~/types'
+import type { ClassListingData, ClassListingPrice } from '~/types'
+import type { PriceFormItem, MappedPrice } from '~/types/publish'
+import {
+  getPriceItemUSDValue,
+  mapPriceFormItemsToPayload,
+  validatePriceFormItems,
+  validateMappedPrices,
+} from '~/utils/listing'
+import { isContentFingerprintEncrypted } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
 
@@ -523,25 +528,6 @@ const isPlusReadingEnabledRadio = computed({
 })
 const tableOfContents = ref(getUploadFileData()?.epubMetadata?.tableOfContents || '')
 
-interface PriceFormItem {
-  index?: string
-  price: string
-  deliveryMethod: string
-  autoMemo: string
-  stock: number
-  name: string
-  description: string
-  isAllowCustomPrice: boolean
-  isListed: boolean
-  oldIsAutoDeliver?: boolean
-  oldStock?: number
-  // Custom pricing mode: USD tier dropdown vs free-form USD/HKD/TWD trio (mutually exclusive).
-  isCustomPricing: boolean
-  priceUSDInput: string
-  priceHKDInput: string
-  priceTWDInput: string
-}
-
 const prices = ref<PriceFormItem[]>([
   {
     price: '-1',
@@ -571,11 +557,8 @@ function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
   }
 }
 const hasMultiplePrices = computed(() => prices.value.length > 1)
-function getPriceUSDValue(p: PriceFormItem): number {
-  return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
-}
 // A free price tier (0) always opts the book into Plus all-you-can-read.
-const isFreeBook = computed(() => prices.value.some(p => getPriceUSDValue(p) === 0))
+const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p) === 0))
 const moderatorWallets = ref<string[]>([
   '0xa037Feb6508A8C2F93bb19f6721730C45921f2D0',
 ])
@@ -770,14 +753,6 @@ watch(classId, async (newClassId) => {
   }
 }, { immediate: true })
 
-function isContentFingerprintEncrypted(contentFingerprints: string[]) {
-  const apiEndpoints = getApiEndpoints()
-  const arweaveLinkEndpoint = apiEndpoints.API_GET_ARWEAVE_V2_LINK
-  return contentFingerprints.some((fingerprint) => {
-    return !!fingerprint.startsWith(arweaveLinkEndpoint) || fingerprint.includes('?key=')
-  })
-}
-
 function onImgUpload(
   event: Event,
   key: 'signatureImage' | 'memoImage' = 'signatureImage',
@@ -837,93 +812,10 @@ function deletePrice(index: number) {
   prices.value.splice(index, 1)
 }
 
-function mapPrices(prices: PriceFormItem[]) {
-  return prices.map((p: PriceFormItem) => {
-    const usdValue = getPriceUSDValue(p)
-    const mapped: MappedPrice = {
-      name: {
-        en: escapeHtml(p.name),
-        zh: escapeHtml(p.name),
-      },
-      description: {
-        en: escapeHtml(p.description),
-        zh: escapeHtml(p.description),
-      },
-      priceInDecimal: Math.round(usdValue * 100),
-      price: usdValue,
-      stock: p.deliveryMethod === 'auto' ? 0 : Number(p.stock),
-      isAutoDeliver: p.deliveryMethod === 'auto',
-      isAllowCustomPrice: p.isAllowCustomPrice,
-      isUnlisted: !p.isListed,
-      autoMemo: p.deliveryMethod === 'auto' ? p.autoMemo || '' : '',
-    }
-    if (p.isCustomPricing) {
-      mapped.priceInDecimalByCurrency = {
-        hkd: Math.round(Number(p.priceHKDInput) * 100),
-        twd: Math.round(Number(p.priceTWDInput) * 100),
-      }
-    }
-    return mapped
-  })
-}
-
-interface MappedPrice {
-  name: { en: string, zh: string }
-  description: { en: string, zh: string }
-  priceInDecimal: number
-  priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
-  price: number
-  stock: number
-  isAutoDeliver: boolean
-  isAllowCustomPrice: boolean
-  isUnlisted: boolean
-  autoMemo: string
-}
-
-function validateRawForm(rawPrices: PriceFormItem[]): FormError[] {
-  const errors: FormError[] = []
-  for (const raw of rawPrices) {
-    if (!raw.isCustomPricing) { continue }
-    const isMissing = raw.priceUSDInput.trim() === ''
-      || raw.priceHKDInput.trim() === ''
-      || raw.priceTWDInput.trim() === ''
-    if (isMissing) {
-      errors.push({
-        name: 'customPricing',
-        message: $t('errors.custom_pricing_all_required'),
-      })
-    }
-  }
-  return errors
-}
+const mapPrices = mapPriceFormItemsToPayload
 
 function validate(prices: MappedPrice[]) {
-  const errors: FormError[] = []
-  prices.forEach((price: MappedPrice) => {
-    if (!Number.isFinite(price.priceInDecimal) || (price.price !== 0 && price.price < MINIMAL_PRICE)) {
-      errors.push({
-        name: 'price',
-        message: $t('errors.price_validation', { minPrice: MINIMAL_PRICE }),
-      })
-    }
-    if (!price.name.en || !price.name.zh) {
-      errors.push({
-        name: 'name',
-        message: $t('errors.product_name_required'),
-      })
-    }
-    if (price.priceInDecimalByCurrency) {
-      for (const [currency, value] of Object.entries(price.priceInDecimalByCurrency)) {
-        if (!Number.isFinite(value) || value < 0) {
-          errors.push({
-            name: `priceInDecimalByCurrency.${currency}`,
-            message: $t('errors.invalid_price_override', { currency: currency.toUpperCase() }),
-          })
-        }
-      }
-    }
-  })
-
+  const errors = validateMappedPrices(prices, $t)
   if (errors.length > 0) {
     error.value = errors.map(e => e.message).join('\n')
     showErrorToast(error.value)
@@ -943,7 +835,7 @@ function reportSubmitError(err: unknown): never {
 
 async function onSubmit() {
   try {
-    const rawErrors = validateRawForm(prices.value)
+    const rawErrors = validatePriceFormItems(prices.value, $t)
     if (rawErrors.length > 0) {
       error.value = rawErrors.map(e => e.message).join('\n')
       showErrorToast(error.value)

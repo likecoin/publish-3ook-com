@@ -1,10 +1,10 @@
-import { getTransactionReceipt } from '@wagmi/vue/actions'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import type { BookPriceInDecimalByCurrency } from '~/types'
-import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
+import type { PublishFileRecordWithBlob } from '~/types/publish'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { detectEbookType } from '~/utils/ebookType'
+import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 
 interface ProcessingCallbacks {
   onStatusChange?: (bookId: string, status: BookUploadStatus, message?: string) => void
@@ -19,11 +19,13 @@ export function useBulkUpload() {
   const { wallet, signer } = storeToRefs(walletStore)
   const { validateWalletConsistency } = walletStore
   const { newBookListing } = bookstoreApiStore
-  const { prepareArweaveUpload, executeArweaveUpload } = useArweaveUpload()
   const { createNFTClass } = useNFTClassCreator()
-  const { mintNFT } = useNFTMinter()
+  const {
+    uploadFileRecordsToArweave,
+    mintWithResume,
+    isMintTransactionConfirmed,
+  } = usePublishBook()
   const { BOOK3_URL } = useRuntimeConfig().public
-  const { $wagmiConfig } = useNuxtApp()
 
   const isProcessing = ref(false)
   const currentBook = ref<BulkUploadBook | null>(null)
@@ -83,45 +85,24 @@ export function useBulkUpload() {
     }
   }
 
+  // Adapter: maps the CSV-row book fields to shared upload records and back,
+  // preserving the per-field resume model of the result CSV.
   async function uploadFilesToArweave(
     book: BulkUploadBook,
     callbacks: ProcessingCallbacks,
   ): Promise<void> {
     const { onProgress, sponsored } = callbacks
-    let pendingUpload: Promise<void> = Promise.resolve()
+    const records: PublishFileRecordWithBlob[] = []
 
     if (!book.coverArweaveId) {
       if (!book.coverFile) {
         throw new Error('No cover image file found')
       }
-      currentStep.value = 'uploading_cover'
-      const coverPrepare = await prepareArweaveUpload({
-        arrayBuffer: await book.coverFile.arrayBuffer(),
-        fileSize: book.coverFile.size,
+      records.push({
+        fileName: book.coverFile.name,
         fileType: book.coverFile.type,
-        encrypt: false,
-        sponsored,
+        fileBlob: book.coverFile,
       })
-      if ('alreadyExists' in coverPrepare) {
-        const coverResult = coverPrepare.result
-        book.coverArweaveId = coverResult.arweaveId
-        book.coverIpfsHash = coverResult.ipfsHash
-        onProgress?.(book.id, {
-          coverArweaveId: coverResult.arweaveId,
-          coverIpfsHash: coverResult.ipfsHash,
-        })
-      }
-      else {
-        pendingUpload = executeArweaveUpload(coverPrepare)
-          .then((coverResult) => {
-            book.coverArweaveId = coverResult.arweaveId
-            book.coverIpfsHash = coverResult.ipfsHash
-            onProgress?.(book.id, {
-              coverArweaveId: coverResult.arweaveId,
-              coverIpfsHash: coverResult.ipfsHash,
-            })
-          })
-      }
     }
 
     if (!book.bookArweaveId) {
@@ -129,57 +110,50 @@ export function useBulkUpload() {
       if (!ebookFile) {
         throw new Error('No ebook file found')
       }
-
-      currentStep.value = 'uploading_ebook'
-      const arrayBuffer = await ebookFile.arrayBuffer()
-      const detectedType = detectEbookType(arrayBuffer)
+      const detectedType = detectEbookType(await ebookFile.arrayBuffer())
       if (!detectedType) {
         throw new Error(`File ${ebookFile.name} is not a valid PDF or EPUB`)
       }
       book.detectedFileType = detectedType
       onProgress?.(book.id, { detectedFileType: detectedType })
-
-      const bookPrepare = await prepareArweaveUpload({
-        arrayBuffer,
-        fileSize: ebookFile.size,
+      records.push({
+        fileName: ebookFile.name,
         fileType: detectedType === 'epub' ? 'application/epub+zip' : 'application/pdf',
-        encrypt: book.enableDRM,
-        sponsored,
+        fileBlob: ebookFile,
       })
-      if ('alreadyExists' in bookPrepare) {
-        await pendingUpload
-        const bookResult = bookPrepare.result
-        book.bookArweaveId = bookResult.arweaveId
-        book.bookArweaveKey = bookResult.arweaveKey
-        book.bookArweaveLink = bookResult.arweaveLink
-        book.bookIpfsHash = bookResult.ipfsHash
-        onProgress?.(book.id, {
-          bookArweaveId: bookResult.arweaveId,
-          bookArweaveKey: bookResult.arweaveKey,
-          bookArweaveLink: bookResult.arweaveLink,
-          bookIpfsHash: bookResult.ipfsHash,
-        })
-      }
-      else {
-        const prevUpload = pendingUpload
-        pendingUpload = prevUpload.then(() =>
-          executeArweaveUpload(bookPrepare).then((bookResult) => {
-            book.bookArweaveId = bookResult.arweaveId
-            book.bookArweaveKey = bookResult.arweaveKey
-            book.bookArweaveLink = bookResult.arweaveLink
-            book.bookIpfsHash = bookResult.ipfsHash
-            onProgress?.(book.id, {
-              bookArweaveId: bookResult.arweaveId,
-              bookArweaveKey: bookResult.arweaveKey,
-              bookArweaveLink: bookResult.arweaveLink,
-              bookIpfsHash: bookResult.ipfsHash,
-            })
-          }),
-        )
-      }
     }
 
-    await pendingUpload
+    await uploadFileRecordsToArweave(records, {
+      encryptEbook: book.enableDRM,
+      sponsored,
+      onRecordPrepare: (record) => {
+        currentStep.value = record.fileType.startsWith('image/')
+          ? 'uploading_cover'
+          : 'uploading_ebook'
+      },
+      onRecordUploaded: (record) => {
+        if (record.fileType.startsWith('image/')) {
+          book.coverArweaveId = record.arweaveId
+          book.coverIpfsHash = record.ipfsHash
+          onProgress?.(book.id, {
+            coverArweaveId: record.arweaveId,
+            coverIpfsHash: record.ipfsHash,
+          })
+        }
+        else {
+          book.bookArweaveId = record.arweaveId
+          book.bookArweaveKey = record.arweaveKey
+          book.bookArweaveLink = record.arweaveLink
+          book.bookIpfsHash = record.ipfsHash
+          onProgress?.(book.id, {
+            bookArweaveId: record.arweaveId,
+            bookArweaveKey: record.arweaveKey,
+            bookArweaveLink: record.arweaveLink,
+            bookIpfsHash: record.ipfsHash,
+          })
+        }
+      },
+    })
   }
 
   async function createNFTClassForBook(
@@ -191,14 +165,21 @@ export function useBulkUpload() {
 
     const ebookFile = book.epubFile || book.pdfFile
     const fileType = book.detectedFileType ?? (book.epubFilename ? 'epub' : 'pdf')
-    const arweaveLink = book.bookArweaveKey
-      ? book.bookArweaveLink || `ar://${book.bookArweaveId}`
-      : `ar://${book.bookArweaveId}`
 
-    const contentFingerprints = [
-      { url: `ar://${book.coverArweaveId}` },
-      { url: arweaveLink },
-    ]
+    const { downloadableUrls, contentFingerprints, coverUrl } = buildIscnLinksFromFileRecords([
+      {
+        fileName: book.coverImageFilename,
+        fileType: 'image/jpeg',
+        arweaveId: book.coverArweaveId,
+      },
+      {
+        fileName: ebookFile?.name || book.epubFilename || book.pdfFilename || `${book.title}.${fileType}`,
+        fileType: fileType === 'epub' ? 'application/epub+zip' : 'application/pdf',
+        arweaveId: book.bookArweaveId,
+        arweaveLink: book.bookArweaveLink,
+        arweaveKey: book.bookArweaveKey,
+      },
+    ])
 
     const iscnFormData = ref({
       type: 'Book',
@@ -218,15 +199,11 @@ export function useBulkUpload() {
       license: 'All Rights Reserved',
       customLicense: '',
       contentFingerprints,
-      downloadableUrls: [{
-        url: arweaveLink,
-        type: fileType,
-        fileName: ebookFile?.name || book.epubFilename || book.pdfFilename || `${book.title}.${fileType}`,
-      }],
+      downloadableUrls,
       language: book.language,
       bookInfoUrl: '',
       tags: book.tags,
-      coverUrl: `ar://${book.coverArweaveId}`,
+      coverUrl,
       genre: '',
     })
 
@@ -246,23 +223,6 @@ export function useBulkUpload() {
       throw new Error('Class ID not found')
     }
 
-    const setMintTxHash = (hash: string | undefined) => {
-      book.mintTxHash = hash
-      onProgress?.(book.id, { mintTxHash: hash })
-    }
-
-    // A prior attempt may have broadcast a mint whose confirmation we never
-    // recorded; re-minting reuses the same fromTokenId and would revert against
-    // the already-minted token, so verify any persisted hash before re-minting.
-    if (book.mintTxHash) {
-      if (await isMintTransactionConfirmed(book.mintTxHash)) {
-        return
-      }
-      setMintTxHash(undefined)
-    }
-
-    const mintCount = NFT_DEFAULT_MINT_AMOUNT
-
     const buildTokenMetadata = (index: number, fromTokenId: bigint): NFTTokenMetadata => ({
       image: `ar://${book.coverArweaveId}`,
       external_url: `${BOOK3_URL}/store/${book.classId}/${Number(fromTokenId) + index}`,
@@ -274,26 +234,15 @@ export function useBulkUpload() {
       ],
     })
 
-    // onSubmitted persists the hash as soon as the mint is broadcast, before the
-    // confirmation wait — so an interruption there can't trigger a duplicate mint.
-    await mintNFT({
+    await mintWithResume({
       classId: book.classId,
-      mintCount,
+      mintTxHash: book.mintTxHash,
       buildTokenMetadata,
-      onSubmitted: setMintTxHash,
+      onMintTxHashChange: (hash) => {
+        book.mintTxHash = hash
+        onProgress?.(book.id, { mintTxHash: hash })
+      },
     })
-  }
-
-  // Returns true only for a confirmed-successful receipt and false for a
-  // confirmed-reverted one. Receipt lookup throws while the tx is still pending
-  // (TransactionReceiptNotFoundError) or on a transient RPC error — we let that
-  // propagate so callers treat "unknown" as pending and keep the hash, rather
-  // than clearing it and risking a duplicate re-mint.
-  async function isMintTransactionConfirmed(txHash: string): Promise<boolean> {
-    const receipt = await getTransactionReceipt($wagmiConfig, {
-      hash: txHash as `0x${string}`,
-    })
-    return receipt?.status === 'success'
   }
 
   async function createBookListing(

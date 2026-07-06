@@ -1,5 +1,16 @@
 import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from '~/types/iscn'
 import { MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant'
+import { getApiEndpoints } from '~/constant/api'
+
+// Encrypted content is fingerprinted by its keyed download link instead of a
+// plain ar:// id; detect that to decide download availability.
+export function isContentFingerprintEncrypted(contentFingerprints: string[]): boolean {
+  const apiEndpoints = getApiEndpoints()
+  const arweaveLinkEndpoint = apiEndpoints.API_GET_ARWEAVE_V2_LINK
+  return contentFingerprints.some((fingerprint) => {
+    return !!fingerprint.startsWith(arweaveLinkEndpoint) || fingerprint.includes('?key=')
+  })
+}
 
 function isValidImageUrl(urlString: string): boolean {
   if (!urlString) { return false }
@@ -57,7 +68,18 @@ export function formatISCNTxPayload(payload: ISCNRegisterPayload): ISCNTxPayload
   }
 }
 
-export function validateISCNForm(data: ISCNValidationData, maxDescriptionLength = MAX_DESCRIPTION_LENGTH): string[] {
+interface ValidateISCNFormOptions {
+  // The collect-only wizard validates before any upload exists; file-derived
+  // URLs (fingerprints, cover) are injected later by the publish pipeline.
+  requireFileUrls?: boolean
+  maxDescriptionLength?: number
+}
+
+export function validateISCNForm(
+  data: ISCNValidationData,
+  options: ValidateISCNFormOptions = {},
+): string[] {
+  const { requireFileUrls = true, maxDescriptionLength = MAX_DESCRIPTION_LENGTH } = options
   const errors: string[] = []
   const desc = data.description || ''
 
@@ -76,7 +98,8 @@ export function validateISCNForm(data: ISCNValidationData, maxDescriptionLength 
     errors.push('Please fill in the author name')
   }
 
-  if (!Array.isArray(data.contentFingerprints) || !data.contentFingerprints.some((f: { url: string }) => !!f.url)) {
+  if (requireFileUrls
+    && (!Array.isArray(data.contentFingerprints) || !data.contentFingerprints.some((f: { url: string }) => !!f.url))) {
     errors.push('Please provide at least one content URL')
   }
 
@@ -85,7 +108,9 @@ export function validateISCNForm(data: ISCNValidationData, maxDescriptionLength 
   }
 
   if (!data.coverUrl) {
-    errors.push('Please provide a cover image URL')
+    if (requireFileUrls) {
+      errors.push('Please provide a cover image URL')
+    }
   }
   else if (!isValidImageUrl(data.coverUrl)) {
     errors.push('Cover image URL must be a valid URL with http://, https://, ar://, or ipfs:// protocol')
