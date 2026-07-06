@@ -1,6 +1,9 @@
 <template>
   <PageBody class="flex flex-col items-stretch grow space-y-4">
-    <div class="w-full">
+    <div
+      ref="stepTopRef"
+      class="w-full"
+    >
       <!-- Stepper Navigation -->
       <div class="justify-evenly items-center flex space-x-4 relative">
         <div class="absolute w-full h-px bg-gray-300 top-[50%] left-0 z-[-1]" />
@@ -204,6 +207,7 @@ const maxVisitedStepIndex = ref(0)
 const uploadFormRef = ref()
 const detailsFormRef = ref()
 const pricingFormRef = ref()
+const stepTopRef = ref<HTMLElement | null>(null)
 
 // Collected draft state; persisted to localStorage so an accidental tab close
 // or browser quit keeps everything except the raw file blobs.
@@ -401,6 +405,14 @@ watch(step, (value) => {
     // The first sync replaces so back doesn't land on a step-less entry.
     { replace: !route.query.step },
   )
+})
+
+// Reset scroll to the top of the wizard on step change. The app scrolls inside
+// an overflow container (not the window), so scrollIntoView the top element
+// rather than window.scrollTo.
+watch(step, async () => {
+  await nextTick()
+  stepTopRef.value?.scrollIntoView({ block: 'start' })
 })
 
 watch(() => route.query.step, (value) => {
