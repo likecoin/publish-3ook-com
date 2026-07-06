@@ -175,18 +175,17 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { DEFAULT_STOCK } from '~/constant'
+import { MAX_EDITION_COUNT } from '~/constant'
 import {
   savePublishSession,
   loadPublishSession,
   updatePublishSession,
   clearPublishSession,
 } from '~/utils/publishSession'
-import { validatePriceFormItems } from '~/utils/listing'
+import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
+import { createEmptyISCNFormData } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
-
-const MAX_EDITION_COUNT = 2
 
 const walletStore = useWalletStore()
 const { wallet } = storeToRefs(walletStore)
@@ -256,45 +255,10 @@ const coverImageSrc = computed(() =>
   || fileRecords.value.find(r => r.fileType?.startsWith('image/'))?.fileData
   || '')
 
-function createEmptyISCNFormData(): ISCNFormData {
-  return {
-    type: 'Book',
-    title: '',
-    description: '',
-    descriptionFull: '',
-    alternativeHeadline: '',
-    isbn: '',
-    publisher: { name: '', description: '' },
-    publicationDate: '',
-    author: { name: '', description: '' },
-    license: 'All Rights Reserved',
-    customLicense: '',
-    contentFingerprints: [],
-    downloadableUrls: [],
-    language: '',
-    bookInfoUrl: '',
-    tags: [],
-    coverUrl: '',
-    genre: '',
-  }
-}
-
 function createDefaultListingDraft(): PublishListingDraft {
   return {
-    prices: [{
-      price: '-1',
-      deliveryMethod: 'auto',
-      autoMemo: '',
-      stock: DEFAULT_STOCK,
-      name: $t('prices.standard_edition'),
-      description: '',
-      isAllowCustomPrice: true,
-      isListed: true,
-      isCustomPricing: false,
-      priceUSDInput: '',
-      priceHKDInput: '',
-      priceTWDInput: '',
-    }],
+    // Seed an invalid price so an untouched field can't be accidentally saved.
+    prices: [createDefaultPriceFormItem({ price: '-1', name: $t('prices.standard_edition') })],
     isAllowCustomPrice: true,
     isAdultOnly: false,
     hideAudio: false,

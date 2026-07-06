@@ -1,9 +1,29 @@
 import type { FormError } from '#ui/types'
-import { MINIMAL_PRICE } from '~/constant'
+import { MINIMAL_PRICE, DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import { escapeHtml } from '~/utils/newClass'
 import type { PriceFormItem, MappedPrice } from '~/types/publish'
 
 type TranslateFn = (key: string, params?: Record<string, unknown>) => string
+
+// Single source for a blank edition price row; callers override only the
+// fields they mean to differ (name, price, index).
+export function createDefaultPriceFormItem(overrides: Partial<PriceFormItem> = {}): PriceFormItem {
+  return {
+    price: DEFAULT_PRICE_STRING,
+    deliveryMethod: 'auto',
+    autoMemo: '',
+    stock: DEFAULT_STOCK,
+    name: '',
+    description: '',
+    isAllowCustomPrice: true,
+    isListed: true,
+    isCustomPricing: false,
+    priceUSDInput: '',
+    priceHKDInput: '',
+    priceTWDInput: '',
+    ...overrides,
+  }
+}
 
 export function getPriceItemUSDValue(p: PriceFormItem): number {
   return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)

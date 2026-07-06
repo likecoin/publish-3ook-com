@@ -208,7 +208,7 @@ import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
-import { isContentFingerprintEncrypted } from '~/utils/iscn'
+import { isContentFingerprintEncrypted, createEmptyISCNFormData } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
 const toast = useToast()
@@ -230,27 +230,11 @@ const isISCNLoading = ref(false)
 const isSaving = ref(false)
 const iscnFormRef = ref<InstanceType<typeof ISCNForm> | null>(null)
 
-// On-chain metadata form state
-const iscnFormData = ref<ISCNFormData>({
-  type: 'Book',
-  title: '',
-  description: '',
-  descriptionFull: '',
-  alternativeHeadline: '',
-  isbn: '',
-  publisher: { name: '', description: '' },
-  publicationDate: '',
-  author: { name: '', description: '' },
-  license: 'All Rights Reserved',
-  customLicense: '',
+// On-chain metadata form state; seed one empty URL row for the edit form.
+const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData({
   contentFingerprints: [{ url: '' }],
   downloadableUrls: [{ url: '', type: '', fileName: '' }],
-  language: '',
-  bookInfoUrl: '',
-  tags: [],
-  coverUrl: '',
-  genre: '',
-})
+}))
 const iscnChainData = ref({} as ClassMetadata)
 const { payload } = useISCN({ iscnFormData, iscnChainData })
 

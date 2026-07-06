@@ -111,10 +111,9 @@
 
 <script setup lang="ts">
 import type { ClassListingPrice, EditionTableRow } from '~/types'
+import { MAX_EDITION_COUNT } from '~/constant'
 
 const { t: $t } = useI18n()
-
-const MAX_EDITION_COUNT = 2
 
 const { LIKE_CO_API } = useRuntimeConfig().public
 const bookstoreApiStore = useBookstoreApiStore()

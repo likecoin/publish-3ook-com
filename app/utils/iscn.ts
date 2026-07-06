@@ -1,6 +1,32 @@
-import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData } from '~/types/iscn'
+import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData, ISCNFormData } from '~/types/iscn'
 import { MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
+
+// Single source for a blank Book form; callers override only the fields that
+// differ (e.g. an edit form seeds one empty URL row instead of an empty array).
+export function createEmptyISCNFormData(overrides: Partial<ISCNFormData> = {}): ISCNFormData {
+  return {
+    type: 'Book',
+    title: '',
+    description: '',
+    descriptionFull: '',
+    alternativeHeadline: '',
+    isbn: '',
+    publisher: { name: '', description: '' },
+    publicationDate: '',
+    author: { name: '', description: '' },
+    license: 'All Rights Reserved',
+    customLicense: '',
+    contentFingerprints: [],
+    downloadableUrls: [],
+    language: '',
+    bookInfoUrl: '',
+    tags: [],
+    coverUrl: '',
+    genre: '',
+    ...overrides,
+  }
+}
 
 // Encrypted content is fingerprinted by its keyed download link instead of a
 // plain ar:// id; detect that to decide download availability.

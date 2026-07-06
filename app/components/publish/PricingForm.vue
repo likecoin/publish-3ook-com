@@ -418,13 +418,12 @@ import { v4 as uuidv4 } from 'uuid'
 
 import type { FormError } from '#ui/types'
 import {
-  DEFAULT_PRICE_STRING,
-  DEFAULT_STOCK,
   USD_PRICING_OPTIONS,
   DEFAULT_MAX_SUPPLY,
+  MAX_EDITION_COUNT,
 } from '~/constant'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import { getPriceItemUSDValue, validatePriceFormItems } from '~/utils/listing'
+import { getPriceItemUSDValue, validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
 import { sanitizeHtml } from '~/utils/newClass'
 
 const { t: $t } = useI18n()
@@ -438,7 +437,7 @@ const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 
-const { mode = 'new', maxEditions = 2, displayEditIndex = undefined, hasExistingSignatureImage = false } = defineProps<{
+const { mode = 'new', maxEditions = MAX_EDITION_COUNT, displayEditIndex = undefined, hasExistingSignatureImage = false } = defineProps<{
   mode?: 'new' | 'edit'
   maxEditions?: number
   displayEditIndex?: number
@@ -556,21 +555,7 @@ onMounted(async () => {
 })
 
 function addMorePrice() {
-  prices.value.push({
-    index: uuidv4(),
-    price: DEFAULT_PRICE_STRING,
-    deliveryMethod: 'auto',
-    autoMemo: '',
-    stock: DEFAULT_STOCK,
-    name: '增訂版',
-    description: '',
-    isAllowCustomPrice: true,
-    isListed: true,
-    isCustomPricing: false,
-    priceUSDInput: '',
-    priceHKDInput: '',
-    priceTWDInput: '',
-  })
+  prices.value.push(createDefaultPriceFormItem({ index: uuidv4(), name: '增訂版' }))
 }
 
 function deletePrice(index: number) {

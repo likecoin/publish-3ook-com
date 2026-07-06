@@ -17,6 +17,10 @@ export const DEFAULT_MAX_SUPPLY = 18446744073709551615n
 
 export const DEFAULT_STOCK = 100
 
+export const MAX_EDITION_COUNT = 2
+
+export const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
+
 export const NFT_DEFAULT_MINT_AMOUNT = 1
 export const NFT_DEFAULT_RESTOCK_AMOUNT = 50
 

@@ -1,3 +1,5 @@
+import { EBOOK_FILE_TYPES } from '~/constant'
+
 // Minimal record shape needed to derive ISCN links; both UploadForm's
 // FileRecord and PublishFileRecord satisfy it.
 export interface IscnLinkSourceRecord {
@@ -7,8 +9,6 @@ export interface IscnLinkSourceRecord {
   arweaveLink?: string
   arweaveKey?: string
 }
-
-const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 
 function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
   // Encrypted ebooks are only reachable via their keyed link; everything else

@@ -7,7 +7,7 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import type { ISCNFormData } from '~/types/iscn'
-import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
+import { NFT_DEFAULT_MINT_AMOUNT, EBOOK_FILE_TYPES } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
@@ -25,8 +25,6 @@ interface UploadRecordsOptions {
   onRecordPrepare?: (record: PublishFileRecordWithBlob, index: number) => void
   onRecordUploaded?: (record: PublishFileRecordWithBlob, index: number) => void
 }
-
-const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 
 // Single-book commit pipeline: upload → NFT class → mint → listing, with
 // per-step "already done?" guards so an interrupted publish resumes
@@ -47,7 +45,6 @@ export function usePublishBook() {
   const { $wagmiConfig } = useNuxtApp()
 
   const isProcessing = ref(false)
-  const currentStep = ref('')
 
   // Uploads records lacking an arweaveId, mutating each record in place with
   // the result. Pipelined: the next file's signature is collected while the
@@ -199,7 +196,6 @@ export function usePublishBook() {
       // Step 1: Upload files to Arweave (per-record arweaveId = resume guard)
       if (records.some(r => !r.arweaveId)) {
         onStatusChange?.(BookUploadStatus.UPLOADING_FILES)
-        currentStep.value = 'uploading_files'
         await uploadFileRecordsToArweave(records, {
           encryptEbook: input.encryptEbook,
           sponsored: input.sponsored,
@@ -223,7 +219,6 @@ export function usePublishBook() {
       // Step 2: Create NFT class
       if (!classId) {
         onStatusChange?.(BookUploadStatus.CREATING_NFT)
-        currentStep.value = 'creating_nft_class'
         const errors = validateISCNForm(input.iscnFormData)
         if (errors.length) {
           throw new Error(errors.join(', '))
@@ -245,7 +240,6 @@ export function usePublishBook() {
       // Step 3: Mint NFTs (idempotent via persisted mintTxHash receipt check)
       if (!input.skipMint) {
         onStatusChange?.(BookUploadStatus.MINTING)
-        currentStep.value = 'minting_nft'
         await mintWithResume({
           classId,
           mintTxHash,
@@ -259,7 +253,6 @@ export function usePublishBook() {
 
       // Step 4: Create book listing
       onStatusChange?.(BookUploadStatus.LISTING)
-      currentStep.value = 'creating_listing'
       const alreadyListed = isResumedClass && await checkListingExists(classId)
       if (!alreadyListed) {
         const { listingDraft } = input
@@ -300,13 +293,11 @@ export function usePublishBook() {
     }
     finally {
       isProcessing.value = false
-      currentStep.value = ''
     }
   }
 
   return {
     isProcessing: readonly(isProcessing),
-    currentStep: readonly(currentStep),
     publishBook,
     uploadFileRecordsToArweave,
     mintWithResume,

@@ -64,10 +64,9 @@
 </template>
 
 <script setup lang="ts">
-import { DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import type { ClassListingData, ClassListingPrice } from '~/types'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import { mapPriceFormItemsToPayload } from '~/utils/listing'
+import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const { LIKE_CO_API } = useRuntimeConfig().public
@@ -92,20 +91,9 @@ const pricingFormRef = ref()
 
 const displayEditIndex = computed(() => Number(editionIndex) + 1)
 
-const prices = ref<PriceFormItem[]>([{
-  price: DEFAULT_PRICE_STRING,
-  deliveryMethod: 'auto',
-  autoMemo: '',
-  stock: DEFAULT_STOCK,
-  name: $t('prices.standard_edition'),
-  description: '',
-  isAllowCustomPrice: true,
-  isListed: true,
-  isCustomPricing: false,
-  priceUSDInput: '',
-  priceHKDInput: '',
-  priceTWDInput: '',
-}])
+const prices = ref<PriceFormItem[]>([
+  createDefaultPriceFormItem({ name: $t('prices.standard_edition') }),
+])
 
 // Only isAllowCustomPrice is relevant in edit mode; the rest of the settings
 // model is inert here.
