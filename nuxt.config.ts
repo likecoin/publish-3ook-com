@@ -39,7 +39,7 @@ export default defineNuxtConfig({
         },
       },
       IS_MAINTENANCE: process.env.IS_MAINTENANCE,
-      IS_TESTNET: process.env.IS_TESTNET,
+      IS_TESTNET: process.env.IS_TESTNET === 'TRUE',
 
       SITE_URL: process.env.SITE_URL,
 

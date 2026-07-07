@@ -8,7 +8,7 @@ const ACCOUNT_ID_LENGTH = 6
 
 export function getIsTestnet() {
   const { IS_TESTNET } = useRuntimeConfig().public
-  return IS_TESTNET === 'TRUE'
+  return !!IS_TESTNET
 }
 
 export function addParamToUrl(url: string, params: { [key: string]: string }) {
