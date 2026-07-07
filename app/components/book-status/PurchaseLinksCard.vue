@@ -156,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { downloadFile, getPurchaseLink, copyToClipboard } from '~/utils'
+import { downloadFile, getPurchaseLink } from '~/utils'
 import type { ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
@@ -196,19 +196,11 @@ const purchaseLinks = computed(() =>
     })),
 )
 
-const selectedPurchaseLink = ref<{
-  channel: string
-  url: string
-} | undefined>(undefined)
-
-const isOpenQRCodeModal = computed({
-  get: () => !!selectedPurchaseLink.value,
-  set: (value) => {
-    if (!value) {
-      selectedPurchaseLink.value = undefined
-    }
-  },
-})
+const {
+  selectedPurchaseLink,
+  isOpenQRCodeModal,
+  copyLink: copyPurchaseLink,
+} = usePurchaseLinkActions<{ channel: string, url: string }>()
 
 function getQRCodeFilename(channel = '') {
   const filenameParts = [`${bookName || classId}`, `price_${priceIndex.value}`]
@@ -216,10 +208,6 @@ function getQRCodeFilename(channel = '') {
     filenameParts.push(`channel_${channel}`)
   }
   return filenameParts.join('_')
-}
-
-function copyPurchaseLink(text = '') {
-  copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadAllPurchaseLinks() {

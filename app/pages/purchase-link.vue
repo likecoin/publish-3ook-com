@@ -521,15 +521,11 @@ const linkTableColumns = computed(() => {
   return cols
 })
 
-const selectedPurchaseLink = ref<AffiliationLink | undefined>(undefined)
-const isOpenQRCodeModal = computed({
-  get: () => !!selectedPurchaseLink.value,
-  set: (value) => {
-    if (!value) {
-      selectedPurchaseLink.value = undefined
-    }
-  },
-})
+const {
+  selectedPurchaseLink,
+  isOpenQRCodeModal,
+  copyLink,
+} = usePurchaseLinkActions<AffiliationLink>({ copyEventName: 'purchase_link_copy' })
 
 async function fetchProductData(id: string) {
   const classData = await $fetch<ProductData>(`${LIKE_CO_API}/likernft/book/store/${id}`)
@@ -619,11 +615,6 @@ function getQRCodeFilename(link: AffiliationLink) {
     filenameParts.push(`channel-${link.channelId}`)
   }
   return filenameParts.join('_')
-}
-
-function copyLink(text = '') {
-  useLogEvent('purchase_link_copy')
-  copyToClipboard(text, $t('purchase_link.copied_to_clipboard'))
 }
 
 function downloadPurchaseLinksByTableRows(rows: AffiliationLink[] = [], channelId?: string) {
