@@ -106,23 +106,24 @@
 </template>
 
 <script setup lang="ts">
-import { parse as csvParse } from 'csv-parse/sync'
-
 const { t: $t } = useI18n()
-
-const CSV_HEADER = 'key,url'
 
 definePageMeta({ layout: 'page' })
 
 const { BOOK3_URL } = useRuntimeConfig().public
 
 const toast = useToast()
-const { consumeBatchInput } = useBatchLinkHandoff()
 
-const csvInput = ref('')
-const csvInputPlaceholder = `${CSV_HEADER}
-example01,https://example01.com
-example02,https://example02.com`
+const { csvInput, csvInputPlaceholder, handleFileChange, parseKeyUrlCsv } = useCsvKeyUrlInput({
+  sessionKey: SESSION_KEY_BATCH_QRCODE,
+  onLoaded: () => {
+    nextTick(() => {
+      if (csvInput.value) {
+        drawQRCodes()
+      }
+    })
+  },
+})
 
 const selectedQRCodeIcon = ref(DEFAULT_QR_CODE_ICON)
 const selectedQRCodeColor = ref(DEFAULT_QR_CODE_COLOR)
@@ -156,18 +157,6 @@ useSeoMeta({
   ogTitle: 'Batch Create Book QR Codes',
 })
 
-onMounted(() => {
-  const loadedInput = consumeBatchInput(SESSION_KEY_BATCH_QRCODE)
-  if (loadedInput) {
-    csvInput.value = loadedInput
-  }
-  nextTick(() => {
-    if (csvInput.value) {
-      drawQRCodes()
-    }
-  })
-})
-
 function getQRCodeStyleOptions() {
   return {
     image: selectedQRCodeIcon.value === 'none' ? undefined : getQRCodeIcon(selectedQRCodeIcon.value),
@@ -178,14 +167,7 @@ function getQRCodeStyleOptions() {
 
 async function drawQRCodes() {
   try {
-    let input = csvInput.value
-    if (!input.includes(CSV_HEADER)) {
-      input = `${CSV_HEADER}\n${input}`
-    }
-    urlItems.value = csvParse(input, {
-      columns: true,
-      skip_empty_lines: true,
-    }) as { key: string, url: string }[]
+    urlItems.value = parseKeyUrlCsv()
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -214,21 +196,6 @@ async function drawQRCodes() {
       element.querySelector('svg')?.setAttribute('viewBox', '0 0 300 300')
     }
   })
-}
-
-function handleFileChange(event: Event) {
-  const files = (event.target as HTMLInputElement)?.files
-  if (!files?.length) { return }
-  const file = files[0]
-  if (!file) { return }
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const text = e.target?.result
-    if (typeof text === 'string') {
-      csvInput.value = text
-    }
-  }
-  reader.readAsText(file)
 }
 
 function handleClickPrint() {

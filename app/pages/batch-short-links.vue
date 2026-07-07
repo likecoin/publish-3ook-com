@@ -139,15 +139,14 @@
 </template>
 
 <script setup lang="ts">
-import { parse as csvParse } from 'csv-parse/sync'
-
 const { t: $t } = useI18n()
 
 const { showErrorToast } = useToastComposable()
 const route = useRoute()
-const { goToBatchQRCodePage, consumeBatchInput } = useBatchLinkHandoff()
-
-const CSV_HEADER = 'key,url'
+const { goToBatchQRCodePage } = useBatchLinkHandoff()
+const { csvInput, csvInputPlaceholder, handleFileChange, parseKeyUrlCsv } = useCsvKeyUrlInput({
+  sessionKey: SESSION_KEY_BATCH_SHORTEN_URL,
+})
 
 enum ShortLinkProvider {
   Bitly = 'bitly',
@@ -168,10 +167,6 @@ const shouldShowShortLinkDomain = computed(() => shortLinkProvider.value === Sho
 const shortLinkDomain = ref('')
 
 const titlePrefix = ref(route.query.title_prefix as string || $t('batch_short_links.default_title_prefix'))
-const csvInput = ref('')
-const csvInputPlaceholder = `${CSV_HEADER}
-example01,https://example01.com,
-example02,https://example02.com,`
 const apiKey = ref('')
 const apiKeyLabel = computed(() => {
   switch (shortLinkProvider.value) {
@@ -188,13 +183,6 @@ const shortenedURLItems = ref<{ key: string, url: string, destination: string }[
 useSeoMeta({
   title: 'Batch Create Book Short Links',
   ogTitle: 'Batch Create Book Short Links',
-})
-
-onMounted(() => {
-  const loadedInput = consumeBatchInput(SESSION_KEY_BATCH_SHORTEN_URL)
-  if (loadedInput) {
-    csvInput.value = loadedInput
-  }
 })
 
 async function shortenURLWithBitly({ url, key }: { url: string, key: string }) {
@@ -259,14 +247,7 @@ async function shortenURLWithShortIO({ url, key }: { url: string, key: string })
 async function startShorteningURLs() {
   let urlItems: { key: string, url: string }[] = []
   try {
-    let input = csvInput.value
-    if (!input.includes(CSV_HEADER)) {
-      input = `${CSV_HEADER}\n${input}`
-    }
-    urlItems = csvParse(input, {
-      columns: true,
-      skip_empty_lines: true,
-    })
+    urlItems = parseKeyUrlCsv()
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -312,20 +293,5 @@ function downloadAllShortenedLinks() {
 
 async function convertToQRCode() {
   await goToBatchQRCodePage(shortenedURLItems.value)
-}
-
-function handleFileChange(event: Event) {
-  const files = (event.target as HTMLInputElement)?.files
-  if (!files?.length) { return }
-  const file = files[0]
-  if (!file) { return }
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const text = e.target?.result
-    if (typeof text === 'string') {
-      csvInput.value = text
-    }
-  }
-  reader.readAsText(file)
 }
 </script>
