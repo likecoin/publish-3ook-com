@@ -1,3 +1,17 @@
+export interface AffiliationLink {
+  productId: string
+  productName: string
+  selectedEditionLabel: string
+  selectedEditionIndex: number
+  channelId: string
+  channelName: string
+  utmCampaign: string
+  utmMedium: string
+  utmSource: string
+  url: string
+  qrCodeUrl: string
+}
+
 export interface PurchaseItem {
   id: string
   email: string
