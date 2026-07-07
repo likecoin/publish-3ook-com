@@ -50,65 +50,12 @@
         >
       </form>
 
-      <div
+      <UploadFileRecordList
         v-if="fileRecords.length"
-        class="flex flex-col w-full"
-      >
-        <table class="w-full">
-          <tbody class="w-full">
-            <tr
-              v-for="(
-                { fileData, fileName, fileSize, fileType }, index
-              ) of fileRecords"
-              :key="fileName"
-              class="flex justify-between items-center border-b-shade-gray border-b text-dark-gray hover:bg-light-gray transition-colors w-full"
-            >
-              <td class="py-[4px]">
-                <ImgPreviewer
-                  :file-type="fileType"
-                  :file-data="fileData"
-                  size="small"
-                />
-              </td>
-              <td>
-                <div class="flex flex-col">
-                  <p class="font-semibold text-gray-700">
-                    {{ fileName }}
-                  </p>
-                  <p class="text-gray-500 text-sm">
-                    {{ Math.round((fileSize || 0) * 0.001) }} KB
-                  </p>
-                  <p
-                    v-if="needsReselect(fileRecords[index])"
-                    class="text-yellow-600 text-xs"
-                    v-text="$t('upload_form.file_needs_reselect')"
-                  />
-                </div>
-              </td>
-              <td class="flex items-center gap-2">
-                <UIcon
-                  v-if="fileRecords[index]?.arweaveId"
-                  name="i-heroicons-check-circle"
-                  class="w-5 h-5 text-green-500"
-                  :title="$t('upload_form.file_already_uploaded')"
-                />
-                <UIcon
-                  v-if="fileRecords[index]?.hasValidationIssues"
-                  name="i-heroicons-exclamation-triangle"
-                  class="w-5 h-5 text-yellow-500 cursor-help"
-                  :title="$t('upload_form.epub_has_issues')"
-                  @click="showEpubIssuesForFile(fileRecords[index])"
-                />
-                <UIcon
-                  name="i-heroicons-trash"
-                  class="cursor-pointer text-red-500"
-                  @click="handleDeleteFile(index)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        :file-records="fileRecords"
+        @delete="handleDeleteFile"
+        @show-issues="showEpubIssuesForFile"
+      />
     </div>
     <URadioGroup
       v-model="drmOption"
@@ -142,138 +89,24 @@
       :remaining-uploads="arweaveRemainingUploads"
       :required-uploads="arweaveRequiredUploads"
     />
-    <UModal
-      :open="!!uploadStatus"
-      :dismissible="false"
-      class="p-4 gap-2"
-    >
-      <template #body>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <UBadge variant="soft">
-              {{ uploadStatus }}
-            </UBadge>
-            <p class="text-xs text-gray-500">
-              {{ $t('upload_form.do_not_close_upload') }}
-            </p>
-          </div>
-          <template v-if="totalFiles > 1">
-            <div class="flex items-center text-sm text-gray-600">
-              <span>{{ $t('upload_form.processing_file', { index: currentFileIndex, total: totalFiles }) }}</span>
-            </div>
-            <UProgress
-              :value="Math.round((completedFiles / totalFiles) * 100)"
-              color="primary"
-              class="w-full"
-            />
-          </template>
-          <UProgress
-            v-else
-            animation="carousel"
-            color="primary"
-            class="w-full"
-          />
-        </div>
-      </template>
-    </UModal>
-    <UModal v-model:open="showValidationWarning">
-      <template #body>
-        <div class="flex items-start gap-3 p-4">
-          <UIcon
-            name="i-heroicons-exclamation-triangle"
-            class="w-6 h-6 text-yellow-500 shrink-0 mt-0.5"
-          />
-          <div class="space-y-2">
-            <h3 class="font-semibold text-gray-900">
-              {{ $t('upload_form.validation_error') }}
-            </h3>
-            <p class="text-gray-600">
-              {{ validationErrorMessage }}
-            </p>
-            <p class="text-sm text-gray-500 whitespace-pre-line">
-              {{ $t('upload_form.valid_combinations') }}
-            </p>
-            <a
-              :href="PUBLISH_GUIDE_URL"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-sm text-primary-500 hover:text-primary-600 flex items-center gap-1"
-            >
-              <UIcon
-                name="i-heroicons-question-mark-circle"
-                class="w-4 h-4"
-              />
-              {{ $t('upload_form.help_link') }}
-            </a>
-          </div>
-        </div>
-      </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton
-            variant="outline"
-            color="neutral"
-            @click="showValidationWarning = false; pendingSubmitAfterConfirm = false"
-          >
-            {{ $t('upload_form.fix_files') }}
-          </UButton>
-          <UButton
-            v-if="canProceedAnyway"
-            color="warning"
-            @click="confirmProceedAnyway"
-          >
-            {{ $t('upload_form.proceed_anyway') }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
-    <UModal v-model:open="showEpubValidationModal">
-      <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon
-            name="i-heroicons-exclamation-triangle"
-            class="w-6 h-6 text-yellow-500 shrink-0"
-          />
-          <h3 class="font-semibold text-gray-900">
-            {{ $t('upload_form.epub_validation_title') }}
-          </h3>
-        </div>
-        <p class="text-sm text-gray-500 mt-2">
-          {{ $t('upload_form.epub_validation_notice') }}
-        </p>
-      </template>
-      <template #body>
-        <div class="max-h-[300px] overflow-y-auto space-y-2 text-sm">
-          <div
-            v-if="epubValidationErrors"
-            class="text-red-600"
-          >
-            <p class="font-semibold mb-1">
-              {{ $t('upload_form.epub_validation_errors') }}:
-            </p>
-            <pre class="whitespace-pre-wrap text-xs">{{ epubValidationErrors }}</pre>
-          </div>
-          <div
-            v-if="epubValidationWarnings"
-            class="text-yellow-600"
-          >
-            <p class="font-semibold mb-1">
-              {{ $t('upload_form.epub_validation_warnings') }}:
-            </p>
-            <pre class="whitespace-pre-wrap text-xs">{{ epubValidationWarnings }}</pre>
-          </div>
-        </div>
-      </template>
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          @click="showEpubValidationModal = false"
-        >
-          {{ $t('auth_state.close') }}
-        </UButton>
-      </template>
-    </UModal>
+    <UploadProgressModal
+      :upload-status="uploadStatus"
+      :current-file-index="currentFileIndex"
+      :total-files="totalFiles"
+      :completed-files="completedFiles"
+    />
+    <UploadValidationWarningModal
+      v-model:open="showValidationWarning"
+      :error-message="validationErrorMessage"
+      :can-proceed-anyway="canProceedAnyway"
+      @fix="pendingSubmitAfterConfirm = false"
+      @proceed="confirmProceedAnyway"
+    />
+    <UploadEpubIssuesModal
+      v-model:open="showEpubValidationModal"
+      :errors="epubValidationErrors"
+      :warnings="epubValidationWarnings"
+    />
   </div>
 </template>
 
@@ -710,10 +543,6 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }
       color: 'error',
     })
   }
-}
-
-const needsReselect = (record?: FileRecord) => {
-  return !!record && !record.fileBlob && !record.arweaveId
 }
 
 const showEpubIssuesForFile = (fileRecord: FileRecord) => {
