@@ -71,12 +71,12 @@
 <script setup lang="ts">
 import { whenever } from '@vueuse/core'
 
-const { LIKE_CO_API } = useRuntimeConfig().public
 const { t: $t } = useI18n()
 
+const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
 const stripeStore = useStripeStore()
-const { token, wallet } = storeToRefs(bookstoreApiStore)
+const { wallet } = storeToRefs(bookstoreApiStore)
 const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
 
 const { showErrorToast } = useToastComposable()
@@ -121,12 +121,9 @@ async function refreshStripeConnectStatus() {
 async function onLoginToStripe() {
   try {
     isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/connect/login`,
+    const data = await apiFetch('/likernft/book/user/connect/login',
       {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
       },
     )
     const url = (data as { url?: string }).url
@@ -151,12 +148,9 @@ async function onLoginToStripe() {
 async function onSetupStripe() {
   try {
     isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/connect/new`,
+    const data = await apiFetch('/likernft/book/user/connect/new',
       {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
       },
     )
     const url = (data as { url?: string }).url

@@ -132,10 +132,11 @@ import type { PurchaseItem, PlusReadingStats } from '~/types'
 
 const { t: $t } = useI18n()
 
-const { CHAIN_EXPLORER_URL, LIKE_CO_API } = useRuntimeConfig().public
+const { CHAIN_EXPLORER_URL } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
 const ordersStore = useOrdersStore()
-const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { ordersByClassIdMap } = storeToRefs(ordersStore)
 const { reduceListingPendingNFTCountById } = bookstoreApiStore
 
@@ -201,8 +202,7 @@ const plusReadingStatsColumns = computed(() => [
 async function fetchPlusReadingStats() {
   if (!isPlusReadingStatsEnabled.value) return
   try {
-    const data = await $fetch<PlusReadingStats>(`${LIKE_CO_API}/likernft/book/user/plus-reading/stats`, {
-      headers: { authorization: `Bearer ${token.value}` },
+    const data = await apiFetch<PlusReadingStats>('/likernft/book/user/plus-reading/stats', {
       query: { classId },
     })
     plusReadingStats.value = data?.stats || []
@@ -424,12 +424,9 @@ async function sendReminderEmail(purchase: PurchaseItem) {
     throw new Error('ORDER_NOT_FOUND')
   }
 
-  await $fetch(`${LIKE_CO_API}/likernft/book/purchase/${classId}/status/${purchase.id}/remind`,
+  await apiFetch(`/likernft/book/purchase/${classId}/status/${purchase.id}/remind`,
     {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
 
   toast.add({
@@ -456,15 +453,12 @@ async function hardSetStatusToCompleted(purchase: PurchaseItem) {
   mutableOrder.status = 'completed'
 
   try {
-    await $fetch(`${LIKE_CO_API}/likernft/book/purchase/${classId}/sent/${purchase.id}`,
+    await apiFetch(`/likernft/book/purchase/${classId}/sent/${purchase.id}`,
       {
         method: 'POST',
         body: {
           txHash: null,
           quantity: purchase.quantity || 1,
-        },
-        headers: {
-          authorization: `Bearer ${token.value}`,
         },
       })
   }

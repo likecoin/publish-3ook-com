@@ -71,11 +71,9 @@
 <script setup lang="ts">
 import { whenever } from '@vueuse/core'
 
-const { LIKE_CO_API } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 
 const localeRoute = useLocaleRoute()
-const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
 
 const error = ref('')
 const isLoading = ref(false)
@@ -90,12 +88,9 @@ whenever(isLoading, () => { error.value = '' })
 onMounted(async () => {
   try {
     isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/connect/refresh`,
+    const data = await apiFetch('/likernft/book/user/connect/refresh',
       {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
       },
     )
     isDone.value = (data as { isReady?: boolean }).isReady || false

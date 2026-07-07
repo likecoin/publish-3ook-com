@@ -141,7 +141,7 @@ const downloadExtMap: Record<Exclude<DetectedFileType, null>, string> = {
 
 const { t: $t } = useI18n()
 const route = useRoute()
-const bookstoreApiStore = useBookstoreApiStore()
+const apiFetch = useLikeCoApiFetch()
 const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
 
 // Read the raw query string so an unencoded inner URL (e.g. ?url=https://host/path?a=b&key=c)
@@ -235,9 +235,9 @@ async function resolveUrl(rawUrl: string): Promise<{ fileUrl: string, key?: stri
     }
     let res: { arweaveId?: string, key?: string, link?: string }
     try {
-      res = await $fetch<{ arweaveId?: string, key?: string, link?: string }>(rawUrl, {
+      // Absolute URL bypasses the wrapper's baseURL but still gets the auth header
+      res = await apiFetch<{ arweaveId?: string, key?: string, link?: string }>(rawUrl, {
         headers: {
-          authorization: `Bearer ${bookstoreApiStore.token}`,
           Accept: 'application/json',
         },
       })

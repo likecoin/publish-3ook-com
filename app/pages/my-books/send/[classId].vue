@@ -203,14 +203,14 @@ import { parseImageURLFromMetadata } from '~/utils'
 import { AUTHOR_MESSAGE_LIMIT } from '~/constant'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 
-const { LIKE_CO_API } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 
 const store = useWalletStore()
 const { wallet } = storeToRefs(store)
 const { validateWalletConsistency } = store
 
 const bookstoreApiStore = useBookstoreApiStore()
-const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const nftStore = useNftStore()
 const { lazyFetchClassMetadataById } = nftStore
@@ -274,12 +274,7 @@ watch(nftIdInput, (_, oldVal) => {
 }, { deep: true })
 
 onMounted(async () => {
-  const data = await $fetch(`${LIKE_CO_API}/likernft/book/purchase/${classId.value}/status/${paymentId.value}`,
-    {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+  const data = await apiFetch(`/likernft/book/purchase/${classId.value}/status/${paymentId.value}`)
   orderInfo.value = data as OrderInfo
   lazyFetchClassMetadataById(classId.value as string)
   await fetchNextNFTId(orderInfo.value.quantity || 1)
@@ -462,15 +457,12 @@ async function onSendNFTStart() {
     const txHash = await writeContractAsync(txParams)
     const receipt = await waitForTransactionReceipt({ hash: txHash })
     if (receipt?.status === 'success') {
-      await $fetch(`${LIKE_CO_API}/likernft/book/purchase/${classId.value}/sent/${paymentId.value}`,
+      await apiFetch(`/likernft/book/purchase/${classId.value}/sent/${paymentId.value}`,
         {
           method: 'POST',
           body: {
             txHash,
             quantity: orderInfo.value.quantity || 1,
-          },
-          headers: {
-            authorization: `Bearer ${token.value}`,
           },
         })
 

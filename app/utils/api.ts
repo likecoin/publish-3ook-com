@@ -102,13 +102,9 @@ export interface OrdersResponse {
   orders: OrderData[]
 }
 
-export async function fetchBookOrders(classId: string, token: string) {
-  const { LIKE_CO_API } = useRuntimeConfig().public
-  const result = await $fetch<OrdersResponse>(`${LIKE_CO_API}/likernft/book/purchase/${classId}/orders`, {
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
-  })
+export async function fetchBookOrders(classId: string) {
+  const apiFetch = useLikeCoApiFetch()
+  const result = await apiFetch<OrdersResponse>(`/likernft/book/purchase/${classId}/orders`)
   return result
 }
 

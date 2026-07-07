@@ -101,12 +101,11 @@
 <script setup lang="ts">
 import type { PlusReadingReport, PlusReadingReportEntry } from '~/types'
 
-const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
+const { BOOK3_URL } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 const { t: $t } = useI18n()
 
 const nftStore = useNftStore()
-const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
 
 const { showErrorToast } = useToastComposable()
 const error = ref('')
@@ -144,11 +143,7 @@ async function loadReport() {
   try {
     isLoading.value = true
     error.value = ''
-    const data = await $fetch<PlusReadingReport>(`${LIKE_CO_API}/likernft/book/user/plus-reading/report`, {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+    const data = await apiFetch<PlusReadingReport>('/likernft/book/user/plus-reading/report')
     payouts.value = data?.payouts || []
     summary.value = data?.summary || summary.value
 

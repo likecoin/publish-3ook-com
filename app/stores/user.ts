@@ -1,8 +1,8 @@
 export const useUserStore = defineStore('user', () => {
-  const { LIKE_CO_API } = useRuntimeConfig().public
+  const apiFetch = useLikeCoApiFetch()
 
   const bookstoreApiStore = useBookstoreApiStore()
-  const { token, isAuthenticated, wallet } = storeToRefs(bookstoreApiStore)
+  const { isAuthenticated, wallet } = storeToRefs(bookstoreApiStore)
   const likerStore = useLikerStore()
 
   const bookUser = ref<Record<string, unknown> | null>(null)
@@ -15,14 +15,7 @@ export const useUserStore = defineStore('user', () => {
   const isFetchingUserLikerInfo = ref(false)
 
   async function fetchBookUserProfile() {
-    const data = await $fetch(
-      `${LIKE_CO_API}/likernft/book/user/profile`,
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
-      },
-    )
+    const data = await apiFetch('/likernft/book/user/profile')
     bookUser.value = data as Record<string, unknown>
     return bookUser.value
   }

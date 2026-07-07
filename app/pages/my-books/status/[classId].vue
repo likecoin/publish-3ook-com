@@ -98,10 +98,11 @@ const { t: $t } = useI18n()
 
 const AUTHOR_RESERVED_NFT_COUNT = 1
 
-const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
+const { BOOK3_URL } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
 const nftStore = useNftStore()
-const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
 const { getBalanceOf } = useNFTContractReader()
 
@@ -175,12 +176,7 @@ onMounted(async () => {
 })
 
 async function refreshListingInfo() {
-  const classData = await $fetch<ClassListingData>(`${LIKE_CO_API}/likernft/book/store/${classId.value}`,
-    {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+  const classData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId.value}`)
   classListingInfo.value = classData
   prices.value = classListingInfo.value.prices
 }

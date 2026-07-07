@@ -24,7 +24,7 @@ const PAID_ORDER_STATUSES = new Set(['paid', 'pendingNFT', 'completed'])
 
 export const useOrdersStore = defineStore('orders', () => {
   const bookstoreApiStore = useBookstoreApiStore()
-  const { token, isAuthenticated } = storeToRefs(bookstoreApiStore)
+  const { isAuthenticated } = storeToRefs(bookstoreApiStore)
 
   const booksInfo = ref<Record<string, BookInfo>>({})
   const allOrders = ref<(OrderData & { classId: string })[]>([])
@@ -130,7 +130,7 @@ export const useOrdersStore = defineStore('orders', () => {
 
     for (const classId of classIds) {
       try {
-        const ordersData = await fetchBookOrders(classId, token.value)
+        const ordersData = await fetchBookOrders(classId)
         const classOrders = ordersData?.orders || []
         if (classOrders.length > 0) {
           orders.push(...classOrders.map(order => ({ ...order, classId })))

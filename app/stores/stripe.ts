@@ -17,10 +17,7 @@ function getStripeConnectStatusDefault(): StripeConnectStatus {
 }
 
 export const useStripeStore = defineStore('stripe-connect', () => {
-  const { LIKE_CO_API } = useRuntimeConfig().public
-
-  const bookstoreApiStore = useBookstoreApiStore()
-  const { token } = storeToRefs(bookstoreApiStore)
+  const apiFetch = useLikeCoApiFetch()
 
   const stripeConnectStatusWalletMap = ref({} as Record<string, StripeConnectStatus>)
 
@@ -32,10 +29,7 @@ export const useStripeStore = defineStore('stripe-connect', () => {
     if (!stripeConnectStatusWalletMap.value[wallet]) {
       stripeConnectStatusWalletMap.value[wallet] = getStripeConnectStatusDefault()
     }
-    const data = await $fetch<StripeConnectStatus>(`${LIKE_CO_API}/likernft/book/user/connect/status`, {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
+    const data = await apiFetch<StripeConnectStatus>('/likernft/book/user/connect/status', {
       query: {
         wallet,
       },
@@ -53,11 +47,8 @@ export const useStripeStore = defineStore('stripe-connect', () => {
     const currentStatus = stripeConnectStatusWalletMap.value[wallet]
 
     if (currentStatus?.hasAccount && !currentStatus?.isReady) {
-      const data = await $fetch<StripeRefreshResponse>(`${LIKE_CO_API}/likernft/book/user/connect/refresh`, {
+      const data = await apiFetch<StripeRefreshResponse>('/likernft/book/user/connect/refresh', {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
       })
 
       if (data.isReady) {

@@ -69,10 +69,10 @@ import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
-const { LIKE_CO_API } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
 const { updateEditionPrice, addEditionPrice, uploadSignImages } = bookstoreApiStore
-const { token, wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { showErrorToast } = useToastComposable()
 
 const { classId, editionIndex, isNewEdition = false } = defineProps<{
@@ -109,11 +109,7 @@ const settings = ref<PricingFormSettings>({
 onMounted(async () => {
   try {
     isLoading.value = true
-    const classResData = await $fetch<ClassListingData>(`${LIKE_CO_API}/likernft/book/store/${classId}`, {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+    const classResData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId}`)
     if (!classResData) {
       throw new Error($t('errors.nft_class_not_found'))
     }

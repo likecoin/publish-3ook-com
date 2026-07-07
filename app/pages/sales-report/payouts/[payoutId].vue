@@ -128,9 +128,7 @@ import type { PayoutData, PayoutItemDetail } from '~/types'
 
 const { t: $t } = useI18n()
 
-const { LIKE_CO_API } = useRuntimeConfig().public
-const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
+const apiFetch = useLikeCoApiFetch()
 
 const route = useRoute()
 const payoutId = ref(route.params.payoutId as string)
@@ -147,9 +145,7 @@ const isModalMetadataOpen = computed({
 
 const { data: payoutData, status: fetchStatus, error: fetchError } = useLazyAsyncData(
   `payout-${payoutId.value}`,
-  () => $fetch(`${LIKE_CO_API}/likernft/book/user/payouts/${payoutId.value}`, {
-    headers: { authorization: `Bearer ${token.value}` },
-  }) as Promise<PayoutData>,
+  () => apiFetch(`/likernft/book/user/payouts/${payoutId.value}`) as Promise<PayoutData>,
   { server: false, default: () => ({} as PayoutData) },
 )
 

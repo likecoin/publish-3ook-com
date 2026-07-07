@@ -2,7 +2,7 @@ import { jwtDecode } from 'jwt-decode'
 import type { AuthResponse, BookListingItem, BookListingResponse } from '~/utils/api'
 
 export const useBookstoreApiStore = defineStore('book-api', () => {
-  const { LIKE_CO_API } = useRuntimeConfig().public
+  const apiFetch = useLikeCoApiFetch()
   const token = ref('')
   const sessionWallet = ref('')
   const intercomToken = ref('')
@@ -57,7 +57,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
   }
 
   async function authenticate(inputWallet: string, signature: { signature: string, message: string, wallet: string, signMethod: string, expiresIn: string }) {
-    const data = await $fetch<AuthResponse>(`${LIKE_CO_API}/wallet/authorize`, {
+    const data = await apiFetch<AuthResponse>('/wallet/authorize', {
       method: 'POST',
       body: {
         ...signature,
@@ -79,12 +79,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     if (params.key) {
       qsPayload.key = params.key
     }
-    const data = await $fetch<BookListingResponse>(`${LIKE_CO_API}/likernft/book/store/list?${Object.entries(qsPayload).map(([key, value]) => `${key}=${value}`).join('&')}`,
-      {
-        headers: {
-          authorization: token.value ? `Bearer ${token.value}` : '',
-        },
-      })
+    const data = await apiFetch<BookListingResponse>(`/likernft/book/store/list?${Object.entries(qsPayload).map(([key, value]) => `${key}=${value}`).join('&')}`)
 
     const { nextKey, list = [] } = data || {}
     if (params.key) {
@@ -108,13 +103,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     if (params.key) {
       qsPayload.key = params.key
     }
-    const data = await $fetch<BookListingResponse>(`${LIKE_CO_API}/likernft/book/store/list/moderated?${Object.entries(qsPayload).map(([key, value]) => `${key}=${value}`).join('&')}`,
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`,
-        },
-      },
-    )
+    const data = await apiFetch<BookListingResponse>(`/likernft/book/store/list/moderated?${Object.entries(qsPayload).map(([key, value]) => `${key}=${value}`).join('&')}`)
     moderatedBookList.value = data?.list || []
   }
 
@@ -130,66 +119,48 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
   }
 
   async function newBookListing(classId: string, payload: Record<string, unknown>) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/new`, {
+    const data = await apiFetch(`/likernft/book/store/${classId}/new`, {
       method: 'POST',
       body: payload,
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }
 
   async function updateBookListingSetting(classId: string, payload: Record<string, unknown>) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/settings`, {
+    const data = await apiFetch(`/likernft/book/store/${classId}/settings`, {
       method: 'POST',
       body: payload,
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }
 
   async function updateEditionPrice(classId: string, priceIndex: number | string, payload: Record<string, unknown>) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/price/${priceIndex}`, {
+    const data = await apiFetch(`/likernft/book/store/${classId}/price/${priceIndex}`, {
       method: 'PUT',
       body: payload,
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }
 
   async function addEditionPrice(classId: string, priceIndex: string, payload: Record<string, unknown>) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/price/${priceIndex}`, {
+    const data = await apiFetch(`/likernft/book/store/${classId}/price/${priceIndex}`, {
       method: 'POST',
       body: payload,
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }
 
   async function refreshBookMetadata(classId: string) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/class/${classId}/refresh`, {
+    const data = await apiFetch(`/likernft/book/store/class/${classId}/refresh`, {
       method: 'POST',
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }
 
   async function uploadSignImages(payload: FormData, classId: string) {
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/image/upload`, {
+    const data = await apiFetch(`/likernft/book/store/${classId}/image/upload`, {
       method: 'POST',
       body: payload,
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
     })
     return data
   }

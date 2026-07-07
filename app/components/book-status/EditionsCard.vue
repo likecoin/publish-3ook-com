@@ -115,9 +115,7 @@ import { MAX_EDITION_COUNT } from '~/constant'
 
 const { t: $t } = useI18n()
 
-const { LIKE_CO_API } = useRuntimeConfig().public
-const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
+const apiFetch = useLikeCoApiFetch()
 const localeRoute = useLocaleRoute()
 const toast = useToast()
 
@@ -205,11 +203,8 @@ async function movePrice(fromIndex: number, toIndex: number) {
     const edition = prices.value[fromIndex]
     if (!edition) { return }
     const priceIndex = edition.index
-    await $fetch(`${LIKE_CO_API}/likernft/book/store/${classId}/price/${priceIndex}/order`, {
+    await apiFetch(`/likernft/book/store/${classId}/price/${priceIndex}/order`, {
       method: 'PUT',
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
       body: {
         order: toIndex,
       },

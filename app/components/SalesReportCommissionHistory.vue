@@ -160,13 +160,14 @@
 import { whenever } from '@vueuse/core'
 import type { CommissionRow, PayoutRow } from '~/types'
 
-const { LIKE_CO_API, BOOK3_URL } = useRuntimeConfig().public
+const { BOOK3_URL } = useRuntimeConfig().public
+const apiFetch = useLikeCoApiFetch()
 const { t: $t } = useI18n()
 
 const nftStore = useNftStore()
 const bookstoreApiStore = useBookstoreApiStore()
 
-const { token, wallet } = storeToRefs(bookstoreApiStore)
+const { wallet } = storeToRefs(bookstoreApiStore)
 const localeRoute = useLocaleRoute()
 const stripeStore = useStripeStore()
 const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
@@ -237,11 +238,7 @@ const payoutHistoryRows = computed(() => {
 async function loadCommissionHistory() {
   try {
     isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/commissions/list`, {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+    const data = await apiFetch('/likernft/book/user/commissions/list')
     commissionHistory.value = (data as { commissions?: CommissionRow[] })?.commissions || []
 
     const classIds = new Set<string>(commissionHistory.value
@@ -263,11 +260,7 @@ async function loadPayoutHistory() {
   if (!isStripeConnectReady.value) return
   try {
     isLoading.value = true
-    const data = await $fetch(`${LIKE_CO_API}/likernft/book/user/payouts/list`, {
-      headers: {
-        authorization: `Bearer ${token.value}`,
-      },
-    })
+    const data = await apiFetch('/likernft/book/user/payouts/list')
     payoutHistory.value = (data as { payouts?: PayoutRow[] })?.payouts || []
   }
   catch (e) {
