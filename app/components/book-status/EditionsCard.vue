@@ -117,7 +117,7 @@ const { t: $t } = useI18n()
 
 const apiFetch = useLikeCoApiFetch()
 const localeRoute = useLocaleRoute()
-const toast = useToast()
+const { showSuccessToast } = useToastComposable()
 
 const { classId, userIsOwner = false, stockBalance = 0 } = defineProps<{
   classId: string
@@ -210,12 +210,7 @@ async function movePrice(fromIndex: number, toIndex: number) {
       },
     })
     prices.value = newPrices.map((p, order) => ({ ...p, order }))
-    toast.add({
-      icon: 'i-heroicons-check-circle',
-      title: $t('pages.updated_editions_order'),
-      duration: 2000,
-      color: 'success',
-    })
+    showSuccessToast($t('pages.updated_editions_order'))
   }
   catch (err) {
     emit('error', (err as Error).toString())

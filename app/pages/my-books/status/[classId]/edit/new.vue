@@ -28,7 +28,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const localeRoute = useLocaleRoute()
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 
 const classId = ref(route.params.classId?.toString() || '')
 const newEditionIndex = computed(() => {
@@ -48,12 +48,7 @@ async function handleNewBookSubmit() {
     const errorData = (err as { data?: string }).data || err
     // eslint-disable-next-line no-console
     console.error(errorData)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: String(errorData),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast(String(errorData), { duration: 0 })
   }
   finally {
     isLoading.value = false

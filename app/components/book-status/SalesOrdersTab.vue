@@ -143,7 +143,7 @@ const { reduceListingPendingNFTCountById } = bookstoreApiStore
 const route = useRoute()
 const isPlusReadingStatsEnabled = computed(() => route.query.time_stats === '1')
 const localeRoute = useLocaleRoute()
-const toast = useToast()
+const { showSuccessToast } = useToastComposable()
 
 const { classId, ownerWallet } = defineProps<{
   classId: string
@@ -429,12 +429,7 @@ async function sendReminderEmail(purchase: PurchaseItem) {
       method: 'POST',
     })
 
-  toast.add({
-    icon: 'i-heroicons-check-circle',
-    title: $t('status_page.send_reminder_email'),
-    duration: 2000,
-    color: 'success',
-  })
+  showSuccessToast($t('status_page.send_reminder_email'))
 }
 
 async function hardSetStatusToCompleted(purchase: PurchaseItem) {

@@ -211,7 +211,7 @@ import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
 import { isContentFingerprintEncrypted, createEmptyISCNFormData } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
-const toast = useToast()
+const { showSuccessToast, showInfoToast, showErrorToast } = useToastComposable()
 
 const bookstoreApiStore = useBookstoreApiStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
@@ -423,12 +423,7 @@ async function handleSave() {
     let isListingDirty = listingSnapshot.value !== currentListingSnapshot()
 
     if (!isChainDirty && !isListingDirty) {
-      toast.add({
-        icon: 'i-heroicons-information-circle',
-        title: $t('status_page.no_changes'),
-        duration: 2000,
-        color: 'info',
-      })
+      showInfoToast($t('status_page.no_changes'))
       isEditing.value = false
       return
     }
@@ -473,12 +468,7 @@ async function handleSave() {
       listingSnapshot.value = currentListingSnapshot()
     }
 
-    toast.add({
-      icon: 'i-heroicons-check-circle',
-      title: $t('status_page.settings_saved'),
-      duration: 2000,
-      color: 'success',
-    })
+    showSuccessToast($t('status_page.settings_saved'))
     isEditing.value = false
     emit('saved')
   }
@@ -486,12 +476,7 @@ async function handleSave() {
     const errorData = (err as { data?: string }).data || err
     // eslint-disable-next-line no-console
     console.error(errorData)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: String(errorData),
-      duration: 5000,
-      color: 'error',
-    })
+    showErrorToast(String(errorData), { duration: 5000 })
   }
   finally {
     isSaving.value = false

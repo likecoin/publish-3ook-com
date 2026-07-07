@@ -431,7 +431,7 @@ const userStore = useUserStore()
 const { userLikerInfo } = storeToRefs(userStore)
 const route = useRoute()
 const localeRoute = useLocaleRoute()
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 const { t: $t } = useI18n()
 const { openBatchQRCodePopup, goToBatchShortLinks } = useBatchLinkHandoff()
 
@@ -900,12 +900,7 @@ async function createAffiliationLink() {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('purchase_link.failed_create_link'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('purchase_link.failed_create_link'), { duration: 0 })
     isSharingMode.value = false
   }
   finally {
@@ -965,12 +960,7 @@ function printQRCodesByTableRows(rows: AffiliationLink[] = []) {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('purchase_link.failed_print_qr'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('purchase_link.failed_print_qr'), { duration: 0 })
   }
 }
 
@@ -989,12 +979,7 @@ function shortenLinksByTableRows(rows: AffiliationLink[] = []) {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('purchase_link.failed_shorten_links'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('purchase_link.failed_shorten_links'), { duration: 0 })
   }
 }
 

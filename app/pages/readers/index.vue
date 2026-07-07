@@ -25,14 +25,9 @@
       </div>
     </div>
 
-    <UAlert
-      v-if="ordersStore.error"
-      icon="i-heroicons-exclamation-triangle"
-      color="error"
-      variant="soft"
-      :title="ordersStore.error"
-      :close="{ icon: 'i-heroicons-x-mark-20-solid', color: 'error', variant: 'link' }"
-      @close="ordersStore.clearError()"
+    <AppErrorAlert
+      :model-value="ordersStore.error || ''"
+      @update:model-value="ordersStore.clearError()"
     />
 
     <UCard :ui="{ body: 'p-0!' }">

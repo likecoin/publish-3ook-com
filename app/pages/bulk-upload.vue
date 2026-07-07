@@ -485,7 +485,7 @@ import {
 } from '~/utils/bulkUploadSession'
 
 const { t: $t } = useI18n()
-const toast = useToast()
+const { showSuccessToast, showErrorToast } = useToastComposable()
 const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
 const { processBooksSequentially, isMintTransactionConfirmed, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
@@ -733,19 +733,10 @@ async function parseCSV(csvContent: string) {
     books.value = parsedBooks
     currentStep.value = 'files'
 
-    toast.add({
-      icon: 'i-heroicons-check-circle',
-      title: $t('bulk_upload.csv_parsed_success', { count: parsedBooks.length }),
-      color: 'success',
-    })
+    showSuccessToast($t('bulk_upload.csv_parsed_success', { count: parsedBooks.length }))
   }
   catch (error: any) {
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('bulk_upload.csv_parse_error'),
-      description: error.message,
-      color: 'error',
-    })
+    showErrorToast($t('bulk_upload.csv_parse_error'), { description: error.message })
   }
 }
 
@@ -952,22 +943,11 @@ async function startProcessing() {
       }
     },
     onError: (_bookId, error) => {
-      toast.add({
-        icon: 'i-heroicons-exclamation-circle',
-        title: $t('bulk_upload.book_failed'),
-        description: error,
-        color: 'error',
-        duration: 5000,
-      })
+      showErrorToast($t('bulk_upload.book_failed'), { description: error, duration: 5000 })
     },
     onBookComplete: (book, success) => {
       if (success) {
-        toast.add({
-          icon: 'i-heroicons-check-circle',
-          title: $t('bulk_upload.book_completed', { title: book.title }),
-          color: 'success',
-          duration: 3000,
-        })
+        showSuccessToast($t('bulk_upload.book_completed', { title: book.title }), { duration: 3000 })
       }
     },
     shouldContinue: () => !isPaused.value,
@@ -977,11 +957,7 @@ async function startProcessing() {
 
   if (completedBooks.value.length === books.value.length) {
     clearBulkUploadSession()
-    toast.add({
-      icon: 'i-heroicons-check-circle',
-      title: $t('bulk_upload.all_completed'),
-      color: 'success',
-    })
+    showSuccessToast($t('bulk_upload.all_completed'))
   }
 }
 

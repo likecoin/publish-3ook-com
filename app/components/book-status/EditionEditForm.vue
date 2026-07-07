@@ -1,18 +1,6 @@
 <template>
   <div class="flex flex-col gap-4">
-    <UAlert
-      v-if="error"
-      icon="i-heroicons-exclamation-triangle"
-      color="error"
-      variant="soft"
-      :title="`${error}`"
-      :close="{
-        icon: 'i-heroicons-x-mark-20-solid',
-        color: 'error',
-        variant: 'link',
-      }"
-      @close="error = ''"
-    />
+    <AppErrorAlert v-model="error" />
 
     <!-- Per-edition fields only; class-level listing settings live in the
          status page's Book details tab. -->

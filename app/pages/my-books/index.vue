@@ -1,14 +1,8 @@
 <template>
   <PageBody :ui="{ constrained: '' }">
-    <UAlert
-      v-if="error"
+    <AppErrorAlert
+      v-model="error"
       class="mt-4"
-      icon="i-heroicons-exclamation-triangle"
-      color="error"
-      variant="soft"
-      :title="`${error}`"
-      :close="{ icon: 'i-heroicons-x-mark-20-solid', color: 'error', variant: 'link' }"
-      @close="error = ''"
     />
 
     <UProgress

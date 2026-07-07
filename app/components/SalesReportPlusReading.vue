@@ -1,14 +1,6 @@
 <template>
   <div class="space-y-6">
-    <UAlert
-      v-if="error"
-      icon="i-heroicons-exclamation-triangle"
-      color="error"
-      variant="soft"
-      :title="`${error}`"
-      :close="{ icon: 'i-heroicons-x-mark-20-solid', color: 'error', variant: 'link' }"
-      @close="error = ''"
-    />
+    <AppErrorAlert v-model="error" />
 
     <UCard
       :ui="{

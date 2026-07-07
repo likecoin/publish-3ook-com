@@ -161,7 +161,7 @@ import type { ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
 
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 const { openBatchQRCodePopup, goToBatchShortLinks } = useBatchLinkHandoff()
 
 const { classId, prices, bookName = '' } = defineProps<{
@@ -237,12 +237,7 @@ function printAllQRCodes() {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('purchase_link.failed_print_qr'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('purchase_link.failed_print_qr'), { duration: 0 })
   }
 }
 
@@ -253,12 +248,7 @@ async function shortenAllLinks() {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('purchase_link.failed_shorten_links'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('purchase_link.failed_shorten_links'), { duration: 0 })
   }
 }
 </script>

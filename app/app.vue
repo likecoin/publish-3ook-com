@@ -71,7 +71,7 @@ const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBy
 const userStore = useUserStore()
 const { userLikerInfo } = storeToRefs(userStore)
 const uiStore = useUIStore()
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 
 // Re-identify Intercom once likerId is known. Intercom's identity
 // verification requires `user_id === likerId` (see `useSetIntercomUser`),
@@ -154,12 +154,7 @@ onMounted(async () => {
   }
   catch (error) {
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: `${(error as Error).toString()}, please re-login`,
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast(`${(error as Error).toString()}, please re-login`, { duration: 0 })
     clearSession()
   }
   finally {

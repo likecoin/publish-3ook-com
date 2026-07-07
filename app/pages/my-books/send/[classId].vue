@@ -4,15 +4,10 @@
       Deliver NFT Book "{{ nftClassName || classId }}"
     </h1>
 
-    <UAlert
-      v-if="error.message"
-      icon="i-heroicons-exclamation-triangle"
-      color="error"
-      variant="soft"
-      :title="`${error.message}`"
+    <AppErrorAlert
+      :model-value="error.message"
       :actions="error.actions"
-      :close="{ icon: 'i-heroicons-x-mark-20-solid', color: 'error', variant: 'link' }"
-      @close="error = { message: '', actions: [] }"
+      @update:model-value="error = { message: '', actions: [] }"
     />
 
     <UProgress

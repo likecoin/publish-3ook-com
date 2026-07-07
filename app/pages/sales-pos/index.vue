@@ -306,6 +306,7 @@ const { t: $t } = useI18n()
 
 const route = useRoute()
 const toast = useToast()
+const { showSuccessToast } = useToastComposable()
 const { BOOK3_URL } = useRuntimeConfig().public
 const nftStore = useNftStore()
 
@@ -527,11 +528,7 @@ function addCouponCode() {
   coupons.value.push({ name: newCouponNameInput.value, code: newCouponCodeInput.value })
   newCouponNameInput.value = ''
   newCouponCodeInput.value = ''
-  toast.add({
-    title: 'Added coupon',
-    duration: 2000,
-    color: 'success',
-  })
+  showSuccessToast('Added coupon')
   isOpenNewCouponModal.value = false
 }
 

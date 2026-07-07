@@ -112,7 +112,7 @@ definePageMeta({ layout: 'page' })
 
 const { BOOK3_URL } = useRuntimeConfig().public
 
-const toast = useToast()
+const { showErrorToast } = useToastComposable()
 
 const { csvInput, csvInputPlaceholder, handleFileChange, parseKeyUrlCsv } = useCsvKeyUrlInput({
   sessionKey: SESSION_KEY_BATCH_QRCODE,
@@ -172,12 +172,7 @@ async function drawQRCodes() {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('batch_qrcode.parse_csv_error'),
-      duration: 0,
-      color: 'error',
-    })
+    showErrorToast($t('batch_qrcode.parse_csv_error'), { duration: 0 })
   }
 
   const { default: QRCodeStyling } = await import('@likecoin/qr-code-styling')
