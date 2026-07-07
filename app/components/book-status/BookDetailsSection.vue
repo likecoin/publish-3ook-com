@@ -84,48 +84,12 @@
         v-text="$t('nft_book_form.sale_settings')"
       />
 
-      <UFormField class="flex items-center">
-        <UTooltip
-          class="flex items-center gap-2"
-          :text="$t('nft_book_form.is_adult_only_tooltip')"
-        >
-          <UCheckbox
-            v-model="isAdultOnly"
-            name="isAdultOnly"
-            :label="$t('nft_book_form.is_adult_only')"
-          />
-
-          <UIcon name="i-heroicons-question-mark-circle" />
-        </UTooltip>
-      </UFormField>
-
-      <UFormField :label="$t('nft_book_form.ai_audio')">
-        <URadioGroup
-          v-model="hideAudioRadio"
-          :items="[
-            { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
-            { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
-          ]"
-          orientation="vertical"
-        />
-      </UFormField>
-
-      <UFormField :label="$t('nft_book_form.plus_reading')">
-        <URadioGroup
-          v-model="isPlusReadingEnabledRadio"
-          :disabled="isFreeBook"
-          :items="[
-            { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
-            { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
-          ]"
-          orientation="vertical"
-        />
-        <p
-          v-if="isFreeBook"
-          class="text-muted text-[12px] mt-1"
-          v-text="$t('nft_book_form.plus_reading_free_forced')"
-        />
-      </UFormField>
+      <BookSettingsFields
+        v-model:is-adult-only="isAdultOnly"
+        v-model:hide-audio="hideAudio"
+        v-model:is-plus-reading-enabled="isPlusReadingEnabled"
+        :is-free-book="isFreeBook"
+      />
 
       <ToggleTextarea
         v-model="descriptionFull"
@@ -238,38 +202,26 @@ const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData({
 const iscnChainData = ref({} as ClassMetadata)
 const { payload } = useISCN({ iscnFormData, iscnChainData })
 
-// Listing-owned fields (REST /settings)
-const isAdultOnly = ref(false)
-const hideAudio = ref(false)
-const hideDownload = ref(false)
-const isPlusReadingEnabled = ref(false)
-const mustClaimToView = ref(true)
-const enableCustomMessagePage = ref(true)
-const descriptionFull = ref<string | undefined>('')
-const tableOfContents = ref('')
-const moderatorWallets = ref<string[]>([])
-const moderatorWalletInput = ref('')
-const connectedWallets = ref<Record<string, number> | null>(null)
-// Snapshot of the listing fields taken on load/save; save only POSTs when the
-// current values diverge from it.
-const listingSnapshot = ref('')
-
-const hideAudioRadio = computed({
-  get: () => (hideAudio.value ? 'forbid' : 'allow'),
-  set: (val: string) => { hideAudio.value = val === 'forbid' },
-})
-
-const isPlusReadingEnabledRadio = computed({
-  get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
-  set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
-})
-
 const isFreeBook = computed(() => (classListingInfo.prices || []).some(p => Number(p.price) === 0))
 
-// Free books always opt into Plus all-you-can-read; force the flag on.
-watch(isFreeBook, (isFree) => {
-  if (isFree) { isPlusReadingEnabled.value = true }
+// Listing-owned fields (REST /settings)
+const {
+  isAdultOnly,
+  hideAudio,
+  hideDownload,
+  isPlusReadingEnabled,
+  descriptionFull,
+  tableOfContents,
+  moderatorWallets,
+  isListingSettingsDirty,
+  commitListingSnapshot,
+  restoreListingFromSnapshot,
+  buildSettingsPayload,
+} = useBookListingSettings({
+  classListingInfo: () => classListingInfo,
+  isFreeBook,
 })
+const moderatorWalletInput = ref('')
 
 const userIsOwner = computed(() => sessionWallet.value && classListingInfo.ownerWallet === sessionWallet.value)
 
@@ -327,38 +279,6 @@ const readOnlyRows = computed(() => [
   },
 ])
 
-function currentListingSnapshot(): string {
-  return JSON.stringify({
-    isAdultOnly: isAdultOnly.value,
-    hideAudio: hideAudio.value,
-    hideDownload: hideDownload.value,
-    isPlusReadingEnabled: isPlusReadingEnabled.value,
-    descriptionFull: descriptionFull.value ?? '',
-    tableOfContents: tableOfContents.value,
-    moderatorWallets: moderatorWallets.value,
-  })
-}
-
-function initListingFieldsFromInfo() {
-  moderatorWallets.value = [...(classListingInfo.moderatorWallets || [])]
-  connectedWallets.value = classListingInfo.connectedWallets || null
-  mustClaimToView.value = classListingInfo.mustClaimToView ?? true
-  hideDownload.value = classListingInfo.hideDownload ?? false
-  hideAudio.value = classListingInfo.hideAudio ?? false
-  isAdultOnly.value = classListingInfo.isAdultOnly ?? false
-  // Legacy books default to opt-out; free books always opt in regardless of stored value.
-  isPlusReadingEnabled.value = isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
-  enableCustomMessagePage.value = classListingInfo.enableCustomMessagePage ?? true
-  tableOfContents.value = classListingInfo.tableOfContents ?? ''
-  descriptionFull.value = classListingInfo.descriptionFull ?? ''
-  listingSnapshot.value = currentListingSnapshot()
-}
-
-watch(() => classListingInfo.ownerWallet, () => {
-  // The page fetches listing info async; (re-)init once it arrives.
-  initListingFieldsFromInfo()
-}, { immediate: true })
-
 async function loadChainMetadata() {
   try {
     isISCNLoading.value = true
@@ -393,19 +313,7 @@ async function handleCancel() {
   // Discard edits: reload chain form from (cached) metadata and restore the
   // listing fields from the last saved snapshot.
   await loadChainMetadata()
-  try {
-    const snapshot = JSON.parse(listingSnapshot.value)
-    isAdultOnly.value = snapshot.isAdultOnly
-    hideAudio.value = snapshot.hideAudio
-    hideDownload.value = snapshot.hideDownload
-    isPlusReadingEnabled.value = snapshot.isPlusReadingEnabled
-    descriptionFull.value = snapshot.descriptionFull
-    tableOfContents.value = snapshot.tableOfContents
-    moderatorWallets.value = snapshot.moderatorWallets
-  }
-  catch {
-    initListingFieldsFromInfo()
-  }
+  restoreListingFromSnapshot()
   moderatorWalletInput.value = ''
   isEditing.value = false
 }
@@ -420,7 +328,7 @@ async function handleSave() {
     // Decide both dirty states up-front: chain tx only if on-chain fields
     // changed, settings POST only if listing fields changed.
     const isChainDirty = !!iscnFormRef.value?.hasUnsavedChanges
-    let isListingDirty = listingSnapshot.value !== currentListingSnapshot()
+    let isListingDirty = isListingSettingsDirty()
 
     if (!isChainDirty && !isListingDirty) {
       showInfoToast($t('status_page.no_changes'))
@@ -449,23 +357,8 @@ async function handleSave() {
     }
 
     if (isListingDirty) {
-      // Echo back loaded-but-uneditable fields (mustClaimToView,
-      // connectedWallets, enableCustomMessagePage) so the API keeps them.
-      await updateBookListingSetting(classId, {
-        moderatorWallets: moderatorWallets.value,
-        connectedWallets: connectedWallets.value,
-        hideDownload: hideDownload.value,
-        hideAudio: hideAudio.value,
-        isAdultOnly: isAdultOnly.value,
-        isPlusReadingEnabled: isPlusReadingEnabled.value,
-        mustClaimToView: mustClaimToView.value,
-        tableOfContents: tableOfContents.value,
-        // Toggling the field off sets this to undefined; send '' so the listing
-        // value is cleared instead of omitted (which would keep the old value).
-        descriptionFull: descriptionFull.value ?? '',
-        enableCustomMessagePage: enableCustomMessagePage.value,
-      })
-      listingSnapshot.value = currentListingSnapshot()
+      await updateBookListingSetting(classId, buildSettingsPayload())
+      commitListingSnapshot()
     }
 
     showSuccessToast($t('status_page.settings_saved'))

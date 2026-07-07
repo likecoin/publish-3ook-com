@@ -282,57 +282,13 @@
       <template v-if="shouldShowAdvanceSettings">
         <div class="mt-[24px] flex flex-col gap-[12px]">
           <!-- Content settings -->
-          <UFormField
+          <BookSettingsFields
             v-if="mode === 'new'"
-            class="flex items-center"
-          >
-            <UTooltip
-              class="flex items-center gap-2"
-              :text="$t('nft_book_form.is_adult_only_tooltip')"
-            >
-              <UCheckbox
-                v-model="settings.isAdultOnly"
-                name="isAdultOnly"
-                :label="$t('nft_book_form.is_adult_only')"
-              />
-
-              <UIcon name="i-heroicons-question-mark-circle" />
-            </UTooltip>
-          </UFormField>
-
-          <UFormField
-            v-if="mode === 'new'"
-            :label="$t('nft_book_form.ai_audio')"
-          >
-            <URadioGroup
-              v-model="hideAudioRadio"
-              :items="[
-                { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
-                { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
-              ]"
-              orientation="vertical"
-            />
-          </UFormField>
-
-          <UFormField
-            v-if="mode === 'new'"
-            :label="$t('nft_book_form.plus_reading')"
-          >
-            <URadioGroup
-              v-model="isPlusReadingEnabledRadio"
-              :disabled="isFreeBook"
-              :items="[
-                { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
-                { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
-              ]"
-              orientation="vertical"
-            />
-            <p
-              v-if="isFreeBook"
-              class="text-muted text-[12px] mt-1"
-              v-text="$t('nft_book_form.plus_reading_free_forced')"
-            />
-          </UFormField>
+            v-model:is-adult-only="settings.isAdultOnly"
+            v-model:hide-audio="settings.hideAudio"
+            v-model:is-plus-reading-enabled="settings.isPlusReadingEnabled"
+            :is-free-book="isFreeBook"
+          />
 
           <!-- Sales settings -->
           <UFormField class="flex items-center">
@@ -452,16 +408,6 @@ const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 const route = useRoute()
 
-const hideAudioRadio = computed({
-  get: () => (settings.value.hideAudio ? 'forbid' : 'allow'),
-  set: (val: string) => { settings.value.hideAudio = val === 'forbid' },
-})
-
-const isPlusReadingEnabledRadio = computed({
-  get: () => (settings.value.isPlusReadingEnabled ? 'join' : 'skip'),
-  set: (val: string) => { settings.value.isPlusReadingEnabled = val === 'join' },
-})
-
 // Backdoor: ?advanced_pricing=1 reveals the custom USD/HKD/TWD pricing UI.
 const isAdvancedPricingEnabled = computed(() => route.query.advanced_pricing === '1')
 function shouldShowCustomPricingUI(p: PriceFormItem): boolean {
@@ -504,11 +450,6 @@ watch(() => settings.value.isAllowCustomPrice, (newValue: boolean) => {
     price.isAllowCustomPrice = newValue
   })
 })
-
-// Free books always opt into Plus all-you-can-read; force the flag on.
-watch(isFreeBook, (isFree) => {
-  if (isFree) { settings.value.isPlusReadingEnabled = true }
-}, { immediate: true })
 
 onMounted(async () => {
   if (mode !== 'new') { return }
