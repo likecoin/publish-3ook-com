@@ -11,30 +11,6 @@ export function getIsTestnet() {
   return !!IS_TESTNET
 }
 
-export function addParamToUrl(url: string, params: { [key: string]: string }) {
-  const urlObject = new URL(url)
-  const urlParams = new URLSearchParams(urlObject.search)
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined) {
-      urlParams.set(key, value)
-    }
-  })
-  urlObject.search = urlParams.toString()
-  return urlObject.toString()
-}
-
-export function downloadBlob(content: string, filename: string, contentType: string) {
-  // Create a blob
-  const blob = new Blob([content], { type: contentType })
-  const url = URL.createObjectURL(blob)
-
-  // Create a link to download it
-  const pom = document.createElement('a')
-  pom.href = url
-  pom.setAttribute('download', filename)
-  pom.click()
-}
-
 /**
  * Download array of objects as CSV with BOM for Excel compatibility with Chinese characters
  * @param data - Array of objects to export
@@ -116,17 +92,6 @@ export function getPortfolioURL(wallet = '') {
   const { OPENSEA_URL } = useRuntimeConfig().public
   return `${OPENSEA_URL}/${wallet}`
 }
-
-export const deliverMethodOptions = [
-  {
-    value: 'auto',
-    label: 'Auto delivery / 自動發書',
-  },
-  {
-    value: 'manual',
-    label: 'Manual delivery / 手動發書',
-  },
-]
 
 export function getPurchaseLink({
   classId,
@@ -341,8 +306,4 @@ export function generateAccountIdFromWalletAddress(walletAddress: string) {
   const hex = hash.slice(0, ACCOUNT_ID_LENGTH * 2 + 2)
   const num = BigInt(hex)
   return convertBigIntToBaseString(num, ACCOUNT_ID_LENGTH)
-}
-
-export function checkIsEVMAddress(address: string) {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
 }

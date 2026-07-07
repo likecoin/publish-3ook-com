@@ -403,21 +403,9 @@ const formatLanguage = (language: string) => {
   return formattedLanguage
 }
 
-const getFileInfo = async (file: Blob) => {
+const getFileInfoWithToast = async (file: Blob) => {
   try {
-    const fileBytes = (await fileToArrayBuffer(file)) as ArrayBuffer
-    if (!fileBytes) {
-      return null
-    }
-    const [fileSHA256, ipfsHash] = await Promise.all([
-      digestFileSHA256(fileBytes),
-      calculateIPFSHash(Buffer.from(fileBytes)),
-    ])
-    return {
-      fileBytes,
-      fileSHA256,
-      ipfsHash,
-    }
+    return await getFileInfo(file)
   }
   catch (error) {
     toast.add({
@@ -465,7 +453,7 @@ const onFileUpload = async (event: Event) => {
           }
           reader.readAsDataURL(file)
 
-          const info = await getFileInfo(file)
+          const info = await getFileInfoWithToast(file)
           if (info) {
             const { fileBytes, fileSHA256, ipfsHash } = info
             fileRecord = {
@@ -677,7 +665,7 @@ const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }
           },
         )
 
-        const coverInfo = await getFileInfo(coverFile)
+        const coverInfo = await getFileInfoWithToast(coverFile)
         if (coverInfo) {
           const {
             fileSHA256,

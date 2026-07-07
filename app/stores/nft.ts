@@ -35,7 +35,6 @@ export const useNftStore = defineStore('nft', () => {
 
   return {
     classMetadataByIdMap,
-    classStoreDataByIdMap: classListingInfoByIdMap,
     getClassMetadataById,
     getClassListingInfoById,
     fetchClassMetadataById,
