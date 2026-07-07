@@ -156,13 +156,13 @@
 </template>
 
 <script setup lang="ts">
-import { downloadFile, convertArrayOfObjectsToCSV, getPurchaseLink, copyToClipboard } from '~/utils'
+import { downloadFile, getPurchaseLink, copyToClipboard } from '~/utils'
 import type { ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
 
-const localeRoute = useLocaleRoute()
 const toast = useToast()
+const { openBatchQRCodePopup, goToBatchShortLinks } = useBatchLinkHandoff()
 
 const { classId, prices, bookName = '' } = defineProps<{
   classId: string
@@ -232,11 +232,7 @@ function downloadAllPurchaseLinks() {
 
 function printAllQRCodes() {
   try {
-    sessionStorage.setItem(
-      'nft_book_press_batch_qrcode',
-      convertArrayOfObjectsToCSV(purchaseLinks.value.map(({ channel, ...link }) => ({ key: channel, ...link }))),
-    )
-    window.open('/batch-qrcode?print=1', 'batch_qrcode', 'popup,menubar=no,location=no,status=no')
+    openBatchQRCodePopup(purchaseLinks.value.map(({ channel, ...link }) => ({ key: channel, ...link })))
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -252,11 +248,7 @@ function printAllQRCodes() {
 
 async function shortenAllLinks() {
   try {
-    sessionStorage.setItem(
-      'nft_book_press_batch_shorten_url',
-      convertArrayOfObjectsToCSV(purchaseLinks.value.map(({ channel, url }) => ({ key: channel, url }))),
-    )
-    await navigateTo(localeRoute({ name: 'batch-short-links', query: { print: 1 } }))
+    await goToBatchShortLinks(purchaseLinks.value.map(({ channel, url }) => ({ key: channel, url })))
   }
   catch (error) {
     // eslint-disable-next-line no-console

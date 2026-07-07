@@ -141,13 +141,11 @@
 <script setup lang="ts">
 import { parse as csvParse } from 'csv-parse/sync'
 
-import { convertArrayOfObjectsToCSV } from '~/utils'
-
 const { t: $t } = useI18n()
 
 const { showErrorToast } = useToastComposable()
 const route = useRoute()
-const localeRoute = useLocaleRoute()
+const { goToBatchQRCodePage, consumeBatchInput } = useBatchLinkHandoff()
 
 const CSV_HEADER = 'key,url'
 
@@ -193,16 +191,9 @@ useSeoMeta({
 })
 
 onMounted(() => {
-  try {
-    const loadedInput = sessionStorage.getItem('nft_book_press_batch_shorten_url')
-    if (loadedInput) {
-      csvInput.value = loadedInput
-      sessionStorage.removeItem('nft_book_press_batch_shorten_url')
-    }
-  }
-  catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
+  const loadedInput = consumeBatchInput(SESSION_KEY_BATCH_SHORTEN_URL)
+  if (loadedInput) {
+    csvInput.value = loadedInput
   }
 })
 
@@ -320,8 +311,7 @@ function downloadAllShortenedLinks() {
 }
 
 async function convertToQRCode() {
-  sessionStorage.setItem('nft_book_press_batch_qrcode', convertArrayOfObjectsToCSV(shortenedURLItems.value))
-  await navigateTo(localeRoute({ name: 'batch-qrcode' }))
+  await goToBatchQRCodePage(shortenedURLItems.value)
 }
 
 function handleFileChange(event: Event) {

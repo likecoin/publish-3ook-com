@@ -117,6 +117,7 @@ definePageMeta({ layout: 'page' })
 const { BOOK3_URL } = useRuntimeConfig().public
 
 const toast = useToast()
+const { consumeBatchInput } = useBatchLinkHandoff()
 
 const csvInput = ref('')
 const csvInputPlaceholder = `${CSV_HEADER}
@@ -156,22 +157,15 @@ useSeoMeta({
 })
 
 onMounted(() => {
-  try {
-    const loadedInput = sessionStorage.getItem('nft_book_press_batch_qrcode')
-    if (loadedInput) {
-      csvInput.value = loadedInput
-      sessionStorage.removeItem('nft_book_press_batch_qrcode')
+  const loadedInput = consumeBatchInput(SESSION_KEY_BATCH_QRCODE)
+  if (loadedInput) {
+    csvInput.value = loadedInput
+  }
+  nextTick(() => {
+    if (csvInput.value) {
+      drawQRCodes()
     }
-    nextTick(() => {
-      if (csvInput.value) {
-        drawQRCodes()
-      }
-    })
-  }
-  catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
+  })
 })
 
 function getQRCodeStyleOptions() {

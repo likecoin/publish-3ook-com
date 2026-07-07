@@ -433,6 +433,7 @@ const route = useRoute()
 const localeRoute = useLocaleRoute()
 const toast = useToast()
 const { t: $t } = useI18n()
+const { openBatchQRCodePopup, goToBatchShortLinks } = useBatchLinkHandoff()
 
 const isSharingMode = computed({
   get: () => route.query.share === '1',
@@ -959,11 +960,7 @@ function downloadPurchaseLinksByChannelId(channelId: string) {
 function printQRCodesByTableRows(rows: AffiliationLink[] = []) {
   useLogEvent('purchase_link_print_qr', { count: rows.length })
   try {
-    sessionStorage.setItem(
-      'nft_book_press_batch_qrcode',
-      convertArrayOfObjectsToCSV(rows.map(({ channelId, qrCodeUrl, ...link }) => ({ key: channelId, ...link, url: qrCodeUrl }))),
-    )
-    window.open('/batch-qrcode?print=1', 'batch_qrcode', 'popup,menubar=no,location=no,status=no')
+    openBatchQRCodePopup(rows.map(({ channelId, qrCodeUrl, ...link }) => ({ key: channelId, ...link, url: qrCodeUrl })))
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -987,11 +984,7 @@ function printQRCodesByChannelId(channelId: string) {
 
 function shortenLinksByTableRows(rows: AffiliationLink[] = []) {
   try {
-    sessionStorage.setItem(
-      'nft_book_press_batch_shorten_url',
-      convertArrayOfObjectsToCSV(rows.map(({ channelId, ...link }) => ({ key: channelId, ...link }))),
-    )
-    navigateTo(localeRoute({ name: 'batch-short-links', query: { print: 1 } }))
+    goToBatchShortLinks(rows.map(({ channelId, ...link }) => ({ key: channelId, ...link })))
   }
   catch (error) {
     // eslint-disable-next-line no-console
