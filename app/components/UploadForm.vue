@@ -111,14 +111,9 @@
 </template>
 
 <script setup lang="ts">
-import { BigNumber } from 'bignumber.js'
-import {
-  estimateBundlrFilePrice,
-  canSponsorArweaveUpload,
-} from '~/utils/arweave'
 import { PUBLISH_GUIDE_URL } from '~/constant'
 
-import type { FileRecord, EpubMetadata, ArweaveEstimate } from '~/types'
+import type { FileRecord, EpubMetadata } from '~/types'
 
 const { t: $t } = useI18n()
 
@@ -127,12 +122,10 @@ const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
 const store = useWalletStore()
 const { validateWalletConsistency } = store
 const { wallet } = storeToRefs(store)
-const bookstoreApiStore = useBookstoreApiStore()
-const { token } = storeToRefs(bookstoreApiStore)
 const toast = useToast()
 const { showErrorToast } = useToastComposable()
 const imageFile = ref<HTMLInputElement | null>(null)
-const { prepareArweaveUpload, executeArweaveUpload: executeArweaveUploadComposable, uploadToArweave } = useArweaveUpload()
+const { uploadToArweave, uploadFileRecordsToArweave } = useArweaveUpload()
 export type { FileRecord }
 
 const props = defineProps({
@@ -160,13 +153,6 @@ onMounted(() => {
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
-const arweaveFee = ref(new BigNumber(0))
-const arweaveFeeMap = ref({} as Record<string, string>)
-const arweaveFeeTargetAddress = ref('')
-const isArweaveSponsored = ref(false)
-const arweaveRemainingUploads = ref<number | undefined>()
-const arweaveRequiredUploads = ref<number | undefined>()
-const sentArweaveTransactionInfo = ref(new Map())
 const drmOption = ref(props.defaultEncrypted ? 'encrypted' : 'open')
 const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
 const drmOptions = computed(() => [
@@ -259,6 +245,24 @@ const {
     showErrorToast($t('upload_form.error_during_upload'), {
       description: (err as Error).message || $t('upload_form.epub_processing_error'),
     })
+  },
+})
+
+const {
+  isArweaveSponsored,
+  arweaveRemainingUploads,
+  arweaveRequiredUploads,
+  estimateArweaveFee: runArweaveFeeEstimation,
+} = useArweaveFeeEstimation({
+  fileRecords,
+  isEncryptEbook: isEncryptEBookData,
+  onExistingUpload: (record) => {
+    const metadata = epubMetadataList.value.find(
+      (data: EpubMetadata) => data.thumbnailIpfsHash === record.ipfsHash,
+    )
+    if (metadata) {
+      metadata.thumbnailArweaveId = record.arweaveId
+    }
   },
 })
 
@@ -378,56 +382,7 @@ const handleDeleteFile = (index: number) => {
 const estimateArweaveFee = async (): Promise<void> => {
   try {
     uploadStatus.value = $t('upload_form.estimating_fees')
-    const results: ArweaveEstimate[] = []
-    for (const record of fileRecords.value) {
-      await sleep(100)
-      const isEbook = record.fileType === 'application/epub+zip' || record.fileType === 'application/pdf'
-      const priceResult = await estimateBundlrFilePrice({
-        fileSize: record.fileBlob?.size || 0,
-        ipfsHash: (isEbook && isEncryptEBookData.value) ? undefined : record.ipfsHash,
-        token: token.value,
-      })
-      results.push({
-        ...priceResult,
-        ipfsHash: record.ipfsHash,
-      })
-    }
-
-    const firstResult = results[0]
-    arweaveRemainingUploads.value = firstResult?.remainingUploads
-    if (firstResult) {
-      const totalSize = fileRecords.value.reduce((sum, r) => sum + (r.fileBlob?.size || 0), 0)
-      const fileCount = fileRecords.value.filter(r => r.fileBlob).length
-      isArweaveSponsored.value = canSponsorArweaveUpload(firstResult, totalSize, fileCount)
-      arweaveRequiredUploads.value = fileCount
-    }
-
-    let totalFee = new BigNumber(0)
-    results.forEach((result) => {
-      const { evmAddress, arweaveId, ETH, ipfsHash } = result
-      if (!ipfsHash) { return }
-      if (ETH && !isArweaveSponsored.value) {
-        totalFee = totalFee.plus(new BigNumber(ETH))
-        arweaveFeeMap.value[ipfsHash] = ETH
-      }
-      if (arweaveId) {
-        sentArweaveTransactionInfo.value.set(ipfsHash, {
-          transactionHash: '',
-          arweaveId,
-        })
-        const metadata = epubMetadataList.value.find(
-          (data: EpubMetadata) => data.thumbnailIpfsHash === ipfsHash,
-        )
-        if (metadata) {
-          metadata.thumbnailArweaveId = arweaveId
-        }
-      }
-      if (!arweaveFeeTargetAddress.value && evmAddress) {
-        arweaveFeeTargetAddress.value = evmAddress
-      }
-    })
-
-    arweaveFee.value = totalFee
+    await runArweaveFeeEstimation()
   }
   catch (err) {
     console.error(err)
@@ -440,24 +395,16 @@ const estimateArweaveFee = async (): Promise<void> => {
   }
 }
 
-const storeArweaveResult = (record: FileRecord, result: { arweaveId: string, arweaveLink: string, arweaveKey?: string }) => {
-  const { arweaveId, arweaveLink, arweaveKey } = result
-  const existingData = sentArweaveTransactionInfo.value.get(record.ipfsHash) || {}
-  sentArweaveTransactionInfo.value.set(record.ipfsHash, {
-    ...existingData,
-    arweaveId,
-    arweaveLink,
-    arweaveKey,
-  })
+const handleRecordUploaded = (record: FileRecord) => {
   if (record.fileName?.endsWith('cover.jpeg')) {
     const metadata = epubMetadataList.value.find(
       (file: EpubMetadata) => file.thumbnailIpfsHash === record.ipfsHash,
     )
     if (metadata) {
-      metadata.thumbnailArweaveId = arweaveId
+      metadata.thumbnailArweaveId = record.arweaveId
     }
   }
-  emit('arweaveUploaded', { arweaveId, arweaveLink })
+  emit('arweaveUploaded', { arweaveId: record.arweaveId, arweaveLink: record.arweaveLink })
   completedFiles.value++
 }
 
@@ -471,8 +418,7 @@ const setEbookCoverFromImages = async () => {
     const file = fileRecords.value[i]
     if (!file || !file.fileType?.startsWith('image')) { continue }
 
-    const existingData = sentArweaveTransactionInfo.value.get(file.ipfsHash) || {}
-    let { arweaveId } = existingData
+    let { arweaveId } = file
 
     if (!arweaveId && file.fileBlob) {
       const result = await uploadToArweave({
@@ -482,11 +428,8 @@ const setEbookCoverFromImages = async () => {
         encrypt: false,
       })
       arweaveId = result.arweaveId
-      sentArweaveTransactionInfo.value.set(file.ipfsHash, {
-        ...existingData,
-        arweaveId: result.arweaveId,
-        arweaveLink: result.arweaveLink,
-      })
+      file.arweaveId = result.arweaveId
+      file.arweaveLink = result.arweaveLink
     }
 
     if (arweaveId) {
@@ -526,54 +469,19 @@ const onSubmitInternal = async () => {
       await setEbookCoverFromImages()
     }
 
-    // Pipeline: collect next signature while previous file uploads
-    let pendingUpload: Promise<void> = Promise.resolve()
-    let uploadError: Error | null = null
-
-    for (let i = 0; i < fileRecords.value.length; i += 1) {
-      const record = fileRecords.value[i]
-      if (record) {
-        currentFileIndex.value = i + 1
-        if (uploadError) { break }
-
-        const existingData = sentArweaveTransactionInfo.value.get(record.ipfsHash) || {}
-        if (existingData.arweaveId || !record.fileBlob) {
-          completedFiles.value++
-          continue
-        }
-
-        const shouldEncrypt
-          = (record.fileType === 'application/epub+zip'
-            || record.fileType === 'application/pdf')
-          && isEncryptEBookData.value
-
-        // Prepare: encrypt + sign transaction (interactive, requires wallet)
-        const prepareResult = await prepareArweaveUpload({
-          arrayBuffer: await record.fileBlob.arrayBuffer(),
-          fileSize: record.fileBlob.size,
-          fileType: record.fileType as string,
-          encrypt: shouldEncrypt,
-          sponsored: isArweaveSponsored.value,
-        })
-
-        if ('alreadyExists' in prepareResult) {
-          storeArweaveResult(record, prepareResult.result)
-        }
-        else {
-          // Chain upload after previous upload completes, but don't await here
-          // so the next file's signature can be collected concurrently
-          const capturedRecord = record
-          const prevUpload = pendingUpload
-          pendingUpload = prevUpload
-            .then(() => executeArweaveUploadComposable(prepareResult))
-            .then(result => storeArweaveResult(capturedRecord, result))
-            .catch((err) => { uploadError = err; throw err })
-        }
-      }
-    }
-
-    // Wait for the last upload to finish
-    await pendingUpload
+    await uploadFileRecordsToArweave(fileRecords.value, {
+      encryptEbook: isEncryptEBookData.value,
+      sponsored: isArweaveSponsored.value,
+      skipMissingBlob: true,
+      onRecordSkipped: (_record, index) => {
+        currentFileIndex.value = index + 1
+        completedFiles.value++
+      },
+      onRecordPrepare: (_record, index) => {
+        currentFileIndex.value = index + 1
+      },
+      onRecordUploaded: handleRecordUploaded,
+    })
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -590,23 +498,6 @@ const onSubmitInternal = async () => {
     currentFileIndex.value = 0
     completedFiles.value = 0
   }
-
-  fileRecords.value.forEach((record: FileRecord, index: number) => {
-    if (!record || !fileRecords.value[index]) { return }
-    if (sentArweaveTransactionInfo.value.has(record.ipfsHash)) {
-      const info = sentArweaveTransactionInfo.value.get(record.ipfsHash)
-      if (info) {
-        const { arweaveId, arweaveLink, arweaveKey } = info
-        if (arweaveId) {
-          fileRecords.value[index].arweaveId = arweaveId
-        }
-        if (arweaveLink) {
-          fileRecords.value[index].arweaveLink = arweaveLink
-          fileRecords.value[index].arweaveKey = arweaveKey
-        }
-      }
-    }
-  })
 
   const uploadFileData = {
     fileRecords: fileRecords.value.map(record => ({

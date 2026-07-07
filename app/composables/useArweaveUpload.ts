@@ -2,7 +2,31 @@ import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
 import { estimateBundlrFilePrice, uploadSingleFileToBundlr, canSponsorArweaveUpload } from '~/utils/arweave'
 import { encryptDataWithAES } from '~/utils/encryption'
+import { EBOOK_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
+
+// Minimal record shape the pipelined uploader needs; UploadForm's FileRecord
+// and the publish pipeline's PublishFileRecordWithBlob both satisfy it.
+export interface ArweaveUploadableRecord {
+  fileName?: string
+  fileType?: string
+  fileBlob?: Blob
+  ipfsHash?: string
+  arweaveId?: string
+  arweaveLink?: string
+  arweaveKey?: string
+}
+
+export interface UploadFileRecordsOptions<T extends ArweaveUploadableRecord> {
+  encryptEbook: boolean
+  sponsored?: boolean
+  // Skip blob-less records instead of throwing (interactive form flow, where
+  // a restored record may be re-selected and submitted again later).
+  skipMissingBlob?: boolean
+  onRecordSkipped?: (record: T, index: number) => void
+  onRecordPrepare?: (record: T, index: number) => void
+  onRecordUploaded?: (record: T, index: number) => void
+}
 
 export interface ArweaveUploadResult {
   arweaveId: string
@@ -157,5 +181,69 @@ export function useArweaveUpload() {
     return executeArweaveUpload(prepareResult)
   }
 
-  return { prepareArweaveUpload, executeArweaveUpload, uploadToArweave }
+  // Uploads records lacking an arweaveId, mutating each record in place with
+  // the result. Pipelined: the next file's signature is collected while the
+  // previous file uploads.
+  async function uploadFileRecordsToArweave<T extends ArweaveUploadableRecord>(
+    records: T[],
+    options: UploadFileRecordsOptions<T>,
+  ): Promise<void> {
+    const { encryptEbook, sponsored, skipMissingBlob, onRecordSkipped, onRecordPrepare, onRecordUploaded } = options
+    let pendingUpload: Promise<void> = Promise.resolve()
+    let uploadError: Error | null = null
+
+    const storeResult = (record: T, index: number, result: ArweaveUploadResult) => {
+      Object.assign(record, {
+        arweaveId: result.arweaveId,
+        arweaveLink: result.arweaveLink,
+        arweaveKey: result.arweaveKey,
+        ipfsHash: result.ipfsHash,
+      })
+      onRecordUploaded?.(record, index)
+    }
+
+    for (let i = 0; i < records.length; i += 1) {
+      const record = records[i]
+      if (!record) { continue }
+      if (record.arweaveId || (skipMissingBlob && !record.fileBlob)) {
+        onRecordSkipped?.(record, i)
+        continue
+      }
+      if (uploadError) { break }
+      if (!record.fileBlob) {
+        throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
+      }
+
+      const shouldEncrypt = EBOOK_FILE_TYPES.includes(record.fileType ?? '') && encryptEbook
+
+      onRecordPrepare?.(record, i)
+      // Prepare: encrypt + sign transaction (interactive, requires wallet)
+      const prepareResult = await prepareArweaveUpload({
+        arrayBuffer: await record.fileBlob.arrayBuffer(),
+        fileSize: record.fileBlob.size,
+        fileType: record.fileType ?? '',
+        encrypt: shouldEncrypt,
+        sponsored,
+      })
+
+      if ('alreadyExists' in prepareResult) {
+        storeResult(record, i, prepareResult.result)
+      }
+      else {
+        // Chain upload after previous upload completes, but don't await here
+        // so the next file's signature can be collected concurrently
+        const capturedRecord = record
+        const capturedIndex = i
+        const prevUpload = pendingUpload
+        pendingUpload = prevUpload
+          .then(() => executeArweaveUpload(prepareResult))
+          .then(result => storeResult(capturedRecord, capturedIndex, result))
+          .catch((err) => { uploadError = err; throw err })
+      }
+    }
+
+    await pendingUpload
+  }
+
+  return { prepareArweaveUpload, executeArweaveUpload, uploadToArweave, uploadFileRecordsToArweave }
 }

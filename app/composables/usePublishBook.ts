@@ -7,7 +7,7 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import type { ISCNFormData } from '~/types/iscn'
-import { NFT_DEFAULT_MINT_AMOUNT, EBOOK_FILE_TYPES } from '~/constant'
+import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
@@ -17,13 +17,6 @@ export interface PublishCallbacks {
   onStatusChange?: (status: BookUploadStatus, message?: string) => void
   onProgress?: (updates: Partial<PublishSession>) => void
   onError?: (error: string) => void
-}
-
-interface UploadRecordsOptions {
-  encryptEbook: boolean
-  sponsored?: boolean
-  onRecordPrepare?: (record: PublishFileRecordWithBlob, index: number) => void
-  onRecordUploaded?: (record: PublishFileRecordWithBlob, index: number) => void
 }
 
 // Single-book commit pipeline: upload → NFT class → mint → listing, with
@@ -38,73 +31,13 @@ export function usePublishBook() {
   const { validateWalletConsistency } = walletStore
   const { newBookListing, uploadSignImages } = bookstoreApiStore
   const { lazyFetchClassMetadataById } = nftStore
-  const { prepareArweaveUpload, executeArweaveUpload } = useArweaveUpload()
+  const { uploadFileRecordsToArweave } = useArweaveUpload()
   const { createNFTClass } = useNFTClassCreator()
   const { mintNFT } = useNFTMinter()
   const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
   const { $wagmiConfig } = useNuxtApp()
 
   const isProcessing = ref(false)
-
-  // Uploads records lacking an arweaveId, mutating each record in place with
-  // the result. Pipelined: the next file's signature is collected while the
-  // previous file uploads.
-  async function uploadFileRecordsToArweave(
-    records: PublishFileRecordWithBlob[],
-    options: UploadRecordsOptions,
-  ): Promise<void> {
-    const { encryptEbook, sponsored, onRecordPrepare, onRecordUploaded } = options
-    let pendingUpload: Promise<void> = Promise.resolve()
-    let uploadError: Error | null = null
-
-    const storeResult = (
-      record: PublishFileRecordWithBlob,
-      index: number,
-      result: { arweaveId: string, arweaveLink: string, ipfsHash: string, arweaveKey?: string },
-    ) => {
-      record.arweaveId = result.arweaveId
-      record.arweaveLink = result.arweaveLink
-      record.arweaveKey = result.arweaveKey
-      record.ipfsHash = result.ipfsHash
-      onRecordUploaded?.(record, index)
-    }
-
-    for (let i = 0; i < records.length; i += 1) {
-      const record = records[i]
-      if (!record || record.arweaveId) { continue }
-      if (uploadError) { break }
-      if (!record.fileBlob) {
-        throw new Error(`Missing file data for ${record.fileName}; please re-select the file`)
-      }
-
-      const shouldEncrypt = EBOOK_FILE_TYPES.includes(record.fileType) && encryptEbook
-
-      onRecordPrepare?.(record, i)
-      // Prepare: encrypt + sign transaction (interactive, requires wallet)
-      const prepareResult = await prepareArweaveUpload({
-        arrayBuffer: await record.fileBlob.arrayBuffer(),
-        fileSize: record.fileBlob.size,
-        fileType: record.fileType,
-        encrypt: shouldEncrypt,
-        sponsored,
-      })
-
-      if ('alreadyExists' in prepareResult) {
-        storeResult(record, i, prepareResult.result)
-      }
-      else {
-        const capturedRecord = record
-        const capturedIndex = i
-        const prevUpload = pendingUpload
-        pendingUpload = prevUpload
-          .then(() => executeArweaveUpload(prepareResult))
-          .then(result => storeResult(capturedRecord, capturedIndex, result))
-          .catch((err) => { uploadError = err; throw err })
-      }
-    }
-
-    await pendingUpload
-  }
 
   // Returns true only for a confirmed-successful receipt and false for a
   // confirmed-reverted one. Receipt lookup throws while the tx is still pending
