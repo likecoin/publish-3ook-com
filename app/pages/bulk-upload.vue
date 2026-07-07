@@ -295,36 +295,16 @@
           :data="reviewData"
         >
           <template #enableDRM-cell="{ row }">
-            <UBadge
-              :color="row.original.enableDRM ? 'primary' : 'neutral'"
-              variant="soft"
-            >
-              {{ row.original.enableDRM ? $t('common.yes') : $t('common.no') }}
-            </UBadge>
+            <YesNoBadge :value="row.original.enableDRM" />
           </template>
           <template #enableTTS-cell="{ row }">
-            <UBadge
-              :color="row.original.enableTTS ? 'primary' : 'neutral'"
-              variant="soft"
-            >
-              {{ row.original.enableTTS ? $t('common.yes') : $t('common.no') }}
-            </UBadge>
+            <YesNoBadge :value="row.original.enableTTS" />
           </template>
           <template #isPlusReadingEnabled-cell="{ row }">
-            <UBadge
-              :color="row.original.isPlusReadingEnabled ? 'primary' : 'neutral'"
-              variant="soft"
-            >
-              {{ row.original.isPlusReadingEnabled ? $t('common.yes') : $t('common.no') }}
-            </UBadge>
+            <YesNoBadge :value="row.original.isPlusReadingEnabled" />
           </template>
           <template #isAutoDeliver-cell="{ row }">
-            <UBadge
-              :color="row.original.isAutoDeliver ? 'primary' : 'neutral'"
-              variant="soft"
-            >
-              {{ row.original.isAutoDeliver ? $t('common.yes') : $t('common.no') }}
-            </UBadge>
+            <YesNoBadge :value="row.original.isAutoDeliver" />
           </template>
         </UTable>
 
@@ -476,7 +456,7 @@ import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweav
 import type { ArweaveEstimate } from '~/types'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
+import { parseCSVRow, validateBook, validateBooks, validateProgressFieldFormats, generateResultCSV, getStatusColor, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
 import {
   loadBulkUploadSession,
   clearBulkUploadSession,
@@ -534,14 +514,6 @@ const quotaIsPartial = computed(() => {
   if ((arweaveQuota.value.remainingUploads ?? 0) <= 0) { return false }
   return quotaShortfallUploads.value > 0 || quotaShortfallBytes.value > 0
 })
-
-function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) { return '0 B' }
-  const units = ['B', 'KB', 'MB', 'GB']
-  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
-  const value = bytes / Math.pow(1024, i)
-  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
-}
 
 // Computed
 const pendingBooks = computed(() =>
@@ -1016,19 +988,6 @@ function resetAll() {
   currentStep.value = 'csv'
   isProcessing.value = false
   isPaused.value = false
-}
-
-function getStatusColor(status: BookUploadStatus): 'success' | 'error' | 'neutral' | 'info' {
-  switch (status) {
-    case BookUploadStatus.COMPLETED:
-      return 'success'
-    case BookUploadStatus.FAILED:
-      return 'error'
-    case BookUploadStatus.PENDING:
-      return 'neutral'
-    default:
-      return 'info'
-  }
 }
 
 function getStatusLabel(status: BookUploadStatus): string {

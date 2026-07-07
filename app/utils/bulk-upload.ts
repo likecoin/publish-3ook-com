@@ -360,3 +360,16 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
   const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
   saveAs(blob, `bulk-upload-result-${new Date().toISOString().slice(0, 10)}.csv`)
 }
+
+export function getStatusColor(status: BookUploadStatus): 'success' | 'error' | 'neutral' | 'info' {
+  switch (status) {
+    case BookUploadStatus.COMPLETED:
+      return 'success'
+    case BookUploadStatus.FAILED:
+      return 'error'
+    case BookUploadStatus.PENDING:
+      return 'neutral'
+    default:
+      return 'info'
+  }
+}
