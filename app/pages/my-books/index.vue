@@ -35,7 +35,7 @@
                 <div class="flex gap-2 items-center">
                   <UPagination
                     v-model:page="tablePage"
-                    :items-per-page="tableRowsPerPage"
+                    :items-per-page="pagination.limit"
                     :total="tableRows.length"
                   />
                   <span class="text-sm leading-5 whitespace-nowrap">
@@ -160,18 +160,6 @@ watch(selectedTabItemIndex, (value) => {
 // Search
 const searchInput = ref('')
 
-const sort = ref({
-  column: 'pendingAction',
-  direction: 'desc' as 'asc' | 'desc',
-})
-
-// Pagination
-const tableRowsPerPage = ref(50)
-
-const tablePage = ref(1)
-const tablePageRowFrom = computed(() => (tablePage.value - 1) * tableRowsPerPage.value + 1)
-const tablePageRowTo = computed(() => Math.min(tablePage.value * tableRowsPerPage.value, tableRows.value.length))
-
 // Rows
 const tableRows = computed(() => (selectedTabItemIndex.value === 'viewable' ? moderatedBookList : bookList).value.map(b => ({
   classId: b.classId,
@@ -186,24 +174,30 @@ const tableRows = computed(() => (selectedTabItemIndex.value === 'viewable' ? mo
   return b.classId.toLowerCase().includes(normalizedSearchInput) || b.className?.toLowerCase().includes(normalizedSearchInput)
 }))
 
-const sortedTableRows = computed(() => {
-  const { column, direction } = sort.value
-  return [...tableRows.value].sort((a, b) => {
-    const aVal = a[column as keyof typeof a] ?? ''
-    const bVal = b[column as keyof typeof b] ?? ''
-    if (aVal < bVal) {
-      return direction === 'asc' ? -1 : 1
-    }
-    if (aVal > bVal) {
-      return direction === 'asc' ? 1 : -1
-    }
+// Pagination & sort
+const {
+  pagination,
+  paginatedRows: paginatedTableRows,
+  setPage,
+} = usePaginatedTable({
+  rows: tableRows,
+  pageSize: 50,
+  initialSort: { column: 'pendingAction', direction: 'desc' },
+  compare: (aValue, bValue) => {
+    const aVal = (aValue ?? '') as string | number
+    const bVal = (bValue ?? '') as string | number
+    if (aVal < bVal) { return -1 }
+    if (aVal > bVal) { return 1 }
     return 0
-  })
+  },
 })
 
-const paginatedTableRows = computed(() => {
-  return sortedTableRows.value.slice((tablePage.value - 1) * tableRowsPerPage.value, tablePage.value * tableRowsPerPage.value)
+const tablePage = computed({
+  get: () => pagination.value.page,
+  set: setPage,
 })
+const tablePageRowFrom = computed(() => (tablePage.value - 1) * pagination.value.limit + 1)
+const tablePageRowTo = computed(() => Math.min(tablePage.value * pagination.value.limit, tableRows.value.length))
 
 // Columns
 const tableColumns = computed(() => [
@@ -234,11 +228,7 @@ whenever(isLoading, () => { error.value = '' })
 
 watch(selectedTabItemIndex, () => {
   searchInput.value = ''
-  tablePage.value = 1
-})
-
-watch(tableRowsPerPage, () => {
-  tablePage.value = 1
+  setPage(1)
 })
 
 onMounted(async () => {

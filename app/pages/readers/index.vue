@@ -76,7 +76,7 @@
             color="neutral"
             variant="ghost"
             :label="column.label"
-            :trailing-icon="getSortIcon(sortState.column, sortState.direction, column.key)"
+            :trailing-icon="getSortIcon(column.key)"
             @click="() => sortByColumn(column.key)"
           />
           <UTooltip
@@ -87,7 +87,7 @@
               color="neutral"
               variant="ghost"
               :label="column.label"
-              :trailing-icon="getSortIcon(sortState.column, sortState.direction, column.key)"
+              :trailing-icon="getSortIcon(column.key)"
               @click="() => sortByColumn(column.key)"
             />
           </UTooltip>
@@ -105,7 +105,7 @@
               color="neutral"
               variant="ghost"
               :label="book.name?.slice(0, 1) || book.classId.slice(0, 1)"
-              :trailing-icon="getSortIcon(sortState.column, sortState.direction, `book_${book.classId}`)"
+              :trailing-icon="getSortIcon(`book_${book.classId}`)"
               @click="() => sortByColumn(`book_${book.classId}`)"
             />
           </UTooltip>
