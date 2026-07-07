@@ -16,7 +16,7 @@ interface ProcessingCallbacks {
 export function useBulkUpload() {
   const walletStore = useWalletStore()
   const bookstoreApiStore = useBookstoreApiStore()
-  const { wallet, signer } = storeToRefs(walletStore)
+  const { wallet } = storeToRefs(walletStore)
   const { validateWalletConsistency } = walletStore
   const { newBookListing } = bookstoreApiStore
   const { createNFTClass } = useNFTClassCreator()
@@ -43,7 +43,7 @@ export function useBulkUpload() {
 
       // Ensure wallet is connected
       await validateWalletConsistency()
-      if (!wallet.value || !signer.value) {
+      if (!wallet.value) {
         throw new Error('Wallet not connected')
       }
 

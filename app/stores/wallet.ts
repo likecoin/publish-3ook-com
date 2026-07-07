@@ -439,7 +439,6 @@ export const useWalletStore = defineStore('wallet', () => {
 
   return {
     wallet,
-    signer: ref({}),
     isConnected: isWalletConnected,
     isLoginLoading,
     initIfNecessary,

@@ -292,8 +292,8 @@ const { t: $t } = useI18n()
 const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
 
 const store = useWalletStore()
-const { signer } = storeToRefs(store)
 const { validateWalletConsistency } = store
+const { wallet } = storeToRefs(store)
 const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
 const toast = useToast()
@@ -890,11 +890,9 @@ const setEbookCoverFromImages = async () => {
 
 const onSubmitInternal = async () => {
   try {
-    if (!signer.value) {
-      await validateWalletConsistency()
-    }
-    if (!signer.value) {
-      throw new Error('SIGNER_NOT_INITED')
+    await validateWalletConsistency()
+    if (!wallet.value) {
+      throw new Error('WALLET_NOT_INITED')
     }
     if (!fileRecords.value.some(file => file.fileBlob)) {
       throw new Error('NO_FILE_TO_UPLOAD')

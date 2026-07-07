@@ -10,7 +10,7 @@ import { getFileTypeFromMime } from '~/composables/useISCN'
 export function useNFTClassUpdater() {
   const nftStore = useNftStore()
   const walletStore = useWalletStore()
-  const { wallet, signer } = storeToRefs(walletStore)
+  const { wallet } = storeToRefs(walletStore)
   const { validateWalletConsistency } = walletStore
   const { writeContractAsync } = useContractWrite()
   const {
@@ -118,8 +118,8 @@ export function useNFTClassUpdater() {
     registerPayload: ISCNRegisterPayload,
   ): Promise<{ metadata: Record<string, unknown> & { name: string, description: string, symbol: string } }> {
     await validateWalletConsistency()
-    if (!wallet.value || !signer.value) {
-      throw new Error('MISSING_SIGNER')
+    if (!wallet.value) {
+      throw new Error('WALLET_NOT_INITED')
     }
 
     const contentMetadata = formatISCNTxPayload(registerPayload)

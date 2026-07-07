@@ -206,7 +206,7 @@ import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 const { LIKE_CO_API } = useRuntimeConfig().public
 
 const store = useWalletStore()
-const { wallet, signer } = storeToRefs(store)
+const { wallet } = storeToRefs(store)
 const { validateWalletConsistency } = store
 
 const bookstoreApiStore = useBookstoreApiStore()
@@ -364,7 +364,7 @@ async function fetchNextNFTId(_count = 1) {
   try {
     nftIds.value = []
     nftIdError.value = false
-    if (!wallet.value || !signer.value) {
+    if (!wallet.value) {
       await validateWalletConsistency()
     }
     if (!ownerWallet.value) {
@@ -426,10 +426,10 @@ async function onSendNFTStart() {
   if (isSendButtonDisabled.value) { return }
   try {
     isLoading.value = true
-    if (!wallet.value || !signer.value) {
+    if (!wallet.value) {
       await validateWalletConsistency()
     }
-    if (!wallet.value || !signer.value) { return }
+    if (!wallet.value) { return }
     if (nftIds.value) {
       const owners = await Promise.all(nftIds.value.map((nftId: number) => getNFTOwner(classId.value, nftId)))
       const mismatchNftIdIndex = owners.findIndex(owner => owner !== ownerWallet.value)

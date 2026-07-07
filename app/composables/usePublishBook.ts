@@ -34,7 +34,7 @@ export function usePublishBook() {
   const walletStore = useWalletStore()
   const bookstoreApiStore = useBookstoreApiStore()
   const nftStore = useNftStore()
-  const { wallet, signer } = storeToRefs(walletStore)
+  const { wallet } = storeToRefs(walletStore)
   const { validateWalletConsistency } = walletStore
   const { newBookListing, uploadSignImages } = bookstoreApiStore
   const { lazyFetchClassMetadataById } = nftStore
@@ -181,7 +181,7 @@ export function usePublishBook() {
       isProcessing.value = true
 
       await validateWalletConsistency()
-      if (!wallet.value || !signer.value) {
+      if (!wallet.value) {
         throw new Error('Wallet not connected')
       }
 
