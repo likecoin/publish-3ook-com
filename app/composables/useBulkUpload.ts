@@ -2,7 +2,7 @@ import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import type { BookPriceInDecimalByCurrency } from '~/types'
 import type { PublishFileRecordWithBlob } from '~/types/publish'
-import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
+import { createBookTokenMetadataBuilder } from '~/utils/iscn'
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 
@@ -223,15 +223,13 @@ export function useBulkUpload() {
       throw new Error('Class ID not found')
     }
 
-    const buildTokenMetadata = (index: number, fromTokenId: bigint): NFTTokenMetadata => ({
+    const buildTokenMetadata = createBookTokenMetadataBuilder({
       image: `ar://${book.coverArweaveId}`,
-      external_url: `${BOOK3_URL}/store/${book.classId}/${Number(fromTokenId) + index}`,
-      description: `Copy #${Number(fromTokenId) + index} of ${book.title}`,
-      name: `${book.title} #${Number(fromTokenId) + index}`,
-      attributes: [
-        { trait_type: 'Author', value: book.authorName },
-        { trait_type: 'Publisher', value: book.publisher },
-      ],
+      title: book.title,
+      authorName: book.authorName,
+      publisherName: book.publisher,
+      classId: book.classId,
+      book3Url: BOOK3_URL as string,
     })
 
     await mintWithResume({

@@ -1,6 +1,43 @@
 import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData, ISCNFormData } from '~/types/iscn'
+import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
+
+// Per-copy token metadata; shared by the single-publish and bulk-upload
+// mint pipelines, which differ only in where the fields come from.
+export function createBookTokenMetadataBuilder(input: {
+  image: string
+  title: string
+  authorName: string
+  publisherName: string
+  classId: string
+  book3Url: string
+}): (index: number, fromTokenId: bigint) => NFTTokenMetadata {
+  return (index, fromTokenId) => ({
+    image: input.image,
+    external_url: `${input.book3Url}/store/${input.classId}/${Number(fromTokenId) + index}`,
+    description: `Copy #${Number(fromTokenId) + index} of ${input.title}`,
+    name: `${input.title} #${Number(fromTokenId) + index}`,
+    attributes: [
+      { trait_type: 'Author', value: input.authorName },
+      { trait_type: 'Publisher', value: input.publisherName },
+    ],
+  })
+}
+
+// Class-level metadata envelope shared by NFT class creation and update.
+export function buildBookClassMetadata(contentMetadata: ISCNTxPayload) {
+  return {
+    ...contentMetadata,
+    symbol: 'BOOK',
+    image: contentMetadata?.thumbnailUrl || '',
+    external_link: contentMetadata?.url || '',
+    nft_meta_collection_id: 'nft_book',
+    nft_meta_collection_name: 'NFT Book',
+    nft_meta_collection_description: 'NFT Book by Liker Land',
+    recordTimestamp: new Date().toISOString(),
+  }
+}
 
 // Single source for a blank Book form; callers override only the fields that
 // differ (e.g. an edit form seeds one empty URL row instead of an empty array).

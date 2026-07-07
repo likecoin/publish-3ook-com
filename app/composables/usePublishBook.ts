@@ -11,7 +11,7 @@ import { NFT_DEFAULT_MINT_AMOUNT, EBOOK_FILE_TYPES } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
-import { isContentFingerprintEncrypted, validateISCNForm } from '~/utils/iscn'
+import { isContentFingerprintEncrypted, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
 
 export interface PublishCallbacks {
   onStatusChange?: (status: BookUploadStatus, message?: string) => void
@@ -159,15 +159,13 @@ export function usePublishBook() {
   }
 
   function buildTokenMetadataFactory(iscnFormData: ISCNFormData, classId: string) {
-    return (index: number, fromTokenId: bigint): NFTTokenMetadata => ({
+    return createBookTokenMetadataBuilder({
       image: iscnFormData.coverUrl,
-      external_url: `${BOOK3_URL}/store/${classId}/${Number(fromTokenId) + index}`,
-      description: `Copy #${Number(fromTokenId) + index} of ${iscnFormData.title}`,
-      name: `${iscnFormData.title} #${Number(fromTokenId) + index}`,
-      attributes: [
-        { trait_type: 'Author', value: iscnFormData.author.name },
-        { trait_type: 'Publisher', value: iscnFormData.publisher.name },
-      ],
+      title: iscnFormData.title,
+      authorName: iscnFormData.author.name,
+      publisherName: iscnFormData.publisher.name,
+      classId,
+      book3Url: BOOK3_URL as string,
     })
   }
 

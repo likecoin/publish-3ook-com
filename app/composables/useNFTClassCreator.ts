@@ -1,7 +1,7 @@
 import { parseEventLogs } from 'viem'
 import { LIKE_NFT_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
-import { formatISCNTxPayload } from '~/utils/iscn'
+import { formatISCNTxPayload, buildBookClassMetadata } from '~/utils/iscn'
 import type { ISCNFormData } from '~/types/iscn'
 
 export function useNFTClassCreator() {
@@ -23,16 +23,7 @@ export function useNFTClassCreator() {
     const { payload, computeISCNSalt } = useISCN({ iscnFormData: params.iscnFormData })
 
     const contentMetadata = formatISCNTxPayload(payload.value)
-    const metadata = {
-      ...contentMetadata,
-      symbol: 'BOOK',
-      image: contentMetadata?.thumbnailUrl || '',
-      external_link: contentMetadata?.url || '',
-      nft_meta_collection_id: 'nft_book',
-      nft_meta_collection_name: 'NFT Book',
-      nft_meta_collection_description: 'NFT Book by Liker Land',
-      recordTimestamp: new Date().toISOString(),
-    }
+    const metadata = buildBookClassMetadata(contentMetadata)
 
     const salt = computeISCNSalt(wallet.value!)
 

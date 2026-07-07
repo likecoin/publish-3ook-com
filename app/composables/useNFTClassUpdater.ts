@@ -1,7 +1,7 @@
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { ClassMetadata, ISCNFormData, ISCNRegisterPayload } from '~/types/iscn'
-import { formatISCNTxPayload } from '~/utils/iscn'
+import { formatISCNTxPayload, buildBookClassMetadata } from '~/utils/iscn'
 import { getFileTypeFromMime } from '~/composables/useISCN'
 
 // Loads on-chain class metadata into the shared ISCNForm shape and saves
@@ -123,16 +123,7 @@ export function useNFTClassUpdater() {
     }
 
     const contentMetadata = formatISCNTxPayload(registerPayload)
-    const metadata = {
-      ...contentMetadata,
-      symbol: 'BOOK',
-      external_link: contentMetadata?.url || '',
-      image: contentMetadata?.thumbnailUrl || '',
-      nft_meta_collection_id: 'nft_book',
-      nft_meta_collection_name: 'NFT Book',
-      nft_meta_collection_description: 'NFT Book by Liker Land',
-      recordTimestamp: new Date().toISOString(),
-    }
+    const metadata = buildBookClassMetadata(contentMetadata)
     const bookConfig = await getNFTClassConfig(classId)
     await checkAndGrantUpdater({
       classId,
