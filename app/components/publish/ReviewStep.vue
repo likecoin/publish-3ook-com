@@ -109,7 +109,7 @@
         <li
           v-for="(p, index) in listingDraft.prices"
           :key="p.index || index"
-          class="flex items-center justify-between"
+          class="flex items-baseline gap-x-3 flex-wrap"
         >
           <span
             class="font-medium text-gray-700"
@@ -126,24 +126,21 @@
           </span>
         </li>
       </ul>
-      <ul class="mt-3 space-y-1 text-xs text-gray-500">
-        <li v-if="listingDraft.isAllowCustomPrice">
-          {{ $t('nft_book_form.accept_tipping') }}
-        </li>
-        <li v-if="listingDraft.isAdultOnly">
-          {{ $t('nft_book_form.is_adult_only') }}
-        </li>
-        <li>
-          {{ listingDraft.hideAudio
-            ? $t('nft_book_form.ai_audio_forbid')
-            : $t('nft_book_form.ai_audio_allow') }}
-        </li>
-        <li>
-          {{ listingDraft.isPlusReadingEnabled
-            ? $t('nft_book_form.plus_reading_join')
-            : $t('nft_book_form.plus_reading_skip') }}
-        </li>
-      </ul>
+      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+        <template
+          v-for="row in settingsRows"
+          :key="row.label"
+        >
+          <dt
+            class="text-gray-500"
+            v-text="row.label"
+          />
+          <dd
+            class="text-gray-700"
+            v-text="row.value"
+          />
+        </template>
+      </dl>
     </UCard>
   </div>
 </template>
@@ -173,6 +170,29 @@ const metadataRows = computed(() => [
   { label: $t('form.language'), value: iscnFormData.language },
   { label: $t('form.isbn'), value: iscnFormData.isbn },
   { label: $t('common.description'), value: iscnFormData.description },
+])
+
+const settingsRows = computed(() => [
+  {
+    label: $t('nft_book_form.plus_reading'),
+    value: listingDraft.isPlusReadingEnabled
+      ? $t('nft_book_form.plus_reading_join')
+      : $t('nft_book_form.plus_reading_skip'),
+  },
+  {
+    label: $t('nft_book_form.ai_audio'),
+    value: listingDraft.hideAudio
+      ? $t('nft_book_form.ai_audio_forbid')
+      : $t('nft_book_form.ai_audio_allow'),
+  },
+  {
+    label: $t('nft_book_form.accept_tipping'),
+    value: listingDraft.isAllowCustomPrice ? $t('common.yes') : $t('common.no'),
+  },
+  {
+    label: $t('nft_book_form.is_adult_only'),
+    value: listingDraft.isAdultOnly ? $t('common.yes') : $t('common.no'),
+  },
 ])
 
 function formatPrice(p: PriceFormItem): string {

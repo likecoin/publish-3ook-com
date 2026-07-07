@@ -505,6 +505,7 @@
   "nft_book_form.accept_tipping": "接受額外支持",
   "nft_book_form.accept_tipping_tooltip": "讀者可在書價外作進一步支持",
   "nft_book_form.add_custom_message_page": "加入訂製扉頁",
+  "nft_book_form.add_description": "新增版本描述（選填）",
   "nft_book_form.add_edition": "新增版本",
   "nft_book_form.author_message": "作者留言 ✍️：",
   "nft_book_form.auto_delivery": "自動發書",

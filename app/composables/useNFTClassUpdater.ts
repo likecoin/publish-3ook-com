@@ -24,12 +24,14 @@ export function useNFTClassUpdater() {
   function parseDownloadableUrl(url: string) {
     try {
       const urlObj = new URL(url)
-      const fileName = urlObj.searchParams.get('name') || ''
-      const [name = '', type] = fileName.split('.')
+      const rawName = urlObj.searchParams.get('name') || ''
+      const lastDot = rawName.lastIndexOf('.')
+      const name = lastDot > 0 ? rawName.slice(0, lastDot) : rawName
+      const type = lastDot > 0 ? rawName.slice(lastDot + 1) : ''
       return {
         url: url.split('?')[0] || '',
         fileName: name,
-        type: type || '',
+        type,
       }
     }
     catch {

@@ -217,7 +217,7 @@ async function movePrice(fromIndex: number, toIndex: number) {
     prices.value = newPrices.map((p, order) => ({ ...p, order }))
     toast.add({
       icon: 'i-heroicons-check-circle',
-      title: 'Updated editions order successfully',
+      title: $t('pages.updated_editions_order'),
       duration: 2000,
       color: 'success',
     })

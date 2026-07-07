@@ -53,20 +53,14 @@
                 v-model="p.name"
                 :placeholder="$t('nft_book_form.product_name_placeholder')"
               />
-              <span
-                class="block text-[14px] text-[#374151] mt-[8px]"
-                v-text="$t('nft_book_form.description_optional')"
-              />
-              <md-editor
-                v-model="p.description"
-                language="en-US"
-                :editor-id="`pricing-${index}`"
-                :placeholder="mdEditorPlaceholder.zh"
-                :toolbars="toolbarOptions"
-                :sanitize="sanitizeHtml"
-                :style="{ height: '200px', width: '100%', marginTop: '0px' }"
-              />
             </UFormField>
+
+            <!-- Editing a saved edition keeps the description under the name. -->
+            <PublishEditionDescriptionField
+              v-if="mode === 'edit'"
+              v-model="p.description"
+              :editor-id="`pricing-${index}`"
+            />
 
             <!-- 2. Price -->
             <UFormField
@@ -124,6 +118,15 @@
                 </div>
               </div>
             </UFormField>
+
+            <!-- New listings: description is optional and collapsed so the
+                 rarely-used editor no longer pushes the price down the card. -->
+            <PublishEditionDescriptionField
+              v-if="mode === 'new'"
+              v-model="p.description"
+              :editor-id="`pricing-${index}`"
+              collapsible
+            />
 
             <!-- 3. Copies / delivery -->
             <UFormField
@@ -411,9 +414,6 @@
 
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
-import { MdEditor, config, type ToolbarNames } from 'md-editor-v3'
-import 'md-editor-v3/lib/style.css'
-
 import { v4 as uuidv4 } from 'uuid'
 
 import type { FormError } from '#ui/types'
@@ -424,7 +424,6 @@ import {
 } from '~/constant'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import { getPriceItemUSDValue, validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
-import { sanitizeHtml } from '~/utils/newClass'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()
@@ -452,33 +451,6 @@ const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 const route = useRoute()
-
-const mdEditorPlaceholder = ref({
-  en: 'e.g.: This edition includes EPUB and PDF ebook files.',
-  zh: '例：此版本包含 EPUB 及 PDF 電子書檔',
-})
-
-const toolbarOptions = ref<ToolbarNames[]>([
-  'bold',
-  'italic',
-  'strikeThrough',
-  'title',
-  '-',
-  'unorderedList',
-  'orderedList',
-  '-',
-  'code',
-  'link',
-  '=',
-  'preview',
-])
-
-config({
-  markdownItConfig(mdit) {
-    mdit.options.html = false
-    mdit.disable('fence')
-  },
-})
 
 const hideAudioRadio = computed({
   get: () => (settings.value.hideAudio ? 'forbid' : 'allow'),
@@ -585,10 +557,3 @@ function onImgUpload(event: Event) {
   signatureImage.value = file
 }
 </script>
-
-<style scoped>
-.md-editor {
-  width: 100%;
-  min-width: 300px;
-}
-</style>

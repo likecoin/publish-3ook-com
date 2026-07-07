@@ -270,7 +270,7 @@ const salesChannelMap = computed(() => {
 function normalizeChannelId(channelId: string) {
   switch (channelId) {
     case 'empty':
-      return 'Not set'
+      return $t('pages.not_set')
 
     default:
       return channelId
@@ -314,7 +314,7 @@ function getOrdersTableActionItems(purchaseListItem: PurchaseItem) {
   }
   else if (purchaseListItem.status === 'pendingNFT' && userCanSendNFT.value) {
     actionItems.push([{
-      label: 'Send NFT',
+      label: $t('pages.send_nft'),
       icon: 'i-heroicons-paper-airplane',
       to: localeRoute({
         name: 'my-books-send-classId',
@@ -355,7 +355,7 @@ function getOrdersTableActionItems(purchaseListItem: PurchaseItem) {
 function getStatusLabel(purchaseListItem: PurchaseItem) {
   switch (purchaseListItem.status) {
     case 'paid':
-      return 'Paid'
+      return $t('pages.paid')
 
     case 'pendingNFT':
       return $t('status.pendingNFT')
@@ -441,7 +441,7 @@ async function sendReminderEmail(purchase: PurchaseItem) {
 }
 
 async function hardSetStatusToCompleted(purchase: PurchaseItem) {
-  const userConfirmed = confirm('Do you want to skip the \'Send NFT\' action and override this payment status to \'completed\'?')
+  const userConfirmed = confirm($t('pages.skip_send_nft_confirm'))
   if (!userConfirmed) {
     return
   }

@@ -19,7 +19,7 @@
     <UFormField :label="$t('form.sales_channel_for_links')">
       <UInput
         v-model="fromChannelInput"
-        placeholder="Channel ID(s), separated by commas (e.g. store01, store02)"
+        :placeholder="$t('status_page.channel_ids_placeholder')"
       />
     </UFormField>
 

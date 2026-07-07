@@ -505,6 +505,7 @@
   "nft_book_form.accept_tipping": "Accept tipping",
   "nft_book_form.accept_tipping_tooltip": "Readers can provide additional support beyond the book price",
   "nft_book_form.add_custom_message_page": "Add the custom page",
+  "nft_book_form.add_description": "Add edition description (optional)",
   "nft_book_form.add_edition": "Add Edition",
   "nft_book_form.author_message": "Author's message ✍️:",
   "nft_book_form.auto_delivery": "Auto delivery",
