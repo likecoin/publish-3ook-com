@@ -130,6 +130,7 @@ const { wallet } = storeToRefs(store)
 const bookstoreApiStore = useBookstoreApiStore()
 const { token } = storeToRefs(bookstoreApiStore)
 const toast = useToast()
+const { showErrorToast } = useToastComposable()
 const imageFile = ref<HTMLInputElement | null>(null)
 const { prepareArweaveUpload, executeArweaveUpload: executeArweaveUploadComposable, uploadToArweave } = useArweaveUpload()
 export type { FileRecord }
@@ -158,7 +159,6 @@ onMounted(() => {
 
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
-const epubMetadataList = ref<EpubMetadata[]>([])
 
 const arweaveFee = ref(new BigNumber(0))
 const arweaveFeeMap = ref({} as Record<string, string>)
@@ -220,37 +220,47 @@ watch(uploadStatus, (val: string) => {
   emit('fileUploadStatus', val)
 }, { immediate: true })
 
-const formatLanguage = (language: string) => {
-  let formattedLanguage = ''
-  if (language) {
-    if (language.toLowerCase().startsWith('en')) {
-      formattedLanguage = 'en'
-    }
-    else if (language.toLowerCase().startsWith('zh')) {
-      formattedLanguage = 'zh'
-    }
-    else {
-      formattedLanguage = language
-    }
-  }
-  return formattedLanguage
-}
-
 const getFileInfoWithToast = async (file: Blob) => {
   try {
     return await getFileInfo(file)
   }
   catch (error) {
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('upload_form.error_during_upload'),
+    showErrorToast($t('upload_form.error_during_upload'), {
       description: (error as Error).message || $t('upload_form.upload_error_occurred'),
-      duration: 3000,
-      color: 'error',
     })
     return null
   }
 }
+
+// Replaces a blob-less record restored from a resumed draft when the user
+// re-selects the same file; otherwise appends.
+const upsertFileRecord = (record: FileRecord) => {
+  const staleIndex = fileRecords.value.findIndex(
+    r => r.fileName === record.fileName && !r.fileBlob,
+  )
+  if (staleIndex >= 0) {
+    fileRecords.value.splice(staleIndex, 1, record)
+  }
+  else {
+    fileRecords.value.push(record)
+  }
+}
+
+const {
+  epubMetadataList,
+  validateEpub,
+  processEPub,
+  assignManualCoverImage,
+  removeMetadataForDeletedFile,
+} = useEpubProcessing({
+  getFileInfo: getFileInfoWithToast,
+  onCoverExtracted: upsertFileRecord,
+  onError: (err) => {
+    showErrorToast($t('upload_form.error_during_upload'), {
+      description: (err as Error).message || $t('upload_form.epub_processing_error'),
+    })
+  },
+})
 
 const onFileUpload = async (event: Event) => {
   try {
@@ -312,38 +322,17 @@ const onFileUpload = async (event: Event) => {
               await processEPub({ buffer: fileBytes, file })
             }
             else if (fileRecord.fileType?.startsWith('image/')) {
-              let emptyCoverMetadata = epubMetadataList.value.find(
-                (metadata: EpubMetadata) => !metadata.thumbnailIpfsHash,
-              )
-              if (!emptyCoverMetadata) {
-                if (epubMetadataList.value.length === 0) {
-                  // No EPUB file was uploaded — epubMetadataList is still empty
-                  emptyCoverMetadata = {
-                    thumbnailIpfsHash: null,
-                    coverData: null,
-                  }
-                  epubMetadataList.value.push(emptyCoverMetadata)
-                }
-                else {
-                  // A cover image has already been assigned — only one cover is allowed
-                  toast.add({
-                    icon: 'i-heroicons-exclamation-circle',
-                    title: $t('upload_form.warning'),
-                    description: $t('upload_form.only_one_cover_image'),
-                    duration: 3000,
-                    color: 'warning',
-                  })
-                  return
-                }
+              if (!assignManualCoverImage(file, ipfsHash)) {
+                // A cover image has already been assigned — only one cover is allowed
+                toast.add({
+                  icon: 'i-heroicons-exclamation-circle',
+                  title: $t('upload_form.warning'),
+                  description: $t('upload_form.only_one_cover_image'),
+                  duration: 3000,
+                  color: 'warning',
+                })
+                return
               }
-
-              const coverReader = new FileReader()
-              coverReader.onload = (e) => {
-                if (!e.target) { return }
-                emptyCoverMetadata.thumbnailIpfsHash = ipfsHash
-                emptyCoverMetadata.coverData = e.target.result as string
-              }
-              coverReader.readAsDataURL(file)
             }
           }
         }
@@ -372,179 +361,6 @@ const onFileUpload = async (event: Event) => {
   }
 }
 
-// Replaces a blob-less record restored from a resumed draft when the user
-// re-selects the same file; otherwise appends.
-const upsertFileRecord = (record: FileRecord) => {
-  const staleIndex = fileRecords.value.findIndex(
-    r => r.fileName === record.fileName && !r.fileBlob,
-  )
-  if (staleIndex >= 0) {
-    fileRecords.value.splice(staleIndex, 1, record)
-  }
-  else {
-    fileRecords.value.push(record)
-  }
-}
-
-const validateEpub = async (buffer: ArrayBuffer): Promise<{ errors: string, warnings: string, hasIssues: boolean }> => {
-  try {
-    const { EpubCheck } = await import('@likecoin/epubcheck-ts')
-    const result = await EpubCheck.validate(new Uint8Array(buffer))
-
-    const errorMessages = result.messages
-      .filter(msg => msg.severity === 'error' || msg.severity === 'fatal')
-      .map((msg) => {
-        let location = ''
-        if (msg.location) {
-          location = ` (${msg.location.path}${msg.location.line ? ':' + msg.location.line : ''})`
-        }
-        return `• ${msg.message}${location}`
-      })
-      .join('\n')
-
-    const warningMessages = result.messages
-      .filter(msg => msg.severity === 'warning')
-      .map((msg) => {
-        let location = ''
-        if (msg.location) {
-          location = ` (${msg.location.path}${msg.location.line ? ':' + msg.location.line : ''})`
-        }
-        return `• ${msg.message}${location}`
-      })
-      .join('\n')
-
-    return {
-      errors: errorMessages,
-      warnings: warningMessages,
-      hasIssues: !!(errorMessages || warningMessages),
-    }
-  }
-  catch (error) {
-    return {
-      errors: (error as Error).message || $t('upload_form.epub_validation_failed'),
-      warnings: '',
-      hasIssues: true,
-    }
-  }
-}
-
-const processEPub = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }) => {
-  try {
-    const { default: ePub } = await import('@likecoin/epub-ts')
-    const book = ePub(buffer)
-    await book.ready
-
-    const epubMetadata: EpubMetadata = {}
-
-    // Get metadata
-    const metadata = book.packaging?.metadata
-    if (metadata) {
-      epubMetadata.epubFileName = file.name
-      epubMetadata.title = metadata.title
-      epubMetadata.author = metadata.creator
-      epubMetadata.language = formatLanguage(metadata.language)
-      epubMetadata.description = metadata.description
-    }
-
-    // Get table of contents
-    if (book.navigation?.toc?.length) {
-      interface TocItem {
-        label?: string
-        subitems?: TocItem[]
-      }
-      const tocToMarkdown = (items: TocItem[], indent = 0): string => {
-        return items.map((item) => {
-          const prefix = ' '.repeat(indent * 2) + '- '
-          const line = prefix + (item.label?.trim() || '')
-          const subLines = item.subitems?.length ? tocToMarkdown(item.subitems, indent + 1) : ''
-          return subLines ? line + '\n' + subLines : line
-        }).join('\n')
-      }
-      epubMetadata.tableOfContents = tocToMarkdown(book.navigation.toc)
-    }
-
-    // Get tags
-    if (book.path && book.archive) {
-      const opfFilePath = book.path.toString()
-      const opfContent = await book.archive.getText(opfFilePath)
-      if (opfContent) {
-        const parser = new DOMParser()
-        const opfDocument = parser.parseFromString(opfContent, 'application/xml')
-        const dcSubjectElements = opfDocument.querySelectorAll(
-          'dc\\:subject, subject',
-        )
-        const subjects: string[] = []
-        dcSubjectElements.forEach((element) => {
-          const subject = element.textContent
-          if (subject) {
-            subjects.push(subject)
-          }
-        })
-        epubMetadata.tags = subjects
-      }
-    }
-
-    // Get cover file
-    const coverUrl = await book.coverUrl()
-    if (coverUrl) {
-      const response = await fetch(coverUrl)
-      const blobData = await response.blob()
-      if (blobData) {
-        const coverFile = new File(
-          [blobData],
-          `${metadata?.title || 'cover'}_cover.jpeg`,
-          {
-            type: 'image/jpeg',
-          },
-        )
-
-        const coverInfo = await getFileInfoWithToast(coverFile)
-        if (coverInfo) {
-          const {
-            fileSHA256,
-            ipfsHash: ipfsThumbnailHash,
-          } = coverInfo
-
-          epubMetadata.thumbnailIpfsHash = ipfsThumbnailHash
-
-          const coverFileRecord: FileRecord = {
-            fileName: coverFile.name,
-            fileSize: coverFile.size,
-            fileType: coverFile.type,
-            fileBlob: coverFile,
-            ipfsHash: ipfsThumbnailHash ?? undefined,
-            fileSHA256,
-          }
-          const coverReader = new FileReader()
-          coverReader.onload = (e) => {
-            if (!e.target) {
-              return
-            }
-            coverFileRecord.fileData = e.target.result as string
-            upsertFileRecord(coverFileRecord)
-            epubMetadata.coverData = e.target.result as string
-            epubMetadataList.value.push(epubMetadata)
-          }
-          coverReader.readAsDataURL(coverFile)
-          return
-        }
-      }
-    }
-    epubMetadataList.value.push(epubMetadata)
-  }
-  catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('upload_form.error_during_upload'),
-      description: (err as Error).message || $t('upload_form.epub_processing_error'),
-      duration: 3000,
-      color: 'error',
-    })
-  }
-}
-
 const showEpubIssuesForFile = (fileRecord: FileRecord) => {
   if (fileRecord.validationErrors || fileRecord.validationWarnings) {
     epubValidationErrors.value = fileRecord.validationErrors || ''
@@ -556,23 +372,7 @@ const showEpubIssuesForFile = (fileRecord: FileRecord) => {
 const handleDeleteFile = (index: number) => {
   const [removedFile] = fileRecords.value.splice(index, 1)
   if (!removedFile) { return }
-  if (removedFile.fileType?.startsWith('image/')) {
-    epubMetadataList.value = epubMetadataList.value
-      .map((metadata: EpubMetadata) => {
-        if (metadata.thumbnailIpfsHash === removedFile.ipfsHash) {
-          return { ...metadata, thumbnailIpfsHash: null, coverData: null }
-        }
-        return metadata
-      })
-      .filter((metadata: EpubMetadata) =>
-        metadata.epubFileName || metadata.thumbnailIpfsHash,
-      )
-  }
-  else if (removedFile.fileType === 'application/epub+zip') {
-    epubMetadataList.value = epubMetadataList.value.filter(
-      (metadata: EpubMetadata) => metadata.epubFileName !== removedFile.fileName,
-    )
-  }
+  removeMetadataForDeletedFile(removedFile)
 }
 
 const estimateArweaveFee = async (): Promise<void> => {
@@ -631,12 +431,8 @@ const estimateArweaveFee = async (): Promise<void> => {
   }
   catch (err) {
     console.error(err)
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('upload_form.error_during_upload'),
+    showErrorToast($t('upload_form.error_during_upload'), {
       description: (err as Error).message || $t('upload_form.fee_estimation_error'),
-      duration: 3000,
-      color: 'error',
     })
   }
   finally {
@@ -783,12 +579,8 @@ const onSubmitInternal = async () => {
     // eslint-disable-next-line no-console
     console.error(error)
     uploadStatus.value = ''
-    toast.add({
-      icon: 'i-heroicons-exclamation-circle',
-      title: $t('upload_form.error_during_upload'),
+    showErrorToast($t('upload_form.error_during_upload'), {
       description: (error as Error).message || $t('upload_form.upload_error_occurred'),
-      duration: 3000,
-      color: 'error',
     })
     return
   }
