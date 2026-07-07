@@ -261,9 +261,11 @@ export function fileToArrayBuffer(file: Blob): Promise<ArrayBuffer> {
   })
 }
 
-export function digestFileSHA256(buffer: ArrayBuffer) {
-  const hashHex = Buffer.from(buffer).toString('hex')
-  return hashHex
+export async function digestFileSHA256(buffer: ArrayBuffer) {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 export async function calculateIPFSHash(fileBytes: Uint8Array | Buffer, options?: Record<string, unknown>) {
