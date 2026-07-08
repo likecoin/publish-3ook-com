@@ -211,7 +211,7 @@
             />
           </UFormField>
           <UButton
-            v-if="fingerprint.url"
+            v-if="fingerprint.url && !fingerprint.url.startsWith('hash://')"
             :to="localeRoute({ name: 'preview-book', query: { url: fingerprint.url } })"
             target="_blank"
             rel="noopener noreferrer"

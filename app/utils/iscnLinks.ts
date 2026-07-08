@@ -8,6 +8,7 @@ export interface IscnLinkSourceRecord {
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
+  fileSHA256?: string
 }
 
 function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
@@ -37,10 +38,17 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
   const contentFingerprints = [
     ...new Set<string>(
       uploadedRecords
-        .map(r => (EBOOK_FILE_TYPES.includes(r.fileType || '')
-          ? getRecordArweaveUrl(r)
-          : `ar://${r.arweaveId}`))
-        .filter(Boolean),
+        .flatMap((r) => {
+          const isEbook = EBOOK_FILE_TYPES.includes(r.fileType || '')
+          const urls = [isEbook ? getRecordArweaveUrl(r) : `ar://${r.arweaveId}`]
+          // Plaintext-hash provenance anchor (ADR 0001): anchor the original
+          // content for every ebook, since an encrypted book's arweave URL
+          // only fingerprints ciphertext.
+          if (isEbook && r.fileSHA256) {
+            urls.push(`hash://sha256/${r.fileSHA256.toLowerCase()}`)
+          }
+          return urls
+        }),
     ),
   ].map(url => ({ url }))
 

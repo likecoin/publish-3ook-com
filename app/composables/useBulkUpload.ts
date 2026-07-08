@@ -182,6 +182,7 @@ export function useBulkUpload() {
         arweaveId: book.bookArweaveId,
         arweaveLink: book.bookArweaveLink,
         arweaveKey: book.bookArweaveKey,
+        fileSHA256: book.bookFileSHA256,
       },
     ])
 
