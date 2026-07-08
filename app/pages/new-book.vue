@@ -568,7 +568,15 @@ async function handlePublish() {
       if (updates.classId) { classId.value = updates.classId }
       if ('mintTxHash' in updates) { mintTxHash.value = updates.mintTxHash || '' }
       if (updates.fileRecords) {
-        // The pipeline mutates our records in place; persist the checkpoints.
+        // Mirror the pipeline's arweave checkpoints back into the reactive
+        // records — otherwise a same-session Retry rebuilds the input without
+        // arweaveId and re-uploads (re-paying for encrypted files). The plain
+        // records carry no fileBlob, so assigning them leaves each blob intact.
+        updates.fileRecords.forEach((rec, i) => {
+          const target = fileRecords.value[i]
+          if (!target) { return }
+          Object.assign(target, rec)
+        })
         updatePublishSession({ fileRecords: updates.fileRecords })
         return
       }
