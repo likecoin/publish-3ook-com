@@ -19,5 +19,12 @@ export default defineAppConfig({
         root: 'w-full',
       },
     },
+    table: {
+      slots: {
+        // Show a pointer cursor on rows wired with @select (data-selectable),
+        // so clickable rows signal their interactivity.
+        tr: 'data-[selectable=true]:cursor-pointer',
+      },
+    },
   },
 })
