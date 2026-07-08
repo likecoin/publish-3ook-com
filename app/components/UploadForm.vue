@@ -6,7 +6,7 @@
         @drop.prevent="onFileUpload"
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
-        @click="($refs.imageFile as HTMLInputElement)?.click()"
+        @click="openFilePicker"
       >
         <UIcon
           name="i-heroicons-folder-arrow-down"
@@ -19,7 +19,7 @@
         <UButton
           type="button"
           variant="ghost"
-          @click.stop="($refs.imageFile as HTMLInputElement)?.click()"
+          @click.stop="openFilePicker"
         >
           {{ $t('common.select_file') }}
         </UButton>
@@ -55,6 +55,7 @@
         :file-records="fileRecords"
         @delete="handleDeleteFile"
         @show-issues="showEpubIssuesForFile"
+        @reselect="openFilePicker"
       />
     </div>
     <URadioGroup
@@ -125,6 +126,7 @@ const { wallet } = storeToRefs(store)
 const toast = useToast()
 const { showErrorToast } = useToastComposable()
 const imageFile = ref<HTMLInputElement | null>(null)
+const openFilePicker = () => imageFile.value?.click()
 const { uploadToArweave, uploadFileRecordsToArweave } = useArweaveUpload()
 export type { FileRecord }
 

@@ -33,14 +33,15 @@
           >
             {{ $t('upload_form.file_already_uploaded') }}
           </UBadge>
-          <UBadge
+          <UButton
             v-else-if="!record.fileBlob"
             variant="soft"
-            color="warning"
+            color="error"
             size="xs"
-          >
-            {{ $t('upload_form.file_needs_reselect') }}
-          </UBadge>
+            icon="i-heroicons-arrow-up-tray"
+            :label="$t('upload_form.file_needs_reselect')"
+            @click="emit('edit', 'files')"
+          />
         </li>
       </ul>
       <p class="mt-3 text-sm text-gray-500">

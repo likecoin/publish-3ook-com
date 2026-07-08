@@ -24,9 +24,11 @@
               <p class="text-gray-500 text-sm">
                 {{ Math.round((fileSize || 0) * 0.001) }} KB
               </p>
-              <p
+              <button
                 v-if="needsReselect(fileRecords[index])"
-                class="text-yellow-600 text-xs"
+                type="button"
+                class="text-red-600 hover:text-red-700 text-xs underline text-left cursor-pointer"
+                @click="emit('reselect', index)"
                 v-text="$t('upload_form.file_needs_reselect')"
               />
             </div>
@@ -67,6 +69,7 @@ defineProps<{
 const emit = defineEmits<{
   delete: [index: number]
   showIssues: [record: FileRecord]
+  reselect: [index: number]
 }>()
 
 const needsReselect = (record?: FileRecord) => {
