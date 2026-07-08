@@ -134,3 +134,19 @@ export interface ISCNValidationData {
   contentFingerprints?: Array<{ url: string }>
   coverUrl?: string
 }
+
+// On-chain BookNFT config + newBookNFT message struct, mirroring the contract's
+// BookConfig / MsgNewBookNFT (see contracts/likeNFT.ts).
+export interface BookNFTConfig {
+  name: string
+  symbol: string
+  metadata: string
+  max_supply: bigint
+}
+
+export interface MsgNewBookNFT {
+  creator: `0x${string}`
+  updaters: `0x${string}`[]
+  minters: `0x${string}`[]
+  config: BookNFTConfig
+}

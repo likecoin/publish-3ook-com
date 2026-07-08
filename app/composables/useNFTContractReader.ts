@@ -1,6 +1,6 @@
 import { readContract } from '@wagmi/vue/actions'
 import { LIKE_NFT_ABI, LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
-import type { ClassMetadata } from '~/types/iscn'
+import type { BookNFTConfig, ClassMetadata, MsgNewBookNFT } from '~/types/iscn'
 
 function parseURIString(dataString: string): ClassMetadata | null {
   const dataUriPattern = /^data:application\/json(?:; ?charset=utf-8|; ?utf8)?(;base64)?,/i
@@ -103,7 +103,21 @@ export const useNFTContractReader = () => {
     }) as boolean
   }
 
-  const getNFTClassConfig = async (classId: string): Promise<{ name: string, symbol: string, metadata: string, max_supply: bigint }> => {
+  // Precomputes the deterministic class address (view-only) so a lost classId
+  // can be recovered instead of redeployed. See recoverDeployedClassId.
+  const precomputeBookNFTAddress = async (
+    salt: `0x${string}`,
+    msgNewBookNFT: MsgNewBookNFT,
+  ): Promise<`0x${string}`> => {
+    return await readContract(config, {
+      address: LIKE_NFT_CONTRACT_ADDRESS as `0x${string}`,
+      abi: LIKE_NFT_ABI,
+      functionName: 'precomputeBookNFTAddress',
+      args: [salt, msgNewBookNFT],
+    }) as `0x${string}`
+  }
+
+  const getNFTClassConfig = async (classId: string): Promise<BookNFTConfig> => {
     return await readContract(config, {
       abi: LIKE_NFT_CLASS_ABI,
       address: classId as `0x${string}`,
@@ -120,6 +134,7 @@ export const useNFTContractReader = () => {
     getTokenIdByOwnerIndex,
     getClassCurrentTokenId,
     checkNFTClassIsBookNFT,
+    precomputeBookNFTAddress,
     getNFTClassConfig,
   }
 }

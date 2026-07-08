@@ -32,7 +32,8 @@ export function usePublishBook() {
   const { newBookListing, uploadSignImages } = bookstoreApiStore
   const { lazyFetchClassMetadataById } = nftStore
   const { uploadFileRecordsToArweave } = useArweaveUpload()
-  const { createNFTClass } = useNFTClassCreator()
+  const { createNFTClass, predictClassId } = useNFTClassCreator()
+  const { checkNFTClassIsBookNFT } = useNFTContractReader()
   const { mintNFT } = useNFTMinter()
   const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
   const { $wagmiConfig } = useNuxtApp()
@@ -85,6 +86,23 @@ export function usePublishBook() {
     return res.ok
   }
 
+  // Recovers a class a prior attempt deployed on-chain but whose id wasn't
+  // captured (deterministic address from the content salt); adopts it only if
+  // it's a deployed BookNFT, else falls back to creating a fresh class.
+  async function recoverDeployedClassId(iscnFormData: Ref<ISCNFormData>): Promise<string | undefined> {
+    try {
+      const predicted = await predictClassId(iscnFormData)
+      if (predicted && await checkNFTClassIsBookNFT(predicted)) {
+        return predicted.toLowerCase()
+      }
+    }
+    catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[publishBook] class-address recovery skipped:', error)
+    }
+    return undefined
+  }
+
   function toPlainRecords(records: PublishFileRecordWithBlob[]): PublishFileRecord[] {
     return records.map(({ fileName, fileType, ipfsHash, fileSHA256, arweaveId, arweaveLink, arweaveKey }) => ({
       fileName, fileType, ipfsHash, fileSHA256, arweaveId, arweaveLink, arweaveKey,
@@ -120,7 +138,9 @@ export function usePublishBook() {
       // A pre-existing classId means a prior run already created the class —
       // a listing may exist too, so probe before POSTing (POST /new is not
       // idempotent server-side).
-      const isResumedClass = !!input.classId
+      // Also true once we recover/adopt an already-deployed class below, so the
+      // listing step probes before POSTing either way.
+      let classExistedBeforeRun = !!input.classId
       let classId = input.classId
       let mintTxHash = input.mintTxHash
 
@@ -154,8 +174,18 @@ export function usePublishBook() {
         if (errors.length) {
           throw new Error(errors.join(', '))
         }
-        const result = await createNFTClass({ iscnFormData: ref(input.iscnFormData) })
-        classId = result.classId
+        // Adopt an already-deployed class (deterministic address) before minting
+        // a new one — a redeploy reverts on the taken address, stranding the
+        // publish. Falls back to creation when nothing is deployed yet.
+        const iscnFormDataRef = ref(input.iscnFormData)
+        classId = await recoverDeployedClassId(iscnFormDataRef)
+        if (classId) {
+          classExistedBeforeRun = true
+        }
+        else {
+          const result = await createNFTClass({ iscnFormData: iscnFormDataRef })
+          classId = result.classId
+        }
         onProgress?.({ classId })
       }
       else {
@@ -184,7 +214,7 @@ export function usePublishBook() {
 
       // Step 4: Create book listing
       onStatusChange?.(BookUploadStatus.LISTING)
-      const alreadyListed = isResumedClass && await checkListingExists(classId)
+      const alreadyListed = classExistedBeforeRun && await checkListingExists(classId)
       if (!alreadyListed) {
         const { listingDraft } = input
         const prices = mapPriceFormItemsToPayload(listingDraft.prices)
