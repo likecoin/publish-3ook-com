@@ -95,6 +95,9 @@ export interface PublishSession {
   classId?: string
   mintTxHash?: string
   skipMint?: boolean
+  // Signature blobs never persist; this flags that one was set so a resumed
+  // draft can prompt for re-selection instead of silently publishing without it.
+  hasSignatureImage?: boolean
   walletAddress?: string
   error?: string
 }

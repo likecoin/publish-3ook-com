@@ -747,6 +747,7 @@
   "publish_wizard.publishing_do_not_close": "發佈完成前請勿關閉此頁面",
   "publish_wizard.publishing_title": "正在發佈你的書籍",
   "publish_wizard.reselect_before_publish": "發佈前請重新選擇以下檔案：{files}",
+  "publish_wizard.reselect_signature": "發佈前請在定價步驟重新加入簽名圖片。",
   "publish_wizard.resume_draft": "繼續",
   "publish_wizard.resume_draft_description": "你有一份未完成的書籍草稿：{title}。要繼續還是重新開始？檔案可能需要重新選擇。",
   "publish_wizard.resume_draft_title": "發現未完成的草稿",

@@ -218,6 +218,9 @@ const sponsored = ref(false)
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 const listingDraft = ref<PublishListingDraft>(createDefaultListingDraft())
 const signatureImage = ref<File | null>(null)
+// A resumed draft can't restore the signature blob (blobs never persist); this
+// remembers that one was set pre-reload so publish prompts for re-selection.
+const hadSignatureImage = ref(false)
 
 // Commit checkpoints (survive quit; make a failed publish resumable)
 const classId = ref('')
@@ -323,6 +326,7 @@ function resumeDraft() {
     classId.value = session.classId || ''
     mintTxHash.value = session.mintTxHash || ''
     skipMint.value = session.skipMint ?? false
+    hadSignatureImage.value = session.hasSignatureImage ?? false
     publishError.value = session.error || ''
     if (session.status !== BookUploadStatus.PENDING) {
       lastStepStatus.value = session.status
@@ -371,6 +375,7 @@ function serializeDraft(): PublishSession {
     classId: classId.value || undefined,
     mintTxHash: mintTxHash.value || undefined,
     skipMint: skipMint.value || undefined,
+    hasSignatureImage: !!signatureImage.value || hadSignatureImage.value || undefined,
     walletAddress: wallet.value || undefined,
     error: publishError.value || undefined,
   }
@@ -382,7 +387,7 @@ function persistDraft() {
 }
 
 watchDebounced(
-  [fileRecords, iscnFormData, listingDraft, encryptEbook, step],
+  [fileRecords, iscnFormData, listingDraft, encryptEbook, signatureImage, step],
   persistDraft,
   { debounce: 500, deep: true },
 )
@@ -527,6 +532,14 @@ async function handlePublish() {
     showErrorToast($t('publish_wizard.reselect_before_publish', {
       files: missingFiles.map(r => r.fileName).join(', '),
     }))
+    return
+  }
+  // A resumed draft loses the signature blob; remind once so it isn't dropped
+  // silently, then clear the flag so publishing without it stays possible.
+  if (hadSignatureImage.value && !signatureImage.value) {
+    hadSignatureImage.value = false
+    persistDraft()
+    showErrorToast($t('publish_wizard.reselect_signature'))
     return
   }
   if (!(await validatePricingStep())) { return }

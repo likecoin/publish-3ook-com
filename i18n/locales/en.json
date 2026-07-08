@@ -747,6 +747,7 @@
   "publish_wizard.publishing_do_not_close": "Please keep this page open until publishing completes",
   "publish_wizard.publishing_title": "Publishing your book",
   "publish_wizard.reselect_before_publish": "Please re-select these files before publishing: {files}",
+  "publish_wizard.reselect_signature": "Please re-add your signature image on the pricing step before publishing.",
   "publish_wizard.resume_draft": "Resume",
   "publish_wizard.resume_draft_description": "You have an unfinished book draft: {title}. Resume it or start a new one? Files may need to be re-selected.",
   "publish_wizard.resume_draft_title": "Unfinished Draft Found",
