@@ -45,6 +45,7 @@ export interface BulkUploadCSVRow {
   book_arweave_id?: string
   book_arweave_key?: string
   book_arweave_link?: string
+  book_file_sha256?: string
   status?: string
   remark?: string
 }
@@ -95,6 +96,7 @@ export interface BulkUploadBook {
   bookArweaveKey?: string
   bookArweaveLink?: string
   bookIpfsHash?: string
+  bookFileSHA256?: string
   classId?: string
   mintTxHash?: string
 }
@@ -136,6 +138,7 @@ export interface SerializedBulkUploadBook {
   bookArweaveKey?: string
   bookArweaveLink?: string
   bookIpfsHash?: string
+  bookFileSHA256?: string
   classId?: string
   mintTxHash?: string
 }
@@ -159,6 +162,7 @@ export interface ValidatedProgressFields {
   bookArweaveId?: string
   bookArweaveKey?: string
   bookArweaveLink?: string
+  bookFileSHA256?: string
   classId?: string
   mintTxHash?: string
 }

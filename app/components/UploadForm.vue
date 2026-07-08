@@ -509,6 +509,7 @@ const onSubmitInternal = async () => {
       arweaveLink: record.arweaveLink,
       arweaveKey: record.arweaveKey,
       ipfsHash: record.ipfsHash,
+      fileSHA256: record.fileSHA256,
     })),
     epubMetadata: epubMetadataList.value[0],
   }

@@ -86,8 +86,8 @@ export function usePublishBook() {
   }
 
   function toPlainRecords(records: PublishFileRecordWithBlob[]): PublishFileRecord[] {
-    return records.map(({ fileName, fileType, ipfsHash, arweaveId, arweaveLink, arweaveKey }) => ({
-      fileName, fileType, ipfsHash, arweaveId, arweaveLink, arweaveKey,
+    return records.map(({ fileName, fileType, ipfsHash, fileSHA256, arweaveId, arweaveLink, arweaveKey }) => ({
+      fileName, fileType, ipfsHash, fileSHA256, arweaveId, arweaveLink, arweaveKey,
     }))
   }
 

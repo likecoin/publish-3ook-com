@@ -12,6 +12,7 @@ export interface ArweaveUploadableRecord {
   fileType?: string
   fileBlob?: Blob
   ipfsHash?: string
+  fileSHA256?: string
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
@@ -43,6 +44,7 @@ export interface PreparedArweaveUpload {
   fileType: string
   fileSize: number
   sponsored?: boolean
+  fileSHA256?: string
 }
 
 export type PrepareArweaveUploadResult
@@ -55,6 +57,9 @@ interface UploadParams {
   fileType: string
   encrypt: boolean
   sponsored?: boolean
+  // Hex SHA-256 of the plaintext file; sent to the register endpoint as the
+  // provenance anchor (ADR 0001) so the backend can verify decrypted content.
+  fileSHA256?: string
 }
 
 export function useArweaveUpload() {
@@ -135,7 +140,7 @@ export function useArweaveUpload() {
       throw new Error('Arweave fee transaction failed')
     }
 
-    return { txHash, buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length }
+    return { txHash, buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length, fileSHA256: params.fileSHA256 }
   }
 
   async function prepareArweaveUpload(params: UploadParams): Promise<PrepareArweaveUploadResult> {
@@ -150,7 +155,7 @@ export function useArweaveUpload() {
 
     if (useSponsored) {
       const { buffer, ipfsHash, key } = prepared
-      return { buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length, sponsored: true }
+      return { buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length, sponsored: true, fileSHA256: params.fileSHA256 }
     }
     return prepareArweaveUploadPaid(params, prepared)
   }
@@ -164,6 +169,7 @@ export function useArweaveUpload() {
       token: token.value,
       key: prepared.key,
       sponsored: prepared.sponsored,
+      fileSHA256: prepared.fileSHA256,
     })
 
     if (!arweaveId) {
@@ -224,6 +230,7 @@ export function useArweaveUpload() {
         fileType: record.fileType ?? '',
         encrypt: shouldEncrypt,
         sponsored,
+        fileSHA256: record.fileSHA256,
       })
 
       if ('alreadyExists' in prepareResult) {

@@ -110,7 +110,8 @@ export function useBulkUpload() {
       if (!ebookFile) {
         throw new Error('No ebook file found')
       }
-      const detectedType = detectEbookType(await ebookFile.arrayBuffer())
+      const ebookBuffer = await ebookFile.arrayBuffer()
+      const detectedType = detectEbookType(ebookBuffer)
       if (!detectedType) {
         throw new Error(`File ${ebookFile.name} is not a valid PDF or EPUB`)
       }
@@ -120,6 +121,7 @@ export function useBulkUpload() {
         fileName: ebookFile.name,
         fileType: detectedType === 'epub' ? 'application/epub+zip' : 'application/pdf',
         fileBlob: ebookFile,
+        fileSHA256: await digestFileSHA256(ebookBuffer),
       })
     }
 
@@ -145,11 +147,13 @@ export function useBulkUpload() {
           book.bookArweaveKey = record.arweaveKey
           book.bookArweaveLink = record.arweaveLink
           book.bookIpfsHash = record.ipfsHash
+          book.bookFileSHA256 = record.fileSHA256
           onProgress?.(book.id, {
             bookArweaveId: record.arweaveId,
             bookArweaveKey: record.arweaveKey,
             bookArweaveLink: record.arweaveLink,
             bookIpfsHash: record.ipfsHash,
+            bookFileSHA256: record.fileSHA256,
           })
         }
       },

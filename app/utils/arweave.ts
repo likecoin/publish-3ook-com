@@ -45,6 +45,7 @@ export async function uploadSingleFileToBundlr(
     token,
     key,
     sponsored,
+    fileSHA256,
   }: {
     fileSize: number
     fileType?: string
@@ -53,6 +54,7 @@ export async function uploadSingleFileToBundlr(
     token: string
     key?: string
     sponsored?: boolean
+    fileSHA256?: string
   },
 ) {
   const tags = [
@@ -92,6 +94,7 @@ export async function uploadSingleFileToBundlr(
         arweaveId,
         token: signToken,
         key,
+        fileSHA256,
       },
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })

@@ -69,6 +69,7 @@ export const CSV_RESULT_COLUMNS = [
   'book_arweave_id',
   'book_arweave_key',
   'book_arweave_link',
+  'book_file_sha256',
   'status',
   'remark',
 ]
@@ -265,6 +266,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     bookArweaveKey: book.bookArweaveKey,
     bookArweaveLink: book.bookArweaveLink,
     bookIpfsHash: book.bookIpfsHash,
+    bookFileSHA256: book.bookFileSHA256,
     classId: book.classId,
     mintTxHash: book.mintTxHash,
   }
@@ -281,6 +283,7 @@ export function deserializeBook(serialized: SerializedBulkUploadBook): BulkUploa
 
 const ARWEAVE_ID_REGEX = /^[a-zA-Z0-9_-]{43}$/
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/
+const SHA256_REGEX = /^[a-fA-F0-9]{64}$/
 
 export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedProgressFields {
   const result: ValidatedProgressFields = {}
@@ -299,6 +302,10 @@ export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedPr
 
   if (row.book_arweave_link && row.book_arweave_link.trim()) {
     result.bookArweaveLink = row.book_arweave_link.trim()
+  }
+
+  if (row.book_file_sha256 && SHA256_REGEX.test(row.book_file_sha256.trim())) {
+    result.bookFileSHA256 = row.book_file_sha256.trim().toLowerCase()
   }
 
   if (row.class_id && row.class_id.startsWith('0x')) {
@@ -347,6 +354,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.bookArweaveId || '',
     book.bookArweaveKey || '',
     book.bookArweaveLink || '',
+    book.bookFileSHA256 || '',
     book.status,
     book.error || '',
   ])

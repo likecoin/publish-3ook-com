@@ -8,6 +8,7 @@ export interface PublishFileRecord {
   fileName: string
   fileType: string
   ipfsHash?: string
+  fileSHA256?: string
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
