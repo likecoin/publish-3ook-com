@@ -305,6 +305,7 @@
   "error.fetch_nft_metadata_failed": "該 ID 無效",
   "error.nft_id_reserved_for_author": "#0 為首刷版，我們會將它保留給你",
   "errors.add_moderator_wallet": "請按「新增」按鈕來新增審核錢包",
+  "errors.book_already_exists": "已有使用相同書名與檔案的書籍。若要出版新書，請更改書名或上傳不同的檔案。",
   "errors.contact_support": "聯絡客服",
   "errors.edition_not_found": "找不到版本",
   "errors.file_size_limit": "檔案超過 1MB 限制",

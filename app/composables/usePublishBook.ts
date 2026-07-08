@@ -33,7 +33,8 @@ export function usePublishBook() {
   const { lazyFetchClassMetadataById } = nftStore
   const { uploadFileRecordsToArweave } = useArweaveUpload()
   const { createNFTClass, predictClassId } = useNFTClassCreator()
-  const { checkNFTClassIsBookNFT } = useNFTContractReader()
+  const { checkNFTClassIsBookNFT, getNFTClassConfig } = useNFTContractReader()
+  const { t: $t } = useI18n()
   const { mintNFT } = useNFTMinter()
   const { BOOK3_URL, LIKE_CO_API } = useRuntimeConfig().public
   const { $wagmiConfig } = useNuxtApp()
@@ -86,21 +87,35 @@ export function usePublishBook() {
     return res.ok
   }
 
-  // Recovers a class a prior attempt deployed on-chain but whose id wasn't
-  // captured (deterministic address from the content salt); adopts it only if
-  // it's a deployed BookNFT, else falls back to creating a fresh class.
+  // Recovers a class a prior attempt deployed but never recorded the id for
+  // (deterministic CREATE2 address). Adopts only on an exact metadata match so an
+  // unrelated publish colliding on the same address isn't silently merged into.
   async function recoverDeployedClassId(iscnFormData: Ref<ISCNFormData>): Promise<string | undefined> {
+    let predicted: `0x${string}` | undefined
+    let intended: string | undefined
+    let onChain: string | undefined
     try {
-      const predicted = await predictClassId(iscnFormData)
+      const prediction = await predictClassId(iscnFormData)
+      predicted = prediction.classId
+      intended = prediction.metadata
       if (predicted && await checkNFTClassIsBookNFT(predicted)) {
-        return predicted.toLowerCase()
+        onChain = (await getNFTClassConfig(predicted)).metadata
       }
     }
     catch (error) {
+      // Only transient recovery reads land here — fall back to a fresh deploy.
       // eslint-disable-next-line no-console
       console.warn('[publishBook] class-address recovery skipped:', error)
+      return undefined
     }
-    return undefined
+    // Nothing deployed at the predicted address yet — create a fresh class.
+    if (onChain === undefined) { return undefined }
+    // A metadata mismatch means an unrelated publish collided on the
+    // deterministic address; surface it rather than merge into that book.
+    if (onChain !== intended) {
+      throw new Error($t('errors.book_already_exists'))
+    }
+    return predicted!.toLowerCase()
   }
 
   function toPlainRecords(records: PublishFileRecordWithBlob[]): PublishFileRecord[] {

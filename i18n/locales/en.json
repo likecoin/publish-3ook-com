@@ -305,6 +305,7 @@
   "error.fetch_nft_metadata_failed": "This ID is invalid",
   "error.nft_id_reserved_for_author": "#0 is the first edition, and we’ll reserve it for you.",
   "errors.add_moderator_wallet": "Please press Add button to add moderator wallet",
+  "errors.book_already_exists": "A book with this title and file already exists. To publish a new book, change the title or upload a different file.",
   "errors.contact_support": "Contact Support",
   "errors.edition_not_found": "Edition not found",
   "errors.file_size_limit": "File exceeds 1MB limit",

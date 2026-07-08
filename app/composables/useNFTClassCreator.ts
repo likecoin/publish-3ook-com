@@ -40,11 +40,13 @@ export function useNFTClassCreator() {
     return { salt, msgNewBookNFT }
   }
 
-  // Precomputes the deterministic class address without deploying. See
-  // recoverDeployedClassId for how it's used to resume a lost class creation.
-  async function predictClassId(iscnFormData: Ref<ISCNFormData>): Promise<`0x${string}`> {
+  // Precomputes the deterministic class address without deploying, plus the exact
+  // metadata a deploy would write — recoverDeployedClassId compares it against the
+  // on-chain config to tell a true resume from a colliding unrelated re-publish.
+  async function predictClassId(iscnFormData: Ref<ISCNFormData>): Promise<{ classId: `0x${string}`, metadata: string }> {
     const { salt, msgNewBookNFT } = buildNewBookNFTMessage(iscnFormData)
-    return precomputeBookNFTAddress(salt, msgNewBookNFT)
+    const classId = await precomputeBookNFTAddress(salt, msgNewBookNFT)
+    return { classId, metadata: msgNewBookNFT.config.metadata }
   }
 
   async function createNFTClass(params: {
