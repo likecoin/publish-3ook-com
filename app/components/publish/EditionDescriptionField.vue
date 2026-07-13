@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-2">
     <UButton
-      v-if="collapsible && !isOpen"
+      v-if="!isOpen"
       variant="link"
       color="neutral"
       class="p-0"
@@ -56,16 +56,18 @@ const toolbarOptions: ToolbarNames[] = [
   'preview',
 ]
 
-const { editorId, collapsible = false } = defineProps<{
-  editorId: string
-  collapsible?: boolean
-}>()
+defineProps<{ editorId: string }>()
 
 const description = defineModel<string>({ required: true })
 
-// Start open when editing an edition that already has a description;
-// only a collapsible + empty field starts collapsed.
-const isOpen = ref(!collapsible || !!description.value)
+// An edition that already has a description starts open. The edit form hydrates
+// it after mount, so watch rather than seed: the value can arrive late.
+const isOpen = ref(false)
+watch(description, (value) => {
+  if (value) {
+    isOpen.value = true
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>

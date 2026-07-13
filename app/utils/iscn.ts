@@ -1,6 +1,6 @@
 import type { ISCNRegisterPayload, ISCNTxPayload, ISCNValidationData, ISCNFormData } from '~/types/iscn'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
-import { MAX_DESCRIPTION_LENGTH, MAX_DESCRIPTION_FULL_LENGTH } from '~/constant'
+import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 import { getApiEndpoints } from '~/constant/api'
 
 // Per-copy token metadata; shared by the single-publish and bulk-upload
@@ -46,7 +46,6 @@ export function createEmptyISCNFormData(overrides: Partial<ISCNFormData> = {}): 
     type: 'Book',
     title: '',
     description: '',
-    descriptionFull: '',
     alternativeHeadline: '',
     isbn: '',
     publisher: { name: '', description: '' },
@@ -164,10 +163,6 @@ export function validateISCNForm(
   if (requireFileUrls
     && (!Array.isArray(data.contentFingerprints) || !data.contentFingerprints.some((f: { url: string }) => !!f.url))) {
     errors.push('Please provide at least one content URL')
-  }
-
-  if (data.descriptionFull && data.descriptionFull.length > MAX_DESCRIPTION_FULL_LENGTH) {
-    errors.push(`Full description cannot exceed ${MAX_DESCRIPTION_FULL_LENGTH} characters`)
   }
 
   if (!data.coverUrl) {

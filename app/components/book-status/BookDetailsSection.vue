@@ -76,8 +76,10 @@
       <ISCNForm
         ref="iscnFormRef"
         v-model="iscnFormData"
-        :show-description-full="false"
+        v-model:description-full="descriptionFull"
       />
+
+      <BookTableOfContentsField v-model="tableOfContents" />
 
       <h4
         class="font-bold font-mono"
@@ -90,22 +92,6 @@
         v-model:is-plus-reading-enabled="isPlusReadingEnabled"
         :is-free-book="isFreeBook"
       />
-
-      <ToggleTextarea
-        v-model="descriptionFull"
-        :label="$t('iscn_form.description_full')"
-        :toggle-label="$t('iscn_form.enable_description_full')"
-        :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
-        :max-length="MAX_DESCRIPTION_FULL_LENGTH"
-      />
-
-      <UFormField :label="$t('form.table_of_content')">
-        <UTextarea
-          v-model="tableOfContents"
-          :rows="8"
-          placeholder="- Chapter 1&#10;- Chapter 2&#10;  - Section 2.1"
-        />
-      </UFormField>
 
       <!-- Share sales data (moderator wallets) -->
       <UCard
@@ -171,7 +157,6 @@ import { getPortfolioURL } from '~/utils'
 import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
-import { MAX_DESCRIPTION_FULL_LENGTH } from '~/constant/index'
 import { isContentFingerprintEncrypted, createEmptyISCNFormData } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
@@ -250,6 +235,7 @@ const readOnlyRows = computed(() => [
   { label: $t('common.title'), value: iscnFormData.value.title },
   { label: $t('iscn_form.subtitle'), value: iscnFormData.value.alternativeHeadline },
   { label: $t('common.description'), value: iscnFormData.value.description },
+  { label: $t('iscn_form.description_full'), value: descriptionFull.value },
   { label: $t('iscn_form.author_name'), value: iscnFormData.value.author.name },
   { label: $t('form.publisher'), value: iscnFormData.value.publisher.name },
   { label: $t('form.isbn'), value: iscnFormData.value.isbn },
@@ -258,6 +244,7 @@ const readOnlyRows = computed(() => [
   { label: $t('form.genre'), value: iscnFormData.value.genre },
   { label: $t('iscn_form.license'), value: iscnFormData.value.license },
   { label: $t('form.cover_image'), value: iscnFormData.value.coverUrl, mono: true },
+  { label: $t('form.table_of_content'), value: tableOfContents.value },
   {
     label: $t('nft_book_form.is_adult_only'),
     value: isAdultOnly.value ? $t('status_page.value_yes') : $t('status_page.value_no'),
@@ -270,8 +257,6 @@ const readOnlyRows = computed(() => [
     label: $t('nft_book_form.plus_reading'),
     value: isPlusReadingEnabled.value ? $t('nft_book_form.plus_reading_join') : $t('nft_book_form.plus_reading_skip'),
   },
-  { label: $t('iscn_form.description_full'), value: descriptionFull.value },
-  { label: $t('form.table_of_content'), value: tableOfContents.value },
   {
     label: $t('form.share_sales_data'),
     value: moderatorWallets.value.map(shortenWalletAddress).join('\n'),

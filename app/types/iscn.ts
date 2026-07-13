@@ -80,11 +80,12 @@ export interface ISCNRegisterPayload {
   'isbn'?: string
 }
 
+// On-chain class metadata only; listing-owned fields (descriptionFull,
+// tableOfContents) are collected separately by each host.
 export interface ISCNFormData {
   type: string
   title: string
   description: string
-  descriptionFull?: string
   alternativeHeadline?: string
   isbn: string
   publisher: {
@@ -129,7 +130,6 @@ export interface ISCNTxPayload {
 export interface ISCNValidationData {
   title?: string
   description?: string
-  descriptionFull?: string
   author?: { name: string }
   contentFingerprints?: Array<{ url: string }>
   coverUrl?: string

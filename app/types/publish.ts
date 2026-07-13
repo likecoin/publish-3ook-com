@@ -63,7 +63,8 @@ export interface PricingFormSettings {
 // tableOfContents are listing-owned (not on-chain).
 export interface PublishListingDraft extends PricingFormSettings {
   prices: PriceFormItem[]
-  descriptionFull: string
+  // Cleared to undefined when the author unticks the field.
+  descriptionFull?: string
   moderatorWallets: string[]
 }
 

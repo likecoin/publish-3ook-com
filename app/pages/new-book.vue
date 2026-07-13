@@ -47,18 +47,12 @@
           <ISCNForm
             ref="detailsFormRef"
             v-model="iscnFormData"
+            v-model:description-full="listingDraft.descriptionFull"
             :show-file-fields="false"
             :guard-unsaved-changes="false"
           />
-          <!-- Listing-owned but reads as book metadata; collected here with
-               the rest of the book details. -->
-          <UFormField :label="$t('form.table_of_content')">
-            <UTextarea
-              v-model="listingDraft.tableOfContents"
-              :rows="8"
-              placeholder="- Chapter 1&#10;- Chapter 2&#10;  - Section 2.1"
-            />
-          </UFormField>
+
+          <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
         </div>
         <div v-else-if="step === 'pricing'">
           <PublishPricingForm
@@ -547,8 +541,6 @@ async function handlePublish() {
   isPublishFailed.value = false
   hasPublishStarted.value = true
   publishError.value = ''
-  // descriptionFull is collected on the details step but listing-owned.
-  listingDraft.value.descriptionFull = iscnFormData.value.descriptionFull || ''
   persistDraft()
 
   const input: PublishBookInput = {

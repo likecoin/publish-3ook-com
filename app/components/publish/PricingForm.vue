@@ -55,13 +55,6 @@
               />
             </UFormField>
 
-            <!-- Editing a saved edition keeps the description under the name. -->
-            <PublishEditionDescriptionField
-              v-if="mode === 'edit'"
-              v-model="p.description"
-              :editor-id="`pricing-${index}`"
-            />
-
             <!-- 2. Price -->
             <UFormField
               :name="`prices.${index}.price`"
@@ -119,13 +112,11 @@
               </div>
             </UFormField>
 
-            <!-- New listings: description is optional and collapsed so the
-                 rarely-used editor no longer pushes the price down the card. -->
+            <!-- Collapsed by default so the rarely-used editor does not push
+                 the price down the card. -->
             <PublishEditionDescriptionField
-              v-if="mode === 'new'"
               v-model="p.description"
               :editor-id="`pricing-${index}`"
-              collapsible
             />
 
             <!-- 3. Copies / delivery -->

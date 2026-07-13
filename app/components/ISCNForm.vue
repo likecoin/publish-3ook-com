@@ -46,8 +46,7 @@
     </UFormField>
 
     <ToggleTextarea
-      v-if="showDescriptionFull"
-      v-model="formData.descriptionFull"
+      v-model="descriptionFull"
       :label="$t('iscn_form.description_full')"
       :toggle-label="$t('iscn_form.enable_description_full')"
       :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
@@ -406,24 +405,24 @@ const fileRecords = ref<FileRecord[]>([])
 const uploadStatus = ref('')
 const { validateWithFeedback } = useFormValidateFeedback()
 
-// descriptionFull now lives in the store listing, not on-chain metadata. Edit
-// surfaces hide it here and edit it via listing settings instead; the new-book
-// flow keeps showing it and bridges the value to listing creation.
 // showFileFields=false hides coverUrl/fingerprints/downloadableUrls for the
 // collect-only wizard, where those URLs only exist after publish uploads.
 // guardUnsavedChanges=false disables the leave-confirmation guards for hosts
 // that persist the form some other way (the wizard's localStorage draft).
 const props = withDefaults(defineProps<{
-  showDescriptionFull?: boolean
   showFileFields?: boolean
   guardUnsavedChanges?: boolean
 }>(), {
-  showDescriptionFull: true,
   showFileFields: true,
   guardUnsavedChanges: true,
 })
 
 const formData = defineModel<ISCNFormData>({ required: true })
+
+// descriptionFull is listing-owned, so it is a separate model: keeping it out of
+// formData keeps it out of the on-chain dirty check that decides whether saving
+// costs a transaction.
+const descriptionFull = defineModel<string>('descriptionFull')
 
 // Bridge the empty stored genre to the dropdown's non-empty sentinel option.
 const genreModel = computed({
@@ -514,7 +513,7 @@ function onFormValidate(): FormError[] {
   if (!data.author.name) {
     errors.push({ name: 'author.name', message: $t('iscn_form.author_name_required') })
   }
-  if ((data.descriptionFull || '').length > MAX_DESCRIPTION_FULL_LENGTH) {
+  if ((descriptionFull.value || '').length > MAX_DESCRIPTION_FULL_LENGTH) {
     errors.push({ message: $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH }) })
   }
   // File-derived URLs only exist where the file fields are shown; the wizard

@@ -74,7 +74,6 @@ export function useNFTClassUpdater() {
       type: metadata['@type'] || 'Book',
       title: metadata.name || '',
       description: metadata.description || '',
-      descriptionFull: metadata.descriptionFull || '',
       alternativeHeadline: metadata.alternativeHeadline || '',
       isbn: metadata.isbn || '',
       publisher: {
