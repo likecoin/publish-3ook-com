@@ -43,7 +43,6 @@
   </UFormField>
 
   <UCard
-    :title="$t('nft_book_form.free_preview')"
     class="max-w-2xl"
     :ui="{ header: ['flex justify-between items-center gap-4'] }"
   >
@@ -75,6 +74,7 @@
 
       <USwitch
         v-model="isPreviewEnabled"
+        :aria-label="$t('nft_book_form.free_preview')"
         :label="(
           isPreviewEnabled
             ? $t('nft_book_form.free_preview_enable')

@@ -538,7 +538,7 @@
   "nft_book_form.plus_reading_join": "List — Plus members can read it; earn a share by read time",
   "nft_book_form.plus_reading_skip": "Don't list — sell individually only",
   "nft_book_form.plus_reading_free_forced": "Free books are automatically listed in the Plus Library.",
-  "nft_book_form.free_preview": "Free Preview",
+  "nft_book_form.free_preview": "Free preview",
   "nft_book_form.free_preview_description_enabled": "Logged-in readers can read the beginning of the book for free",
   "nft_book_form.free_preview_description_disabled": "Once enabled, logged-in readers can read the beginning of the book for free",
   "nft_book_form.free_preview_enable": "Enabled",
