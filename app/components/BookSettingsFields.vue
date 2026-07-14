@@ -42,54 +42,101 @@
     />
   </UFormField>
 
-  <div class="flex flex-col gap-2">
-    <UFormField :label="$t('nft_book_form.free_preview')">
-      <URadioGroup
-        v-model="isPreviewEnabledRadio"
-        :items="[
-          { label: $t('nft_book_form.free_preview_enable'), value: 'enable' },
-          { label: $t('nft_book_form.free_preview_disable'), value: 'disable' },
-        ]"
-        orientation="vertical"
-      />
-    </UFormField>
-
-    <UFormField
-      v-if="isPreviewEnabled"
-      :label="$t('nft_book_form.preview_percentage')"
-      :help="$t('nft_book_form.preview_percentage_hint', {
-        min: PREVIEW_PERCENTAGE_MIN,
-        max: PREVIEW_PERCENTAGE_MAX,
-      })"
-    >
-      <div class="flex items-center gap-4 pt-2">
-        <USlider
-          :id="previewSliderId"
-          v-model="previewPercentage"
-          class="grow"
-          :min="PREVIEW_PERCENTAGE_MIN"
-          :max="PREVIEW_PERCENTAGE_MAX"
-          :step="1"
-          :aria-label="$t('nft_book_form.preview_percentage')"
+  <UCard
+    :title="$t('nft_book_form.free_preview')"
+    class="max-w-2xl"
+    :ui="{ header: ['flex justify-between items-center gap-4'] }"
+  >
+    <template #header>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center gap-1">
+          <UIcon
+            class="size-5"
+            :name="(
+              isPreviewEnabled
+                ? 'i-material-symbols-visibility-outline-rounded'
+                : 'i-material-symbols-visibility-off-outline-rounded'
+            )"
+          />
+          <div
+            class="text-highlighted font-semibold"
+            v-text="$t('nft_book_form.free_preview')"
+          />
+        </div>
+        <div
+          class="text-sm text-muted"
+          v-text="(
+            isPreviewEnabled
+              ? $t('nft_book_form.free_preview_description_enabled')
+              : $t('nft_book_form.free_preview_description_disabled')
+          )"
         />
-        <UInput
-          :id="previewInputId"
-          v-model="previewPercentageDraft"
-          class="shrink-0 w-24"
-          :ui="{ base: 'text-right tabular-nums' }"
-          inputmode="numeric"
-          :aria-label="$t('nft_book_form.preview_percentage')"
-          @focus="previewPercentageDraft = String(previewPercentage)"
-          @blur="commitPreviewPercentage"
-          @keydown.enter.prevent="commitPreviewPercentage"
-        >
-          <template #trailing>
-            <span class="text-gray-500 text-sm">%</span>
-          </template>
-        </UInput>
       </div>
-    </UFormField>
-  </div>
+
+      <USwitch
+        v-model="isPreviewEnabled"
+        :label="(
+          isPreviewEnabled
+            ? $t('nft_book_form.free_preview_enable')
+            : $t('nft_book_form.free_preview_disable')
+        )"
+        :ui="{
+          root: 'flex-row-reverse gap-2',
+          wrapper: 'ms-0',
+        }"
+      />
+    </template>
+
+    <template
+      v-if="isPreviewEnabled"
+      #default
+    >
+      <UFormField
+        :label="$t('nft_book_form.preview_percentage')"
+        :help="$t('nft_book_form.preview_percentage_hint', {
+          min: PREVIEW_PERCENTAGE_MIN,
+          max: PREVIEW_PERCENTAGE_MAX,
+        })"
+      >
+        <div class="flex items-center gap-4">
+          <div class="grow flex items-center">
+            <USlider
+              :id="previewSliderId"
+              v-model="previewPercentage"
+              class="shrink-0 grow -mr-4"
+              :style="{ width: `${PREVIEW_PERCENTAGE_MAX}%` }"
+              :min="PREVIEW_PERCENTAGE_MIN"
+              :max="PREVIEW_PERCENTAGE_MAX"
+              :step="1"
+              :ui="{ track: 'rounded-r-none' }"
+              :aria-label="$t('nft_book_form.preview_percentage')"
+            />
+            <!-- Dummy div to fill the remaining space of the slider track -->
+            <div
+              class="shrink-0 h-2 rounded-r-full bg-accented"
+              :style="{ width: `${100 - PREVIEW_PERCENTAGE_MAX}%` }"
+            />
+          </div>
+          <UInput
+            :id="previewInputId"
+            v-model="previewPercentageDraft"
+            class="shrink-0 w-16"
+            size="sm"
+            :ui="{ base: 'text-right tabular-nums' }"
+            inputmode="numeric"
+            :aria-label="$t('nft_book_form.preview_percentage')"
+            @focus="previewPercentageDraft = String(previewPercentage)"
+            @blur="commitPreviewPercentage"
+            @keydown.enter.prevent="commitPreviewPercentage"
+          >
+            <template #trailing>
+              <span class="text-gray-500 text-sm">%</span>
+            </template>
+          </UInput>
+        </div>
+      </UFormField>
+    </template>
+  </UCard>
 </template>
 
 <script setup lang="ts">
@@ -116,11 +163,6 @@ const hideAudioRadio = computed({
 const isPlusReadingEnabledRadio = computed({
   get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
   set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
-})
-
-const isPreviewEnabledRadio = computed({
-  get: () => (isPreviewEnabled.value ? 'enable' : 'disable'),
-  set: (val: string) => { isPreviewEnabled.value = val === 'enable' },
 })
 
 // UFormField shares one generated id with every control inside it, so the
