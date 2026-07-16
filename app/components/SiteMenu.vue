@@ -1,22 +1,19 @@
 <template>
-  <ul
-    v-if="props.isLarge"
-    class="space-y-10"
-  >
+  <ul class="space-y-10">
     <li
-      v-for="item in items"
-      :key="item.label"
+      v-for="group in groups"
+      :key="group.label"
     >
       <UCard>
         <template #header>
           <h3 class="text-sm font-bold font-mono">
-            {{ item.label }}
+            {{ group.label }}
           </h3>
         </template>
 
         <ul class="flex flex-wrap gap-4">
           <li
-            v-for="link in item.links"
+            v-for="link in group.links"
             :key="link.label"
           >
             <UButton
@@ -24,6 +21,7 @@
               :leading-icon="link.icon"
               size="xl"
               :to="link.to"
+              :target="link.target"
               color="neutral"
               variant="outline"
               @click="link.onSelect"
@@ -33,181 +31,8 @@
       </UCard>
     </li>
   </ul>
-
-  <div
-    v-else
-    class="space-y-4"
-  >
-    <div
-      v-for="item in items"
-      :key="item.label"
-      class="space-y-3"
-    >
-      <h3 class="text-sm font-mono text-gray-400 dark:text-gray-300 px-3">
-        {{ item.label }}
-      </h3>
-      <UNavigationMenu
-        :items="item.links"
-        orientation="vertical"
-      />
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { PUBLISH_GUIDE_URL, AFFILIATION_GUIDE_URL } from '~/constant'
-
-const { t: $t } = useI18n()
-
-const localeRoute = useLocaleRoute()
-
-const bookstoreApiStore = useBookstoreApiStore()
-const { getTotalPendingNFTCount, isAuthenticated } = storeToRefs(bookstoreApiStore)
-
-const props = defineProps({
-  isLarge: {
-    type: Boolean,
-    default: false,
-  },
-})
-
-const emit = defineEmits(['click-link'])
-
-function handleLinkClick({ label }: { label?: string }) {
-  useLogEvent('site_menu_click_link', { label })
-  emit('click-link')
-}
-
-const items = computed(() => {
-  if (!isAuthenticated.value) {
-    return [
-      {
-        label: $t('menu.help'),
-        links: [
-          {
-            label: $t('menu.about'),
-            icon: 'i-heroicons-information-circle',
-            to: localeRoute({ name: 'about' }),
-          },
-          {
-            label: $t('menu.publisher_guide'),
-            icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-            to: PUBLISH_GUIDE_URL,
-            target: '_blank',
-          },
-          {
-            label: $t('menu.affiliation_guide'),
-            icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-            to: AFFILIATION_GUIDE_URL,
-            target: '_blank',
-          },
-          {
-            label: $t('menu.listing_disclaimer'),
-            icon: 'i-heroicons-shield-exclamation',
-            to: $t('menu.listing_disclaimer_url'),
-            target: '_blank',
-          },
-        ],
-      },
-    ].map(item => ({
-      ...item,
-      links: item.links.map(link => ({
-        ...link,
-        onSelect: () => handleLinkClick({ label: link.label }),
-      })),
-    }))
-  }
-
-  return [
-    {
-      label: $t('menu.bookstore_listing'),
-      links: [
-        {
-          label: $t('menu.start_publishing'),
-          icon: 'i-heroicons-sparkles',
-          to: localeRoute({ name: 'new-book' }),
-        },
-        {
-          label: $t('menu.manage_book_listings'),
-          icon: 'i-heroicons-rectangle-stack',
-          to: localeRoute({ name: 'my-books' }),
-          exact: true,
-          badge: getTotalPendingNFTCount.value,
-        },
-        {
-          label: $t('menu.bulk_upload'),
-          icon: 'i-heroicons-arrow-up-tray',
-          to: localeRoute({ name: 'bulk-upload' }),
-          exact: true,
-        },
-      ],
-    },
-    {
-      label: $t('menu.bookstore_readers'),
-      links: [
-        {
-          label: $t('menu.readers_list'),
-          icon: 'i-heroicons-sparkles',
-          to: localeRoute({ name: 'readers' }),
-        },
-      ],
-    },
-    {
-      label: $t('menu.authors_affiliates'),
-      links: [
-        {
-          label: $t('menu.sales_report'),
-          icon: 'i-heroicons-user-group',
-          to: localeRoute({ name: 'sales-report' }),
-          exact: true,
-        },
-        {
-          label: $t('menu.latest_books'),
-          icon: 'i-heroicons-book-open',
-          to: localeRoute({ name: 'latest-books' }),
-          exact: true,
-        },
-      ],
-    },
-    {
-      label: $t('menu.help'),
-      links: [
-        {
-          label: $t('menu.about'),
-          icon: 'i-heroicons-information-circle',
-          to: localeRoute({ name: 'about' }),
-        },
-        {
-          label: $t('menu.publisher_guide'),
-          icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-          to: PUBLISH_GUIDE_URL,
-          target: '_blank',
-        },
-        {
-          label: $t('menu.affiliation_guide'),
-          icon: 'i-heroicons-arrow-top-right-on-square-20-solid',
-          to: AFFILIATION_GUIDE_URL,
-          target: '_blank',
-        },
-        {
-          label: $t('menu.preview_book'),
-          icon: 'i-heroicons-eye',
-          to: localeRoute({ name: 'preview-book' }),
-        },
-        {
-          label: $t('menu.settings'),
-          icon: 'i-heroicons-cog-8-tooth',
-          to: localeRoute({ name: 'settings' }),
-          exact: true,
-        },
-      ],
-    },
-  ].map(item => ({
-    ...item,
-    links: item.links.map(link => ({
-      ...link,
-      onSelect: () => handleLinkClick({ label: link.label }),
-    })),
-  }))
-})
+const { groups } = useSiteMenuItems()
 </script>

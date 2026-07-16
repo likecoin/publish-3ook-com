@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const containerClass = computed(() => twMerge(
-  'space-y-6 max-w-full! pt-6 pb-20 pl-14! lg:pl-8!',
+  'space-y-6 max-w-full! pt-6 pb-20 pl-8!',
   props?.ui?.base,
   props?.ui?.padding,
   props?.ui?.constrained,

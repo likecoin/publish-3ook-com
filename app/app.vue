@@ -5,23 +5,6 @@
       <NuxtPage class="grow overflow-y-auto" />
     </NuxtLayout>
 
-    <USlideover
-      v-model:open="isMobileMenuOpen"
-      side="left"
-    >
-      <template #content>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-x-mark-20-solid"
-          class="absolute top-4 right-4 z-20"
-          square
-          @click="isMobileMenuOpen = false"
-        />
-        <SiteNavigation />
-      </template>
-    </USlideover>
-
     <UModal
       :open="isRestoringSession"
       :dismissible="false"
@@ -70,7 +53,6 @@ const { wallet, intercomToken, isAuthenticated } = storeToRefs(bookstoreApiStore
 const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBySignature } = useAuth()
 const userStore = useUserStore()
 const { userLikerInfo } = storeToRefs(userStore)
-const uiStore = useUIStore()
 const { showErrorToast } = useToastComposable()
 
 // Re-identify Intercom once likerId is known. Intercom's identity
@@ -94,21 +76,8 @@ watch(() => userLikerInfo.value?.user, (likerId) => {
 
 const isRestoringSession = ref(false)
 
-const isMobileMenuOpen = computed({
-  get: () => uiStore.isSiteMenuOpen,
-  set: value => uiStore.setSiteMenuOpen(value),
-})
-
 const route = useRoute()
 const router = useRouter()
-
-// NOTE: Close mobile menu on route change
-watch(
-  () => route.fullPath,
-  () => {
-    isMobileMenuOpen.value = false
-  },
-)
 
 watch(() => bookstoreApiStore.isAuthenticated, (isAuthenticated) => {
   if (isAuthenticated && bookstoreApiStore.isShowLoginPanel) {

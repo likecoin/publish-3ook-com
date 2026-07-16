@@ -1,45 +1,61 @@
 <template>
-  <div class="flex flex-col items-stretch gap-6">
+  <div class="flex flex-col items-stretch gap-2">
     <template v-if="bookstoreApiStore.isAuthenticated">
       <div
         v-if="isFetchingUserLikerInfo"
-        class="flex items-center space-x-4"
+        class="flex items-center gap-3"
+        :class="{ 'justify-center': collapsed }"
       >
-        <USkeleton class="h-12 w-12 rounded-full" />
-        <div class="space-y-2">
-          <USkeleton class="h-4 w-[250px]" />
-          <USkeleton class="h-4 w-[200px]" />
-        </div>
+        <USkeleton class="h-8 w-8 rounded-full shrink-0" />
+        <USkeleton
+          v-if="!collapsed"
+          class="h-4 flex-1"
+        />
       </div>
-      <div
+      <UTooltip
         v-else
-        class="flex flex-col justify-center items-center gap-1"
+        :text="collapsed ? displayName : undefined"
+        :disabled="!collapsed"
       >
-        <UAvatar
-          v-if="userLikerInfo"
-          :src="userLikerInfo?.avatar"
-          size="sm"
+        <UButton
+          :avatar="{ src: userLikerInfo?.avatar, loading: 'lazy' }"
+          :label="collapsed ? undefined : displayName"
+          :to="accountUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          color="neutral"
+          variant="ghost"
+          size="md"
+          :square="collapsed"
+          block
+          @click="onClickAccount"
         />
-        <p
-          class="font-mono text-center text-sm truncate text-gray-600 w-full"
-          v-text="userLikerInfo?.displayName || userLikerInfo?.user || wallet"
+      </UTooltip>
+      <UTooltip
+        :text="collapsed ? $t('auth_state.sign_out') : undefined"
+        :disabled="!collapsed"
+      >
+        <UButton
+          :label="collapsed ? undefined : $t('auth_state.sign_out')"
+          icon="i-heroicons-arrow-left-on-rectangle"
+          color="neutral"
+          variant="outline"
+          size="md"
+          :square="collapsed"
+          block
+          @click="onClickDisconnect"
         />
-      </div>
-      <UButton
-        :label="$t('auth_state.sign_out')"
-        icon="i-heroicons-arrow-left-on-rectangle"
-        color="neutral"
-        variant="outline"
-        size="md"
-        block
-        @click="onClickDisconnect"
-      />
+      </UTooltip>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 const { t: $t } = useI18n()
+
+const { collapsed = false } = defineProps<{ collapsed?: boolean }>()
+
+const { BOOK3_URL } = useRuntimeConfig().public
 
 const store = useWalletStore()
 const { wallet } = storeToRefs(store)
@@ -49,11 +65,18 @@ const { clearSession } = bookstoreApiStore
 const userStore = useUserStore()
 const { userLikerInfo, isFetchingUserLikerInfo } = storeToRefs(userStore)
 
+const displayName = computed(() => userLikerInfo.value?.displayName || userLikerInfo.value?.user || wallet.value)
+const accountUrl = computed(() => `${BOOK3_URL}/account`)
+
 onMounted(async () => {
   if (bookstoreApiStore.isAuthenticated) {
     await userStore.fetchUserLikerInfo()
   }
 })
+
+function onClickAccount() {
+  useLogEvent('site_menu_click_account')
+}
 
 function onClickDisconnect() {
   useLogEvent('logout')

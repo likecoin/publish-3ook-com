@@ -66,6 +66,7 @@
   },
   "resolutions": {
     "vue": "3.5.34",
-    "@vue/server-renderer": "3.5.34"
+    "@vue/server-renderer": "3.5.34",
+    "reka-ui": "2.9.6"
   }
 }

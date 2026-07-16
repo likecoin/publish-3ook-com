@@ -7,7 +7,7 @@
         {{ $t('welcome.title') }}
       </h2>
 
-      <SiteMenu :is-large="true" />
+      <SiteMenu />
     </PageBody>
   </PageContainer>
 </template>
