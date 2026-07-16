@@ -64,7 +64,7 @@
     <template #default="{ collapsed }">
       <UNavigationMenu
         v-for="(items, index) in navigationItems"
-        :key="index"
+        :key="items[0]?.label || index"
         :collapsed="collapsed"
         :items="items"
         :tooltip="collapsed"
