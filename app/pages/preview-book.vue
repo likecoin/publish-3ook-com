@@ -305,7 +305,7 @@ async function loadBook() {
   }
 
   if (pdfDocument) {
-    pdfDocument.destroy()
+    pdfDocument.loadingTask.destroy()
     pdfDocument = null
     isPdfLoaded.value = false
   }
@@ -443,7 +443,7 @@ onBeforeUnmount(() => {
     rendition = null
   }
   if (pdfDocument) {
-    pdfDocument.destroy()
+    pdfDocument.loadingTask.destroy()
     pdfDocument = null
   }
 })
