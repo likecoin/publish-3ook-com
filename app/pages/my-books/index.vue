@@ -27,7 +27,7 @@
             :key="item.value"
             :ui="{
               header: 'flex justify-between items-center gap-4',
-              body: 'divide-y divide-gray-200 dark:divide-gray-700 p-0',
+              body: 'divide-y divide-gray-200 dark:divide-gray-700 p-0 sm:p-0',
             }"
           >
             <template #header>

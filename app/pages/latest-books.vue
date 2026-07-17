@@ -31,7 +31,7 @@
           :key="item.value"
           :ui="{
             header: 'flex justify-between items-center',
-            body: 'p-0',
+            body: 'p-0 sm:p-0',
             footer: 'text-center',
           }"
         >

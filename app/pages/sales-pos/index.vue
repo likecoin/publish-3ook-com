@@ -12,7 +12,7 @@
         :ui="{
           root: 'flex flex-col grow',
           header: 'flex justify-between items-center gap-4',
-          body: 'grow p-0',
+          body: 'grow p-0 sm:p-0',
           footer: 'sticky bottom-0 bg-white dark:bg-gray-900 rounded-b-[inherit] px-0 sm:px-0 space-y-4',
         }"
       >

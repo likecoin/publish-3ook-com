@@ -178,7 +178,7 @@
 
         <UCard
           v-if="hasMoreThanOneChannel && productTableRows.length"
-          :ui="{ body: 'p-0' }"
+          :ui="{ body: 'p-0 sm:p-0' }"
         >
           <template #header>
             <h3
@@ -211,7 +211,7 @@
 
         <UCard
           v-if="!isSharingMode && commonQueryStringTableRows.length"
-          :ui="{ body: 'p-0' }"
+          :ui="{ body: 'p-0 sm:p-0' }"
         >
           <template #header>
             <h3
@@ -233,7 +233,7 @@
         <UCard
           :ui="{
             header: 'flex justify-between items-center gap-4',
-            body: hasMoreThanOneChannel ? 'space-y-8' : 'space-y-8 p-0',
+            body: hasMoreThanOneChannel ? 'space-y-8' : 'space-y-8 p-0 sm:p-0',
           }"
         >
           <template
@@ -286,7 +286,7 @@
             :class="['overflow-hidden', hasMoreThanOneChannel ? '' : 'ring-0 shadow-none']"
             :ui="{
               header: 'flex justify-between items-center gap-4',
-              body: 'p-0',
+              body: 'p-0 sm:p-0',
             }"
           >
             <template #header>

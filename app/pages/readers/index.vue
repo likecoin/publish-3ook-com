@@ -30,7 +30,7 @@
       @update:model-value="ordersStore.clearError()"
     />
 
-    <UCard :ui="{ body: 'p-0!' }">
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <template #header>
         <div class="flex justify-between items-center">
           <h3

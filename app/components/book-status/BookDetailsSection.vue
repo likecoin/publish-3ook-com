@@ -99,7 +99,7 @@
       <UCard
         :ui="{
           header: 'flex justify-between items-center',
-          body: 'space-y-8 p-0',
+          body: 'space-y-8 p-0 sm:p-0',
         }"
       >
         <template #header>

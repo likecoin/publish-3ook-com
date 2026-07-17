@@ -79,7 +79,7 @@
         <UCard
           :ui="{
             header: 'flex justify-between items-center gap-2',
-            body: 'p-0',
+            body: 'p-0 sm:p-0',
           }"
         >
           <template #header>

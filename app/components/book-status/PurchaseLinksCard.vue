@@ -25,7 +25,10 @@
 
     <UCard
       v-if="purchaseLinks.length > 1"
-      :ui="{ header: 'flex justify-between items-center', body: 'p-0' }"
+      :ui="{
+        header: 'flex justify-between items-center',
+        body: 'p-0 sm:p-0',
+      }"
     >
       <template #header>
         <h4

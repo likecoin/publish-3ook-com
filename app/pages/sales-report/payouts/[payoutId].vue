@@ -26,7 +26,7 @@
     <UCard
       :ui="{
         header: 'flex justify-between items-center',
-        body: 'p-0',
+        body: 'p-0 sm:p-0',
       }"
     >
       <template #header>
@@ -60,7 +60,7 @@
       />
     </UCard>
 
-    <UCard :ui="{ body: 'p-0', header: 'flex justify-between items-center' }">
+    <UCard :ui="{ body: 'p-0 sm:p-0', header: 'flex justify-between items-center' }">
       <template #header>
         <h3 class="text-sm font-bold font-mono">
           {{ $t('user_settings.payout_details') }}

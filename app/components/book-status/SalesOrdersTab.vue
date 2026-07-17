@@ -3,7 +3,7 @@
     <UCard
       :ui="{
         header: 'flex justify-between items-center gap-4',
-        body: 'p-0',
+        body: 'p-0 sm:p-0',
       }"
     >
       <template #header>
@@ -73,7 +73,7 @@
     </UCard>
 
     <!-- Sales channel summary -->
-    <UCard :ui="{ body: 'p-0' }">
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <template #header>
         <h3
           class="font-bold font-mono"
