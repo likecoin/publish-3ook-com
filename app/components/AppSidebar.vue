@@ -8,7 +8,8 @@
     :ui="{
       root: isNavigationCollapsed ? 'hidden lg:hidden' : 'flex',
       header: 'border-b border-default',
-      footer: 'border-t border-default',
+      // Footer only holds the auth panel, so drop its separator when logged out.
+      footer: isAuthenticated ? 'border-t border-default' : '',
     }"
   >
     <template #header="{ collapsed }">
@@ -90,11 +91,17 @@ const localeRoute = useLocaleRoute()
 const { navigationItems } = useSiteMenuItems()
 const { isNavigationCollapsed } = useAppLayout()
 
+const { isAuthenticated } = storeToRefs(useBookstoreApiStore())
+
 const isTestnet = getIsTestnet()
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 const isCollapsed = ref(true)
-watch(isDesktop, (desktop) => { isCollapsed.value = !desktop }, { immediate: true })
+
+// Sync to the viewport only after mount to avoid an SSR hydration mismatch.
+onMounted(() => {
+  watch(isDesktop, (desktop) => { isCollapsed.value = !desktop }, { immediate: true })
+})
 
 const isMenuOpen = ref(false)
 
