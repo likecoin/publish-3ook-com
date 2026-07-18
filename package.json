@@ -42,7 +42,7 @@
     "jszip": "^3.10.1",
     "jwt-decode": "^4.0.0",
     "md-editor-v3": "^4.2.2",
-    "pdfjs-dist": "^5.3.31",
+    "pdfjs-dist": "5.4.624",
     "pinia": "^3.0.1",
     "posthog-js": "^1.372.3",
     "uuid": "^9.0.0",
