@@ -1,4 +1,5 @@
 import { EBOOK_FILE_TYPES } from '~/constant'
+import { isRecordUploaded } from '~/utils/arweave'
 
 // Minimal record shape needed to derive ISCN links; both UploadForm's
 // FileRecord and PublishFileRecord satisfy it.
@@ -12,9 +13,13 @@ export interface IscnLinkSourceRecord {
 }
 
 function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
-  // Encrypted ebooks are only reachable via their keyed link; everything else
-  // uses the plain ar:// id.
-  return (record.arweaveKey && record.arweaveLink) || `ar://${record.arweaveId}`
+  // Encrypted ebooks are only reachable via their keyed link, and GCS-direct
+  // records (no arweaveId at all) via their API link; everything else uses
+  // the plain ar:// id.
+  if (record.arweaveLink && (record.arweaveKey || !record.arweaveId)) {
+    return record.arweaveLink
+  }
+  return `ar://${record.arweaveId}`
 }
 
 // Derives the ISCN downloadable URLs, content fingerprints and cover URL from
@@ -25,7 +30,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
   contentFingerprints: Array<{ url: string }>
   coverUrl: string
 } {
-  const uploadedRecords = records.filter(r => r.arweaveId || (r.arweaveKey && r.arweaveLink))
+  const uploadedRecords = records.filter(isRecordUploaded)
 
   const downloadableUrls = uploadedRecords
     .filter(r => EBOOK_FILE_TYPES.includes(r.fileType || ''))

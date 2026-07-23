@@ -10,6 +10,7 @@ import type { ISCNFormData } from '~/types/iscn'
 import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
+import { isRecordUploaded } from '~/utils/arweave'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
 import { isContentFingerprintEncrypted, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
 
@@ -159,8 +160,8 @@ export function usePublishBook() {
       let classId = input.classId
       let mintTxHash = input.mintTxHash
 
-      // Step 1: Upload files to Arweave (per-record arweaveId = resume guard)
-      if (records.some(r => !r.arweaveId)) {
+      // Step 1: Upload files to Arweave or GCS-direct (resume guard)
+      if (records.some(r => !isRecordUploaded(r))) {
         onStatusChange?.(BookUploadStatus.UPLOADING_FILES)
         await uploadFileRecordsToArweave(records, {
           encryptEbook: input.encryptEbook,
