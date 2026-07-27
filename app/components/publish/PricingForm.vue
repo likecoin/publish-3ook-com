@@ -62,7 +62,6 @@
             >
               <div class="space-y-3">
                 <UCheckbox
-                  v-if="shouldShowCustomPricingUI(p)"
                   v-model="p.isCustomPricing"
                   :label="$t('nft_book_form.use_custom_pricing')"
                   @update:model-value="(v: boolean | 'indeterminate') => onCustomPricingToggle(p, v === true)"
@@ -434,13 +433,7 @@ const signatureImage = defineModel<File | null>('signatureImage', { default: nul
 const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
-const route = useRoute()
 
-// Backdoor: ?advanced_pricing=1 reveals the custom USD/HKD/TWD pricing UI.
-const isAdvancedPricingEnabled = computed(() => route.query.advanced_pricing === '1')
-function shouldShowCustomPricingUI(p: PriceFormItem): boolean {
-  return isAdvancedPricingEnabled.value || p.isCustomPricing
-}
 function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
   if (enabled && p.priceUSDInput === '' && p.price && p.price !== '-1') {
     p.priceUSDInput = p.price
