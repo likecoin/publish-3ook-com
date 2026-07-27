@@ -1025,6 +1025,7 @@
   "user_settings.stripe_express_notice": "You need to have a Stripe Express account to use the auto-payout service of 3ook.com.",
   "user_settings.stripe_payout_status": "Stripe Connect Payout Account Status",
   "user_settings.timestamp": "Timestamp",
+  "user_settings.transaction_fee": "Transaction Fee",
   "user_settings.unverified": "Unverified",
   "user_settings.update": "Update",
   "user_settings.user_setting": "User Setting",

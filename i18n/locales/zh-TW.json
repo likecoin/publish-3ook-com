@@ -1025,6 +1025,7 @@
   "user_settings.stripe_express_notice": "您需要有 Stripe Express 帳戶才能使用 3ook.com 的自動付款服務。",
   "user_settings.stripe_payout_status": "Stripe Connect 收款帳戶",
   "user_settings.timestamp": "時間戳記",
+  "user_settings.transaction_fee": "交易手續費",
   "user_settings.unverified": "未驗證",
   "user_settings.update": "更新",
   "user_settings.user_setting": "用戶設定",

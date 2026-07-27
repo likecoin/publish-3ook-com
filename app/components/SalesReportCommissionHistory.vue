@@ -56,6 +56,7 @@
           { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
           { accessorKey: 'currency', header: $t('user_settings.currency') },
           { accessorKey: 'amountTotal', header: $t('user_settings.sale_amount') },
+          { accessorKey: 'stripeFeeAmount', header: $t('user_settings.transaction_fee') },
         ]"
         :data="commissionHistoryRows"
         :ui="{ th: 'text-center', td: 'text-center' }"
@@ -206,6 +207,9 @@ const commissionHistoryRows = computed(() => {
       type,
       amount: formatNumberWithCurrency(row.amount, row.currency),
       amountTotal: formatNumberWithCurrency(row.amountTotal, row.currency),
+      stripeFeeAmount: row.stripeFeeAmount !== undefined
+        ? formatNumberWithCurrency(row.stripeFeeAmount, row.currency)
+        : '-',
       currency: formatCurrency(row.currency),
       buyerEmail: row.buyerEmail || '',
       timestamp: new Date(row.timestamp).toLocaleString(),
@@ -282,6 +286,7 @@ async function exportCommissionHistory() {
     { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
     { accessorKey: 'amount', header: $t('user_settings.commission') },
     { accessorKey: 'amountTotal', header: $t('user_settings.sale_amount') },
+    { accessorKey: 'stripeFeeAmount', header: $t('user_settings.transaction_fee') },
     { accessorKey: 'currency', header: $t('user_settings.currency') },
   ]
 
@@ -305,6 +310,9 @@ async function exportCommissionHistory() {
     amount: convertDecimalToAmount(row.amount, row.currency),
     currency: formatCurrency(row.currency),
     amountTotal: convertDecimalToAmount(row.amountTotal, row.currency),
+    stripeFeeAmount: row.stripeFeeAmount !== undefined
+      ? convertDecimalToAmount(row.stripeFeeAmount, row.currency)
+      : '',
   }))
 
   await downloadCSV(data, columns, `sales-commission-history-${date}.csv`)

@@ -6,6 +6,7 @@ export interface CommissionRow {
   amount: number
   amountTotal: number
   currency: string
+  stripeFeeAmount?: number
   buyerEmail?: string
   timestamp: number
 }
