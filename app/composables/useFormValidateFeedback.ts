@@ -18,9 +18,10 @@ export function useFormValidateFeedback() {
     if (errors.length) {
       showErrorToast([...new Set(errors.map(e => e.message))].join('\n'))
     }
-    await nextTick()
-    form.$el?.querySelector('[aria-invalid="true"]')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    await revealElement(
+      () => form.$el?.querySelector<HTMLElement>('[aria-invalid="true"]'),
+      { block: 'center', focus: false },
+    )
     return false
   }
 

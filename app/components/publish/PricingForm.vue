@@ -7,7 +7,10 @@
     class="flex flex-col gap-[24px]"
     @submit.prevent
   >
-    <ul class="flex flex-col gap-[12px]">
+    <ul
+      ref="editionListRef"
+      class="flex flex-col gap-[12px]"
+    >
       <UCard
         :ui="{
           root: 'overflow-visible border-none border-transparent!',
@@ -17,6 +20,8 @@
         <li
           v-for="(p, index) in prices"
           :key="p.index"
+          data-edition-item
+          tabindex="-1"
         >
           <UCard
             :ui="{
@@ -431,6 +436,7 @@ const prices = defineModel<PriceFormItem[]>('prices', { required: true })
 const settings = defineModel<PricingFormSettings>('settings', { required: true })
 const signatureImage = defineModel<File | null>('signatureImage', { default: null })
 
+const editionListRef = ref<HTMLElement | null>(null)
 const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
@@ -516,8 +522,14 @@ onMounted(async () => {
   }
 })
 
-function addMorePrice() {
+async function addMorePrice() {
   prices.value.push(createDefaultPriceFormItem({ index: uuidv4(), name: '增訂版' }))
+  // The new card renders above the button that was just clicked, so it lands
+  // off screen.
+  await revealElement(() => {
+    const items = editionListRef.value?.querySelectorAll<HTMLElement>('[data-edition-item]')
+    return items?.[items.length - 1]
+  })
 }
 
 function deletePrice(index: number) {
