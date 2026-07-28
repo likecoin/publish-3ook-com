@@ -112,6 +112,38 @@
       </UFormField>
     </div>
 
+    <!-- Keywords + AI suggestion -->
+    <div class="flex flex-col gap-2">
+      <div class="flex items-end gap-2">
+        <UFormField
+          :label="$t('form.keywords')"
+          class="flex-1 text-left"
+        >
+          <UInputTags
+            v-model="formData.tags"
+            :placeholder="$t('iscn_form.enter_keywords')"
+          />
+        </UFormField>
+        <UButton
+          icon="i-heroicons-sparkles"
+          variant="soft"
+          :label="$t('iscn_form.ai_suggest')"
+          :loading="isSuggesting"
+          :disabled="!canSuggestMetadata"
+          @click="handleSuggestMetadata"
+        />
+      </div>
+      <UButton
+        v-if="suggestedGenre && suggestedGenre !== formData.genre"
+        size="xs"
+        variant="soft"
+        class="self-start"
+        icon="i-heroicons-light-bulb"
+        :label="$t('iscn_form.use_suggested_genre', { genre: suggestedGenreLabel })"
+        @click="applySuggestedGenre"
+      />
+    </div>
+
     <!-- Author Info -->
     <div class="grid grid-cols-2 gap-4">
       <UFormField
@@ -409,12 +441,18 @@ const { validateWithFeedback } = useFormValidateFeedback()
 // collect-only wizard, where those URLs only exist after publish uploads.
 // guardUnsavedChanges=false disables the leave-confirmation guards for hosts
 // that persist the form some other way (the wizard's localStorage draft).
+// contentExcerpt/tableOfContents enrich AI metadata suggestions when the host
+// has them (the wizard); the edit flow works from title/description alone.
 const props = withDefaults(defineProps<{
   showFileFields?: boolean
   guardUnsavedChanges?: boolean
+  contentExcerpt?: string
+  tableOfContents?: string
 }>(), {
   showFileFields: true,
   guardUnsavedChanges: true,
+  contentExcerpt: '',
+  tableOfContents: '',
 })
 
 const formData = defineModel<ISCNFormData>({ required: true })
@@ -431,6 +469,68 @@ const genreModel = computed({
     formData.value.genre = value === GENRE_NONE_VALUE ? '' : value
   },
 })
+
+const { showErrorToast } = useToastComposable()
+const { isSuggesting, suggestBookMetadata } = useBookMetadataSuggest()
+// Set when the AI suggests a genre while the author already picked one;
+// the chip renders only while it differs from the author's pick, so it is
+// applied via explicit click, never silently.
+const suggestedGenre = ref('')
+
+const canSuggestMetadata = computed(() => {
+  return !!formData.value.title && !!formData.value.description
+})
+
+const suggestedGenreLabel = computed(() => {
+  const option = bookCategoryOptions.find(opt => opt.value === suggestedGenre.value)
+  return option?.label || suggestedGenre.value
+})
+
+async function handleSuggestMetadata() {
+  if (isSuggesting.value) { return }
+  useLogEvent('book_metadata_suggest_click')
+  try {
+    const result = await suggestBookMetadata({
+      title: formData.value.title,
+      description: formData.value.description,
+      language: formData.value.language || undefined,
+      tableOfContents: props.tableOfContents || undefined,
+      contentExcerpt: props.contentExcerpt || undefined,
+      existingKeywords: formData.value.tags,
+    })
+
+    // Merge instead of replace so author-entered keywords are never lost;
+    // NFKC-fold keys so backend-normalized suggestions dedupe against
+    // width/case variants the author typed.
+    const tagKey = (tag: string) => tag.normalize('NFKC').trim().toLowerCase()
+    const existingTags = formData.value.tags
+    const seen = new Set(existingTags.map(tagKey))
+    const mergedTags = [...existingTags]
+    result.keywords.forEach((keyword) => {
+      if (!seen.has(tagKey(keyword))) {
+        seen.add(tagKey(keyword))
+        mergedTags.push(keyword)
+      }
+    })
+    formData.value.tags = mergedTags
+
+    // Guards against cross-repo drift of the duplicated category list.
+    if (!BOOK_CATEGORIES.some(cat => cat.value === result.genre)) { return }
+    if (!formData.value.genre) {
+      formData.value.genre = result.genre
+    }
+    else {
+      suggestedGenre.value = result.genre
+    }
+  }
+  catch {
+    showErrorToast($t('iscn_form.ai_suggest_failed'))
+  }
+}
+
+function applySuggestedGenre() {
+  formData.value.genre = suggestedGenre.value
+}
 
 const initialFormDataSnapshot = ref<string>('')
 

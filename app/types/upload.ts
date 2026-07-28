@@ -34,6 +34,7 @@ export interface EpubMetadata {
   coverData?: string | null
   tableOfContents?: string
   spineItems?: EpubSpineItem[]
+  contentExcerpt?: string
 }
 
 export interface ArweaveEstimate {

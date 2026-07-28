@@ -1,10 +1,16 @@
 import type { Book, NavItem } from '@likecoin/epub-ts'
 import type { FileRecord, EpubMetadata, EpubSpineItem } from '~/types'
 
-// Extracts the ordered spine table used by the free-preview cut readout:
-// uncompressed byte size of each spine content document (via the epub-ts
-// archive, backed by JSZip), labelled with the best-matching ToC title.
-async function extractSpineItems(book: Book): Promise<EpubSpineItem[]> {
+// Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
+const CONTENT_EXCERPT_MAX_CHARS = 20000
+
+// One pass over the spine, sharing each decompressed document: the ordered
+// size table for the free-preview cut readout (uncompressed byte size per
+// document, labelled with the best-matching ToC title), plus a plain-text
+// excerpt of the opening documents for AI metadata suggestions.
+async function extractSpineData(
+  book: Book,
+): Promise<{ spineItems: EpubSpineItem[], contentExcerpt: string }> {
   const labelByHref = new Map<string, string>()
   const labelByFilename = new Map<string, string>()
   const collectTocLabels = (items: NavItem[]) => {
@@ -22,9 +28,11 @@ async function extractSpineItems(book: Book): Promise<EpubSpineItem[]> {
   collectTocLabels(book.navigation?.toc || [])
 
   const archive = book.archive
-  if (!archive) { return [] }
+  if (!archive) { return { spineItems: [], contentExcerpt: '' } }
 
+  const parser = new DOMParser()
   const spineItems: EpubSpineItem[] = []
+  let excerpt = ''
   for (const item of book.spine?.items || []) {
     const href = item.href?.split('#')[0]
     if (!href) { continue }
@@ -34,15 +42,25 @@ async function extractSpineItems(book: Book): Promise<EpubSpineItem[]> {
     const blob = await archive.getBlob(resolvedPath)
     // A spine document we cannot size would desync the cut from the server's,
     // so drop the whole table and let the caller hide the readout.
-    if (!blob) { return [] }
+    if (!blob) { return { spineItems: [], contentExcerpt: excerpt } }
     const filename = href.split('/').pop() || href
     spineItems.push({
       href,
       sizeBytes: blob.size,
       label: labelByHref.get(href) || labelByFilename.get(filename) || filename,
     })
+    const remaining = CONTENT_EXCERPT_MAX_CHARS - excerpt.length
+    if (remaining > 0) {
+      // Bound the decode+parse cost: slicing first decodes only a prefix,
+      // truncated markup parses fine, and *8 bytes leaves headroom for tags
+      // and multi-byte (CJK) characters relative to the wanted text length.
+      const content = await blob.slice(0, remaining * 8).text()
+      const bodyText = parser.parseFromString(content, 'text/html')
+        .body?.textContent?.slice(0, remaining).replace(/\s+/g, ' ').trim()
+      if (bodyText) { excerpt += `${bodyText}\n\n` }
+    }
   }
-  return spineItems
+  return { spineItems, contentExcerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim() }
 }
 
 interface UseEpubProcessingOptions {
@@ -153,9 +171,11 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
         epubMetadata.tableOfContents = tocToMarkdown(book.navigation.toc)
       }
 
-      // Get spine table for the free-preview cut readout (best-effort)
+      // Get spine table and content excerpt in one pass (best-effort)
       try {
-        epubMetadata.spineItems = await extractSpineItems(book)
+        const { spineItems, contentExcerpt } = await extractSpineData(book)
+        epubMetadata.spineItems = spineItems
+        epubMetadata.contentExcerpt = contentExcerpt
       }
       catch (spineError) {
         // eslint-disable-next-line no-console
