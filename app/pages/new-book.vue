@@ -77,7 +77,11 @@
             :cover-image-src="coverImageSrc"
             @edit="goToStep"
           />
-          <UCard v-if="isPublishing || hasPublishStarted">
+          <UCard
+            v-if="isPublishing || hasPublishStarted"
+            ref="publishProgressRef"
+            tabindex="-1"
+          >
             <template #header>
               <div class="flex justify-between items-center">
                 <h3
@@ -203,6 +207,7 @@ const uploadFormRef = ref()
 const detailsFormRef = ref()
 const pricingFormRef = ref()
 const stepTopRef = ref<HTMLElement | null>(null)
+const publishProgressRef = ref()
 
 // Collected draft state; persisted to localStorage so an accidental tab close
 // or browser quit keeps everything except the raw file blobs.
@@ -546,6 +551,9 @@ async function handlePublish() {
   hasPublishStarted.value = true
   publishError.value = ''
   persistDraft()
+  // The checklist is appended below a long review summary, so it lands off
+  // screen; without this the Publish click looks like it did nothing.
+  await revealElement(publishProgressRef)
 
   const input: PublishBookInput = {
     fileRecords: fileRecords.value.map(record => ({
@@ -610,6 +618,9 @@ async function handlePublish() {
   }
   else {
     isPublishFailed.value = true
+    // Bring the failure back into view for an author who scrolled away while
+    // the publish was running.
+    await revealElement(publishProgressRef)
   }
 }
 </script>
