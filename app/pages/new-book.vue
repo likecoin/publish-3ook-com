@@ -50,6 +50,8 @@
             v-model:description-full="listingDraft.descriptionFull"
             :show-file-fields="false"
             :guard-unsaved-changes="false"
+            :content-excerpt="epubMetadata?.contentExcerpt"
+            :table-of-contents="listingDraft.tableOfContents"
           />
 
           <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
@@ -368,8 +370,10 @@ function serializeDraft(): PublishSession {
       arweaveLink: record.arweaveLink,
       arweaveKey: record.arweaveKey,
     })),
+    // contentExcerpt is regenerable and large; keep it out of the quota-bound
+    // draft like coverData (a resumed draft just suggests without an excerpt).
     epubMetadata: epubMetadata.value
-      ? { ...epubMetadata.value, coverData: undefined }
+      ? { ...epubMetadata.value, coverData: undefined, contentExcerpt: undefined }
       : undefined,
     encryptEbook: encryptEbook.value,
     sponsored: sponsored.value,
