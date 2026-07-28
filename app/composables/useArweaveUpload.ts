@@ -1,6 +1,6 @@
 import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
-import { estimateBundlrFilePrice, uploadSingleFileToBundlr, canSponsorArweaveUpload } from '~/utils/arweave'
+import { estimateBundlrFilePrice, uploadSingleFileToBundlr, uploadEbookToGcsDirect, canSponsorArweaveUpload, shouldUploadViaGcs, isRecordUploaded } from '~/utils/arweave'
 import { encryptDataWithAES } from '~/utils/encryption'
 import { EBOOK_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
@@ -211,13 +211,40 @@ export function useArweaveUpload() {
     for (let i = 0; i < records.length; i += 1) {
       const record = records[i]
       if (!record) { continue }
-      if (record.arweaveId || (skipMissingBlob && !record.fileBlob)) {
+      if (isRecordUploaded(record) || (skipMissingBlob && !record.fileBlob)) {
         onRecordSkipped?.(record, i)
         continue
       }
       if (uploadError) { break }
       if (!record.fileBlob) {
         throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
+      }
+
+      if (shouldUploadViaGcs(record.fileType, encryptEbook)) {
+        onRecordPrepare?.(record, i)
+        if (!record.fileSHA256) {
+          throw new Error(`Missing file hash for ${record.fileName || 'the selected file'}; please re-select the file`)
+        }
+        // No interactive prepare step, so chain the transfer like the Arweave
+        // path below: the next record's prepare overlaps this upload.
+        const fileBlob = record.fileBlob
+        const fileSHA256 = record.fileSHA256
+        const capturedRecord = record
+        const capturedIndex = i
+        const prevUpload = pendingUpload
+        pendingUpload = prevUpload
+          .then(() => uploadEbookToGcsDirect(fileBlob, {
+            fileType: capturedRecord.fileType ?? '',
+            fileName: capturedRecord.fileName,
+            fileSHA256,
+            token: token.value,
+          }))
+          .then(({ link }) => {
+            Object.assign(capturedRecord, { arweaveLink: link })
+            onRecordUploaded?.(capturedRecord, capturedIndex)
+          })
+          .catch((err) => { uploadError = err; throw err })
+        continue
       }
 
       const shouldEncrypt = EBOOK_FILE_TYPES.includes(record.fileType ?? '') && encryptEbook
