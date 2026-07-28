@@ -1,5 +1,5 @@
 import { BigNumber } from 'bignumber.js'
-import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweave'
+import { estimateBundlrFilePrice, canSponsorArweaveUpload, shouldUploadViaGcs } from '~/utils/arweave'
 import { EBOOK_FILE_TYPES } from '~/constant'
 import type { FileRecord, ArweaveEstimate } from '~/types'
 
@@ -26,8 +26,13 @@ export function useArweaveFeeEstimation(options: UseArweaveFeeEstimationOptions)
   const arweaveRequiredUploads = ref<number | undefined>()
 
   async function estimateArweaveFee(): Promise<void> {
+    // GCS-direct records (DRM ebooks behind the flag) never touch Arweave, so
+    // they carry no fee and must not count against the sponsorship quota.
+    const arweaveRecords = options.fileRecords.value.filter(
+      r => !shouldUploadViaGcs(r.fileType, options.isEncryptEbook.value),
+    )
     const results: { record: FileRecord, estimate: ArweaveEstimate }[] = []
-    for (const record of options.fileRecords.value) {
+    for (const record of arweaveRecords) {
       await sleep(100)
       const isEbook = EBOOK_FILE_TYPES.includes(record.fileType ?? '')
       const estimate = await estimateBundlrFilePrice({
@@ -41,8 +46,8 @@ export function useArweaveFeeEstimation(options: UseArweaveFeeEstimationOptions)
     const firstResult = results[0]?.estimate
     arweaveRemainingUploads.value = firstResult?.remainingUploads
     if (firstResult) {
-      const totalSize = options.fileRecords.value.reduce((sum, r) => sum + (r.fileBlob?.size || 0), 0)
-      const fileCount = options.fileRecords.value.filter(r => r.fileBlob).length
+      const totalSize = arweaveRecords.reduce((sum, r) => sum + (r.fileBlob?.size || 0), 0)
+      const fileCount = arweaveRecords.filter(r => r.fileBlob).length
       isArweaveSponsored.value = canSponsorArweaveUpload(firstResult, totalSize, fileCount)
       arweaveRequiredUploads.value = fileCount
     }

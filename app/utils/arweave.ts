@@ -1,6 +1,23 @@
 import { getApiEndpoints } from '~/constant/api'
+import { EBOOK_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
 import { uploadToIrys } from '~/utils/irys'
+
+// True when this record bypasses Arweave for the private GCS bucket
+// (ADR 0001 Phase 3): DRM ebooks only, behind the env flag. Client-only
+// flows, so reading runtime config here is safe.
+export function shouldUploadViaGcs(fileType: string | undefined, encryptEbook: boolean): boolean {
+  const { IS_GCS_DIRECT_UPLOAD_ENABLED } = useRuntimeConfig().public
+  return !!IS_GCS_DIRECT_UPLOAD_ENABLED
+    && encryptEbook
+    && EBOOK_FILE_TYPES.includes(fileType ?? '')
+}
+
+// A record with an upload result: Arweave results always carry arweaveId;
+// GCS-direct results only ever carry the API link.
+export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: string }): boolean {
+  return !!(record.arweaveId || record.arweaveLink)
+}
 
 export function canSponsorArweaveUpload(
   estimate: Pick<ArweaveEstimate, 'remainingBytes' | 'remainingUploads' | 'isUnlimited'>,
@@ -109,4 +126,62 @@ export async function uploadSingleFileToBundlr(
     arweaveLink,
     arweaveKey: key,
   }
+}
+
+// GCS-direct upload for DRM ebooks (ADR 0001 Phase 3): plaintext goes straight
+// to the private bucket via a short-TTL signed resumable URL — no Arweave, no
+// fee, no client AES. init → resumable session → PUT bytes → finalize.
+export async function uploadEbookToGcsDirect(
+  file: Blob,
+  {
+    fileType,
+    fileName,
+    fileSHA256,
+    token,
+  }: {
+    fileType: string
+    fileName?: string
+    fileSHA256: string
+    token: string
+  },
+): Promise<{ id: string, link: string }> {
+  const apiEndpoints = getApiEndpoints()
+  const { id, uploadUrl } = await $fetch<{ id: string, uploadUrl: string }>(
+    apiEndpoints.API_POST_ARWEAVE_V2_GCS_UPLOAD_INIT,
+    {
+      method: 'POST',
+      body: {
+        fileSize: file.size,
+        fileSHA256,
+        contentType: fileType,
+        fileName,
+      },
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  )
+  // The signed URL only authorizes starting the session; GCS answers with the
+  // session URI in Location (bucket CORS must expose that header).
+  const sessionRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': fileType, 'x-goog-resumable': 'start' },
+  })
+  if (!sessionRes.ok) {
+    throw new Error(`Failed to start GCS upload session (${sessionRes.status})`)
+  }
+  const sessionUri = sessionRes.headers.get('location')
+  if (!sessionUri) {
+    throw new Error('GCS upload session URI missing; check bucket CORS exposes Location')
+  }
+  const putRes = await fetch(sessionUri, { method: 'PUT', body: file })
+  if (!putRes.ok) {
+    throw new Error(`Failed to upload file to GCS (${putRes.status})`)
+  }
+  const { link } = await $fetch<{ id: string, link: string }>(
+    `${apiEndpoints.API_POST_ARWEAVE_V2_GCS_FINALIZE}/${id}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  )
+  return { id, link }
 }
