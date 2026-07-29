@@ -72,9 +72,11 @@ export function validatePriceFormItems(rawPrices: PriceFormItem[], t: TranslateF
       })
     }
     if (p.isCustomPricing) {
-      const isMissing = p.priceUSDInput.trim() === ''
-        || p.priceHKDInput.trim() === ''
-        || p.priceTWDInput.trim() === ''
+      const isMissing = (
+        String(p.priceUSDInput).trim() === ''
+        || String(p.priceHKDInput).trim() === ''
+        || String(p.priceTWDInput).trim() === ''
+      )
       if (isMissing) {
         errors.push({
           name: priceFieldName,
