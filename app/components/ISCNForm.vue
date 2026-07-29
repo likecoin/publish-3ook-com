@@ -54,6 +54,66 @@
       :force-open="isDescriptionOverMax"
     />
 
+    <!-- Category and keywords describe the book, so they belong with the title
+    and description rather than with the identifiers below. -->
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-end gap-3">
+        <!-- w-fit: FormField's root has no width of its own, so as a flex
+        item it would absorb the row and push the button to the far edge. -->
+        <UFormField
+          :label="$t('form.genre')"
+          class="w-fit shrink-0"
+        >
+          <USelect
+            v-model="genreModel"
+            :items="bookCategoryOptions"
+            :placeholder="$t('iscn_form.select_genre')"
+            :ui="{ content: 'w-fit min-w-(--reka-select-trigger-width)' }"
+          />
+          <UButton
+            v-if="suggestedGenre && suggestedGenre !== formData.genre"
+            class="mt-2"
+            size="xs"
+            variant="soft"
+            icon="i-heroicons-light-bulb"
+            :label="$t('iscn_form.use_suggested_genre', { genre: suggestedGenreLabel })"
+            @click="applySuggestedGenre"
+          />
+        </UFormField>
+        <UButton
+          icon="i-heroicons-sparkles"
+          variant="soft"
+          :label="$t('iscn_form.ai_suggest')"
+          :loading="isSuggesting"
+          :disabled="!canSuggestMetadata"
+          @click="handleSuggestMetadata"
+        />
+        <!-- basis-full wraps it onto its own line within the row, keeping it
+        tied to the button rather than floating between the two fields. -->
+        <p
+          v-if="!canSuggestMetadata"
+          class="basis-full text-xs text-muted"
+          v-text="$t('iscn_form.ai_suggest_requires')"
+        />
+      </div>
+
+      <!-- The list merges author-entered and AI keywords, so flag the provenance
+      once a suggestion has run. The counter is the only cue at the cap: reka-ui
+      rejects the add silently, without even its duplicate-tag invalid styling. -->
+      <UFormField
+        :label="$t('form.keywords')"
+        class="text-left"
+        :hint="`${formData.tags.length}/${MAX_BOOK_KEYWORDS}`"
+        :help="hasSuggested ? $t('iscn_form.ai_keywords_hint') : undefined"
+      >
+        <UInputTags
+          v-model="formData.tags"
+          :max="MAX_BOOK_KEYWORDS"
+          :placeholder="$t('iscn_form.enter_keywords')"
+        />
+      </UFormField>
+    </div>
+
     <div class="grid grid-cols-3 gap-4">
       <UFormField :label="$t('form.isbn')">
         <UInput
@@ -81,15 +141,6 @@
         />
       </UFormField>
 
-      <UFormField :label="$t('form.genre')">
-        <USelect
-          v-model="genreModel"
-          :items="bookCategoryOptions"
-          :placeholder="$t('iscn_form.select_genre')"
-          :ui="{ content: 'w-fit min-w-(--reka-select-trigger-width)' }"
-        />
-      </UFormField>
-
       <UFormField
         v-if="showFileFields"
         name="coverUrl"
@@ -110,38 +161,6 @@
           :placeholder="$t('iscn_form.enter_book_info_url')"
         />
       </UFormField>
-    </div>
-
-    <!-- Keywords + AI suggestion -->
-    <div class="flex flex-col gap-2">
-      <div class="flex items-end gap-2">
-        <UFormField
-          :label="$t('form.keywords')"
-          class="flex-1 text-left"
-        >
-          <UInputTags
-            v-model="formData.tags"
-            :placeholder="$t('iscn_form.enter_keywords')"
-          />
-        </UFormField>
-        <UButton
-          icon="i-heroicons-sparkles"
-          variant="soft"
-          :label="$t('iscn_form.ai_suggest')"
-          :loading="isSuggesting"
-          :disabled="!canSuggestMetadata"
-          @click="handleSuggestMetadata"
-        />
-      </div>
-      <UButton
-        v-if="suggestedGenre && suggestedGenre !== formData.genre"
-        size="xs"
-        variant="soft"
-        class="self-start"
-        icon="i-heroicons-light-bulb"
-        :label="$t('iscn_form.use_suggested_genre', { genre: suggestedGenreLabel })"
-        @click="applySuggestedGenre"
-      />
     </div>
 
     <!-- Author Info -->
@@ -405,6 +424,7 @@ import {
   MAX_DESCRIPTION_LENGTH,
   MAX_DESCRIPTION_FULL_LENGTH,
   MAX_ALTERNATIVE_HEADLINE_LENGTH,
+  MAX_BOOK_KEYWORDS,
   BOOK_CATEGORIES,
 } from '~/constant/index'
 import { getApiEndpoints } from '~/constant/api'
@@ -476,6 +496,7 @@ const { isSuggesting, suggestBookMetadata } = useBookMetadataSuggest()
 // the chip renders only while it differs from the author's pick, so it is
 // applied via explicit click, never silently.
 const suggestedGenre = ref('')
+const hasSuggested = ref(false)
 
 const canSuggestMetadata = computed(() => {
   return !!formData.value.title && !!formData.value.description
@@ -506,13 +527,16 @@ async function handleSuggestMetadata() {
     const existingTags = formData.value.tags
     const seen = new Set(existingTags.map(tagKey))
     const mergedTags = [...existingTags]
-    result.keywords.forEach((keyword) => {
-      if (!seen.has(tagKey(keyword))) {
-        seen.add(tagKey(keyword))
-        mergedTags.push(keyword)
-      }
-    })
+    for (const keyword of result.keywords) {
+      // Suggestions stop at the cap rather than displacing author-entered tags.
+      if (mergedTags.length >= MAX_BOOK_KEYWORDS) { break }
+      if (seen.has(tagKey(keyword))) { continue }
+      seen.add(tagKey(keyword))
+      mergedTags.push(keyword)
+    }
     formData.value.tags = mergedTags
+    // A full list adds nothing, so the provenance hint would be a lie.
+    if (mergedTags.length > existingTags.length) { hasSuggested.value = true }
 
     // Guards against cross-repo drift of the duplicated category list.
     if (!BOOK_CATEGORIES.some(cat => cat.value === result.genre)) { return }
@@ -568,6 +592,8 @@ onBeforeRouteLeave(() => {
 
 function resetSnapshot() {
   initialFormDataSnapshot.value = JSON.stringify(formData.value)
+  // Saved keywords are the author's own now, so drop the review-me hint.
+  hasSuggested.value = false
 }
 
 nextTick(() => {
