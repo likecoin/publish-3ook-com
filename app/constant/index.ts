@@ -100,6 +100,9 @@ export const licenseOptions = [
 export const MAX_DESCRIPTION_LENGTH = 1000
 export const MAX_DESCRIPTION_FULL_LENGTH = 5000
 export const MAX_ALTERNATIVE_HEADLINE_LENGTH = 200
+// Stays under the suggest endpoint's 50-keyword request limit, which would
+// otherwise reject the call once a book accumulated enough tags.
+export const MAX_BOOK_KEYWORDS = 20
 
 export const BOOK_CATEGORIES = [
   { i18nKey: 'book_category.antiques_collectibles', value: 'Antiques & Collectibles' },

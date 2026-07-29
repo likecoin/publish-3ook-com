@@ -179,7 +179,7 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
+import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS } from '~/constant'
 import {
   savePublishSession,
   loadPublishSession,
@@ -525,7 +525,9 @@ function seedDetailsFromMetadata() {
     publicationDate: new Date().toISOString().split('T')[0] || '',
     author: { name: meta.author ?? '', description: '' },
     language: formatLanguage(meta.language || 'zh'),
-    tags: meta.tags || [],
+    // A long dc:subject list would otherwise seed the form already over the
+    // cap, which the keywords field can only block adds against, not trim.
+    tags: (meta.tags || []).slice(0, MAX_BOOK_KEYWORDS),
   }
   if (meta.tableOfContents && !listingDraft.value.tableOfContents) {
     listingDraft.value.tableOfContents = meta.tableOfContents
