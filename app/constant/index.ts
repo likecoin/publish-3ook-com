@@ -33,6 +33,11 @@ export {
 
 export const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 
+// Cover/image types that may take the open (public) storage tier. SVG is
+// deliberately absent: it can carry script, and these objects are served with the
+// content type they were stored under.
+export const OPEN_IMAGE_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
+
 export const NFT_DEFAULT_MINT_AMOUNT = 1
 export const NFT_DEFAULT_RESTOCK_AMOUNT = 50
 

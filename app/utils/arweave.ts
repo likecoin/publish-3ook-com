@@ -1,16 +1,44 @@
 import { getApiEndpoints } from '~/constant/api'
-import { EBOOK_FILE_TYPES } from '~/constant'
+import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
 import { uploadToIrys } from '~/utils/irys'
 
-// True when this record bypasses Arweave for the private GCS bucket
-// (ADR 0001 Phase 3): DRM ebooks only, behind the env flag. Client-only
-// flows, so reading runtime config here is safe.
-export function shouldUploadViaGcs(fileType: string | undefined, encryptEbook: boolean): boolean {
-  const { IS_GCS_DIRECT_UPLOAD_ENABLED } = useRuntimeConfig().public
-  return !!IS_GCS_DIRECT_UPLOAD_ENABLED
-    && encryptEbook
-    && EBOOK_FILE_TYPES.includes(fileType ?? '')
+export type UploadTier = 'protected' | 'open'
+
+/**
+ * Which storage tier a record belongs in, or null when its type has no GCS tier.
+ *
+ * Ebooks follow the book's DRM setting. Everything else — covers — is public by
+ * nature and takes the open tier whatever that setting is: a cover has to render
+ * to anyone browsing the store, so encrypting it or gating it buys nothing.
+ */
+function getUploadTier(
+  fileType: string | undefined,
+  encryptEbook: boolean,
+): UploadTier | null {
+  const type = fileType ?? ''
+  if (EBOOK_FILE_TYPES.includes(type)) { return encryptEbook ? 'protected' : 'open' }
+  return OPEN_IMAGE_FILE_TYPES.includes(type) ? 'open' : null
+}
+
+/**
+ * The record's tier when that tier's GCS flag is on, else null for "upload
+ * straight to Arweave from the browser". Client-only flows, so reading runtime
+ * config here is safe.
+ *
+ * One accessor for a three-valued fact, so callers cannot hold a stale boolean
+ * pair. Only 'protected' skips Arweave and its fee — an open record still pays,
+ * because its Arweave copy is made server-side but it is made.
+ */
+export function getEnabledUploadTier(
+  fileType: string | undefined,
+  encryptEbook: boolean,
+): UploadTier | null {
+  const tier = getUploadTier(fileType, encryptEbook)
+  if (!tier) { return null }
+  const { IS_GCS_DIRECT_UPLOAD_ENABLED, IS_GCS_OPEN_UPLOAD_ENABLED } = useRuntimeConfig().public
+  const isEnabled = tier === 'protected' ? IS_GCS_DIRECT_UPLOAD_ENABLED : IS_GCS_OPEN_UPLOAD_ENABLED
+  return isEnabled ? tier : null
 }
 
 // A record with an upload result: Arweave results always carry arweaveId;
@@ -128,23 +156,22 @@ export async function uploadSingleFileToBundlr(
   }
 }
 
-// GCS-direct upload for DRM ebooks (ADR 0001 Phase 3): plaintext goes straight
-// to the private bucket via a short-TTL signed resumable URL — no Arweave, no
-// fee, no client AES. init → resumable session → PUT bytes → finalize.
-export async function uploadEbookToGcsDirect(
+export interface GcsStageParams {
+  fileType: string
+  fileName?: string
+  fileSHA256: string
+  token: string
+}
+
+// Stage bytes in the tier's GCS bucket via a short-TTL signed resumable URL, and
+// return the upload id. Shared by both tiers: init → resumable session → PUT.
+// What happens next differs, so this deliberately stops before any finalize step.
+async function stageFileInGcs(
   file: Blob,
   {
-    fileType,
-    fileName,
-    fileSHA256,
-    token,
-  }: {
-    fileType: string
-    fileName?: string
-    fileSHA256: string
-    token: string
-  },
-): Promise<{ id: string, link: string }> {
+    fileType, fileName, fileSHA256, token, tier,
+  }: GcsStageParams & { tier: UploadTier },
+): Promise<string> {
   const apiEndpoints = getApiEndpoints()
   const { id, uploadUrl } = await $fetch<{ id: string, uploadUrl: string }>(
     apiEndpoints.API_POST_ARWEAVE_V2_GCS_UPLOAD_INIT,
@@ -155,6 +182,7 @@ export async function uploadEbookToGcsDirect(
         fileSHA256,
         contentType: fileType,
         fileName,
+        tier,
       },
       headers: { Authorization: `Bearer ${token}` },
     },
@@ -176,6 +204,19 @@ export async function uploadEbookToGcsDirect(
   if (!putRes.ok) {
     throw new Error(`Failed to upload file to GCS (${putRes.status})`)
   }
+  return id
+}
+
+// GCS-direct upload for DRM ebooks (ADR 0001 Phase 3): plaintext goes straight
+// to the private bucket — no Arweave, no fee, no client AES.
+export async function uploadEbookToGcsDirect(
+  file: Blob,
+  { fileType, fileName, fileSHA256, token }: GcsStageParams,
+): Promise<{ id: string, link: string }> {
+  const apiEndpoints = getApiEndpoints()
+  const id = await stageFileInGcs(file, {
+    fileType, fileName, fileSHA256, token, tier: 'protected',
+  })
   const { link } = await $fetch<{ id: string, link: string }>(
     `${apiEndpoints.API_POST_ARWEAVE_V2_GCS_FINALIZE}/${id}`,
     {
@@ -184,4 +225,45 @@ export async function uploadEbookToGcsDirect(
     },
   )
   return { id, link }
+}
+
+/**
+ * GCS-first upload for DRM-free ebooks (ADR 0001 Phase 3 amendment).
+ *
+ * The browser uploads once, to GCS; the server reads those bytes back, signs the
+ * ANS-104 DataItem, uploads to Irys and blocks on the node's receipt before
+ * returning the arweaveId — so the client needs no signer, public key or ANS-104
+ * implementation. The fee is unchanged: pay on Base and pass the payment tx here,
+ * or use the sponsored quota.
+ */
+export async function uploadFileToGcsOpen(
+  file: Blob,
+  {
+    fileType, fileName, fileSHA256, token, ipfsHash, paymentTxHash, sponsored,
+  }: GcsStageParams & {
+    ipfsHash: string
+    paymentTxHash?: string
+    sponsored?: boolean
+  },
+): Promise<{ id: string, arweaveId: string, link: string }> {
+  const apiEndpoints = getApiEndpoints()
+  const id = await stageFileInGcs(file, {
+    fileType, fileName, fileSHA256, token, tier: 'open',
+  })
+  const { arweaveId, link } = await $fetch<{ id: string, arweaveId: string, link: string }>(
+    `${apiEndpoints.API_POST_ARWEAVE_V2_GCS_ARWEAVE}/${id}`,
+    {
+      method: 'POST',
+      body: {
+        ipfsHash,
+        paymentTxHash,
+        txToken: sponsored ? 'SPONSORED' : 'BASEETH',
+      },
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  )
+  if (!arweaveId) {
+    throw new Error('Server did not return an Arweave ID for the DRM-free upload')
+  }
+  return { id, arweaveId, link }
 }

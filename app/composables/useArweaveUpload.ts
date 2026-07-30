@@ -1,6 +1,6 @@
 import { useSendTransaction } from '@wagmi/vue'
 import { parseEther } from 'viem'
-import { estimateBundlrFilePrice, uploadSingleFileToBundlr, uploadEbookToGcsDirect, canSponsorArweaveUpload, shouldUploadViaGcs, isRecordUploaded } from '~/utils/arweave'
+import { estimateBundlrFilePrice, uploadSingleFileToBundlr, uploadEbookToGcsDirect, uploadFileToGcsOpen, canSponsorArweaveUpload, getEnabledUploadTier, isRecordUploaded } from '~/utils/arweave'
 import { encryptDataWithAES } from '~/utils/encryption'
 import { EBOOK_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
@@ -220,15 +220,22 @@ export function useArweaveUpload() {
         throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
       }
 
-      if (shouldUploadViaGcs(record.fileType, encryptEbook)) {
+      // Both GCS tiers stage against a plaintext hash. Computed here when the
+      // caller has none — the bulk flow builds cover records without one, and
+      // there is no reason to fail a record whose blob is already in hand.
+      const gcsTier = getEnabledUploadTier(record.fileType, encryptEbook)
+      if (gcsTier && !record.fileSHA256) {
+        record.fileSHA256 = await digestFileSHA256(await record.fileBlob.arrayBuffer())
+      }
+
+      // The protected tier is the only one that skips Arweave, and so the only one
+      // with no fee, no payment and no duplicate check to run first.
+      if (gcsTier === 'protected') {
         onRecordPrepare?.(record, i)
-        if (!record.fileSHA256) {
-          throw new Error(`Missing file hash for ${record.fileName || 'the selected file'}; please re-select the file`)
-        }
         // No interactive prepare step, so chain the transfer like the Arweave
         // path below: the next record's prepare overlaps this upload.
         const fileBlob = record.fileBlob
-        const fileSHA256 = record.fileSHA256
+        const fileSHA256 = record.fileSHA256!
         const capturedRecord = record
         const capturedIndex = i
         const prevUpload = pendingUpload
@@ -247,7 +254,7 @@ export function useArweaveUpload() {
         continue
       }
 
-      const shouldEncrypt = EBOOK_FILE_TYPES.includes(record.fileType ?? '') && encryptEbook
+      const shouldEncrypt = encryptEbook && EBOOK_FILE_TYPES.includes(record.fileType ?? '')
 
       onRecordPrepare?.(record, i)
       // Prepare: encrypt + sign transaction (interactive, requires wallet)
@@ -262,6 +269,38 @@ export function useArweaveUpload() {
 
       if ('alreadyExists' in prepareResult) {
         storeResult(record, i, prepareResult.result)
+      }
+      else if (gcsTier === 'open') {
+        // Open records take the same fee, payment and duplicate check as a browser
+        // upload; only the byte transfer moves to GCS, after which the server makes
+        // the Arweave copy and returns its id.
+        //
+        // The scalars are destructured out here on purpose: holding `prepareResult`
+        // in the closure would pin its whole-file buffer — which this path never
+        // uploads, since it sends the Blob — through the PUT and the server's
+        // blocking Irys wait, while the next record allocates its own.
+        const { ipfsHash, txHash: paymentTxHash, sponsored: isSponsored } = prepareResult
+        const fileBlob = record.fileBlob
+        const fileSHA256 = record.fileSHA256!
+        const capturedRecord = record
+        const capturedIndex = i
+        const prevUpload = pendingUpload
+        pendingUpload = prevUpload
+          .then(() => uploadFileToGcsOpen(fileBlob, {
+            fileType: capturedRecord.fileType ?? '',
+            fileName: capturedRecord.fileName,
+            fileSHA256,
+            token: token.value,
+            ipfsHash,
+            paymentTxHash,
+            sponsored: isSponsored,
+          }))
+          .then(({ arweaveId, link }) => storeResult(capturedRecord, capturedIndex, {
+            arweaveId,
+            arweaveLink: link,
+            ipfsHash,
+          }))
+          .catch((err) => { uploadError = err; throw err })
       }
       else {
         // Chain upload after previous upload completes, but don't await here
