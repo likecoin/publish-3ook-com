@@ -62,6 +62,10 @@ export default defineNuxtConfig({
 
       ARWEAVE_ENDPOINT: process.env.ARWEAVE_ENDPOINT,
       IS_GCS_DIRECT_UPLOAD_ENABLED: process.env.IS_GCS_DIRECT_UPLOAD_ENABLED === 'TRUE',
+      // DRM-free ebooks upload to GCS first, then the server makes the Arweave
+      // copy (ADR 0001 Phase 3 amendment). A separate flag from the protected
+      // tier so the two roll out — and roll back — independently.
+      IS_GCS_OPEN_UPLOAD_ENABLED: process.env.IS_GCS_OPEN_UPLOAD_ENABLED === 'TRUE',
       LIKECOIN_V3_BOOK_MIGRATION_SITE_URL: process.env.LIKECOIN_V3_BOOK_MIGRATION_SITE_URL,
       BOOK3_URL: process.env.BOOK3_URL,
     },

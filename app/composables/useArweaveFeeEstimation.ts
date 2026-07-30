@@ -1,5 +1,5 @@
 import { BigNumber } from 'bignumber.js'
-import { estimateBundlrFilePrice, canSponsorArweaveUpload, shouldUploadViaGcs } from '~/utils/arweave'
+import { estimateBundlrFilePrice, canSponsorArweaveUpload, getEnabledUploadTier } from '~/utils/arweave'
 import { EBOOK_FILE_TYPES } from '~/constant'
 import type { FileRecord, ArweaveEstimate } from '~/types'
 
@@ -26,10 +26,11 @@ export function useArweaveFeeEstimation(options: UseArweaveFeeEstimationOptions)
   const arweaveRequiredUploads = ref<number | undefined>()
 
   async function estimateArweaveFee(): Promise<void> {
-    // GCS-direct records (DRM ebooks behind the flag) never touch Arweave, so
-    // they carry no fee and must not count against the sponsorship quota.
+    // Only protected-tier records stop at GCS and so carry no fee. Open-tier ones
+    // still get an Arweave copy — made server-side — so they keep their fee and
+    // their place in the sponsorship quota.
     const arweaveRecords = options.fileRecords.value.filter(
-      r => !shouldUploadViaGcs(r.fileType, options.isEncryptEbook.value),
+      r => getEnabledUploadTier(r.fileType, options.isEncryptEbook.value) !== 'protected',
     )
     const results: { record: FileRecord, estimate: ArweaveEstimate }[] = []
     for (const record of arweaveRecords) {
