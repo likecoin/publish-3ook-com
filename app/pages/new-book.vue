@@ -322,6 +322,10 @@ async function initFromLegacyQuery(legacyClassId: string, isMintDone: boolean) {
 function resumeDraft() {
   const session = pendingSession.value
   if (session) {
+    useLogEvent('book_publish_draft_resumed', {
+      status: session.status,
+      wizard_step: session.wizardStep,
+    })
     fileRecords.value = session.fileRecords.map(record => ({ ...record }))
     epubMetadata.value = session.epubMetadata
     encryptEbook.value = session.encryptEbook
@@ -348,6 +352,7 @@ function resumeDraft() {
 }
 
 function discardDraft() {
+  useLogEvent('book_publish_draft_discarded', { status: pendingSession.value?.status })
   clearPublishSession()
   pendingSession.value = null
   showResumePrompt.value = false
@@ -508,6 +513,8 @@ function handleFilesCollected(payload: {
   useLogEvent('book_publish_upload_completed', {
     file_count: payload.fileRecords.length,
     has_epub_metadata: !!payload.epubMetadata,
+    is_encrypted: payload.isEncrypt,
+    is_sponsored: payload.isSponsored,
   })
   seedDetailsFromMetadata()
   advanceStep()
@@ -616,7 +623,13 @@ async function handlePublish() {
   if (result) {
     lastStepStatus.value = BookUploadStatus.COMPLETED
     clearPublishSession()
-    useLogEvent('book_listing_created', { class_id: result.classId })
+    useLogEvent('book_listing_created', {
+      class_id: result.classId,
+      is_encrypted: encryptEbook.value,
+      is_sponsored: sponsored.value,
+      is_preview_enabled: listingDraft.value.isPreviewEnabled,
+      preview_percentage: listingDraft.value.previewPercentage,
+    })
     await navigateTo(localeRoute({
       name: 'my-books-status-classId',
       params: { classId: result.classId },
@@ -624,6 +637,13 @@ async function handlePublish() {
   }
   else {
     isPublishFailed.value = true
+    // lastStepStatus holds the step that was in flight: onStatusChange above
+    // filters FAILED out, so it is never overwritten by the failure itself.
+    useLogEvent('book_publish_failed', {
+      step: lastStepStatus.value,
+      error: publishError.value,
+      class_id: classId.value || undefined,
+    })
     // Bring the failure back into view for an author who scrolled away while
     // the publish was running.
     await revealElement(publishProgressRef)

@@ -480,6 +480,16 @@ const previewCut = computed(() => {
   }
 })
 
+// A refusal is an authoring problem the author can see but we could not count.
+// Keyed on the reason itself because the readout recomputes on every tick of
+// the percentage slider, and an unguarded watcher would emit a burst per drag.
+watch(
+  () => (previewCut.value && !previewCut.value.ok ? previewCut.value.reason : ''),
+  (reason) => {
+    if (reason) { useLogEvent('book_preview_unavailable', { reason }) }
+  },
+)
+
 // UForm routes each returned error to the UFormField whose name matches
 // (prices.{i}.{field}); no per-field :error piping needed.
 const formRef = ref()

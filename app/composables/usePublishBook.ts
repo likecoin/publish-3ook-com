@@ -202,6 +202,10 @@ export function usePublishBook() {
           const result = await createNFTClass({ iscnFormData: iscnFormDataRef })
           classId = result.classId
         }
+        // The publish funnel milestones live here rather than in the page:
+        // only new-book.vue calls publishBook, and mint confirmation is not
+        // observable from outside (onProgress fires on broadcast, not receipt).
+        useLogEvent('iscn_registration_success', { class_id: classId, is_recovered: classExistedBeforeRun })
         onProgress?.({ classId })
       }
       else {
@@ -226,6 +230,7 @@ export function usePublishBook() {
             onProgress?.({ mintTxHash: hash })
           },
         })
+        useLogEvent('nft_mint_success', { class_id: classId, mint_count: NFT_DEFAULT_MINT_AMOUNT })
       }
 
       // Step 4: Create book listing

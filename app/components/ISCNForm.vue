@@ -539,20 +539,31 @@ async function handleSuggestMetadata() {
     if (mergedTags.length > existingTags.length) { hasSuggested.value = true }
 
     // Guards against cross-repo drift of the duplicated category list.
-    if (!BOOK_CATEGORIES.some(cat => cat.value === result.genre)) { return }
-    if (!formData.value.genre) {
+    const isGenreValid = BOOK_CATEGORIES.some(cat => cat.value === result.genre)
+    // Logged before the early return below so a rejected genre still counts as
+    // a suggestion; an empty genre with keywords is a partial success, not none.
+    const isGenreAutoApplied = isGenreValid && !formData.value.genre
+    useLogEvent('book_metadata_suggest_success', {
+      keywords_added: mergedTags.length - existingTags.length,
+      suggested_genre: isGenreValid ? result.genre : '',
+      is_genre_auto_applied: isGenreAutoApplied,
+    })
+    if (!isGenreValid) { return }
+    if (isGenreAutoApplied) {
       formData.value.genre = result.genre
     }
     else {
       suggestedGenre.value = result.genre
     }
   }
-  catch {
+  catch (error) {
+    useLogEvent('book_metadata_suggest_failed', { error: (error as Error)?.message })
     showErrorToast($t('iscn_form.ai_suggest_failed'))
   }
 }
 
 function applySuggestedGenre() {
+  useLogEvent('book_metadata_suggest_genre_applied', { genre: suggestedGenre.value })
   formData.value.genre = suggestedGenre.value
 }
 
