@@ -19,6 +19,7 @@ export const INTERCOM_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   'iscn_registration_success',
   'nft_mint_success',
   'book_listing_created',
+  'book_publish_failed',
   'iscn_metadata_updated',
   // Book management
   'my_books_view_detail',
