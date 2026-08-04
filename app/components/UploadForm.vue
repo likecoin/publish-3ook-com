@@ -400,7 +400,7 @@ const runUploadQuotaCheck = async (): Promise<void> => {
   catch (err) {
     console.error(err)
     showErrorToast($t('upload_form.error_during_upload'), {
-      description: (err as Error).message || $t('upload_form.upload_error_occurred'),
+      description: getApiErrorMessage(err, $t),
     })
   }
   finally {
@@ -467,6 +467,15 @@ const onSubmitInternal = async () => {
     currentFileIndex.value = 0
     completedFiles.value = 0
 
+    // Uploads are sponsored-only, so an exhausted quota fails every file. The
+    // wizard's collect step is deliberately not gated: it uploads much later.
+    if (!isArweaveSponsored.value && arweaveRemainingUploads.value !== undefined) {
+      showErrorToast($t('upload_form.error_during_upload'), {
+        description: $t('errors.api_daily_quota_exceeded'),
+      })
+      return
+    }
+
     uploadStatus.value = $t('upload_form.uploading')
     if (
       fileRecords.value.find(file => file.fileType === 'application/pdf')
@@ -496,7 +505,7 @@ const onSubmitInternal = async () => {
     console.error(error)
     uploadStatus.value = ''
     showErrorToast($t('upload_form.error_during_upload'), {
-      description: (error as Error).message || $t('upload_form.upload_error_occurred'),
+      description: getApiErrorMessage(error, $t),
     })
     return
   }

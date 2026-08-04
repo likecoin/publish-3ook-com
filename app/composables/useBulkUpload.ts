@@ -5,6 +5,14 @@ import type { PublishFileRecordWithBlob } from '~/types/publish'
 import { createBookTokenMetadataBuilder } from '~/utils/iscn'
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
+import { getApiErrorMessage, isBatchFatalApiError } from '~/utils/apiError'
+
+// isBatchFatal marks a failure whose cause dooms every remaining book, not just
+// this one. See isBatchFatalApiError.
+interface ProcessBookResult {
+  success: boolean
+  isBatchFatal?: boolean
+}
 
 interface ProcessingCallbacks {
   onStatusChange?: (bookId: string, status: BookUploadStatus, message?: string) => void
@@ -13,6 +21,7 @@ interface ProcessingCallbacks {
 }
 
 export function useBulkUpload() {
+  const { t: $t } = useI18n()
   const walletStore = useWalletStore()
   const bookstoreApiStore = useBookstoreApiStore()
   const { wallet } = storeToRefs(walletStore)
@@ -33,7 +42,7 @@ export function useBulkUpload() {
   async function processBook(
     book: BulkUploadBook,
     callbacks: ProcessingCallbacks = {},
-  ): Promise<boolean> {
+  ): Promise<ProcessBookResult> {
     const { onStatusChange, onError } = callbacks
 
     try {
@@ -68,14 +77,14 @@ export function useBulkUpload() {
 
       onStatusChange?.(book.id, BookUploadStatus.COMPLETED)
       useLogEvent('bulk_upload_book_completed', { book_id: book.id, class_id: book.classId })
-      return true
+      return { success: true }
     }
-    catch (error: any) {
-      const errorMessage = error?.message || error?.toString() || 'Unknown error'
+    catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, $t)
       useLogEvent('bulk_upload_book_failed', { book_id: book.id, error: errorMessage })
       onError?.(book.id, errorMessage)
       onStatusChange?.(book.id, BookUploadStatus.FAILED, errorMessage)
-      return false
+      return { success: false, isBatchFatal: isBatchFatalApiError(error) }
     }
     finally {
       isProcessing.value = false
@@ -304,6 +313,7 @@ export function useBulkUpload() {
     books: BulkUploadBook[],
     callbacks: ProcessingCallbacks & {
       onBookComplete?: (book: BulkUploadBook, success: boolean) => void
+      onBatchAborted?: () => void
       shouldContinue?: () => boolean
     },
   ): Promise<{ completed: number, failed: number }> {
@@ -322,7 +332,7 @@ export function useBulkUpload() {
         continue
       }
 
-      const success = await processBook(book, callbacks)
+      const { success, isBatchFatal } = await processBook(book, callbacks)
 
       if (success) {
         completed++
@@ -332,6 +342,11 @@ export function useBulkUpload() {
       }
 
       callbacks.onBookComplete?.(book, success)
+
+      if (isBatchFatal) {
+        callbacks.onBatchAborted?.()
+        break
+      }
 
       // Small delay between books to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 2000))

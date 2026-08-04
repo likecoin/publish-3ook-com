@@ -285,14 +285,21 @@
           :required-uploads="arweaveQuota.requiredUploads"
         />
         <UAlert
-          v-if="quotaIsPartial"
-          icon="i-heroicons-exclamation-triangle"
-          color="warning"
+          v-if="isQuotaInsufficient"
+          icon="i-heroicons-x-circle"
+          color="error"
           variant="soft"
           :title="$t('bulk_upload.arweave_quota_insufficient', {
             shortfallUploads: quotaShortfallUploads,
             shortfallBytes: formatBytes(quotaShortfallBytes),
           })"
+        />
+        <UAlert
+          v-else-if="quotaCheckFailed"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          :title="$t('bulk_upload.arweave_quota_check_failed')"
         />
 
         <p class="font-medium">
@@ -338,7 +345,7 @@
           <UButton
             :label="$t('bulk_upload.start_upload')"
             color="primary"
-            :disabled="isEvaluatingQuota"
+            :disabled="isEvaluatingQuota || isQuotaInsufficient"
             :loading="isEvaluatingQuota"
             @click="startProcessing"
           />
@@ -515,7 +522,8 @@ const {
   isEvaluatingQuota,
   quotaShortfallUploads,
   quotaShortfallBytes,
-  quotaIsPartial,
+  isQuotaInsufficient,
+  quotaCheckFailed,
   evaluateArweaveQuota,
 } = useArweaveQuota({ books })
 
@@ -618,6 +626,13 @@ async function goToReview() {
 async function startProcessing() {
   // Resumed sessions can skip goToReview — re-evaluate here.
   await evaluateArweaveQuota()
+  if (isQuotaInsufficient.value) {
+    showErrorToast($t('bulk_upload.arweave_quota_insufficient', {
+      shortfallUploads: quotaShortfallUploads.value,
+      shortfallBytes: formatBytes(quotaShortfallBytes.value),
+    }))
+    return
+  }
 
   currentStep.value = 'processing'
   isProcessing.value = true
@@ -644,6 +659,9 @@ async function startProcessing() {
     },
     onError: (_bookId, error) => {
       showErrorToast($t('bulk_upload.book_failed'), { description: error, duration: 5000 })
+    },
+    onBatchAborted: () => {
+      showErrorToast($t('bulk_upload.batch_aborted_quota'), { duration: 10000 })
     },
     onBookComplete: (book, success) => {
       if (success) {
