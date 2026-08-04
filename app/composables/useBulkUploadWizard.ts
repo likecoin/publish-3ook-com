@@ -10,6 +10,7 @@ import {
   CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS,
 } from '~/utils/bulk-upload'
 import { loadBulkUploadSession, restoreBooksFromSession } from '~/utils/bulkUploadSession'
+import { UPLOADABLE_FILE_TYPES } from '~/constant'
 
 // Owns the bulk-upload wizard's step machine: CSV parsing/validation with
 // on-chain progress verification, file-to-book matching, derived progress
@@ -66,6 +67,11 @@ export function useBulkUploadWizard() {
   const extraFiles = computed(() =>
     selectedFiles.value.filter(f => !expectedFilenameSet.value.has(f.name.toLowerCase())),
   )
+
+  // Files whose type has no storage tier. Kept out of selectedFiles entirely so
+  // they can never match a CSV row and fail mid-batch; surfaced separately from
+  // extraFiles because "wrong format" needs a different fix than "not in the CSV".
+  const unsupportedFiles = ref<File[]>([])
 
   const fileMatchingStatus = computed(() =>
     books.value.map(book => ({
@@ -206,7 +212,12 @@ export function useBulkUploadWizard() {
 
   function handleFilesChange(event: Event) {
     const target = event.target as HTMLInputElement
-    const files = Array.from(target.files || [])
+    const files: File[] = []
+    const unsupported: File[] = []
+    for (const file of Array.from(target.files || [])) {
+      (UPLOADABLE_FILE_TYPES.includes(file.type) ? files : unsupported).push(file)
+    }
+    unsupportedFiles.value = unsupported
     selectedFiles.value = files
 
     // Clear all previous file matches
@@ -274,6 +285,7 @@ export function useBulkUploadWizard() {
     csvError.value = ''
     missingOptionalColumns.value = []
     selectedFiles.value = []
+    unsupportedFiles.value = []
     currentStep.value = 'csv'
   }
 
@@ -291,6 +303,7 @@ export function useBulkUploadWizard() {
     failedBooks,
     unmatchedBooks,
     extraFiles,
+    unsupportedFiles,
     fileMatchingStatus,
     handleCSVFileUpload,
     handleFilesChange,

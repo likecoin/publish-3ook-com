@@ -38,6 +38,14 @@ export const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 // content type they were stored under.
 export const OPEN_IMAGE_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 
+// Everything the publish flow can upload. Mirrors the API's upload_init content
+// type allowlist exactly; every accepted file must resolve to a storage tier.
+export const UPLOADABLE_FILE_TYPES = [...OPEN_IMAGE_FILE_TYPES, ...EBOOK_FILE_TYPES]
+
+// `accept` is only a picker hint — drag-and-drop and folder selection bypass it,
+// so callers must still validate against UPLOADABLE_FILE_TYPES.
+export const UPLOAD_ACCEPT_ATTRIBUTE = UPLOADABLE_FILE_TYPES.join(',')
+
 export const NFT_DEFAULT_MINT_AMOUNT = 1
 export const NFT_DEFAULT_RESTOCK_AMOUNT = 50
 
