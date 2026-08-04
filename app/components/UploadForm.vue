@@ -197,6 +197,14 @@ const computedFormClasses = computed(() => [
   'hover:bg-gray-200',
 ])
 
+// This form renders before the wizard restores its draft, so the initial
+// drmOption is the fresh-publish default rather than the draft's. Re-sync when
+// the host's value arrives, otherwise submitting step 1 emits the default back
+// and silently discards a resumed draft's choice.
+watch(() => props.defaultEncrypted, (value: boolean) => {
+  drmOption.value = value ? 'encrypted' : 'open'
+})
+
 // The quota cost is the same either way, but the tier is not: re-check so an
 // ebook's duplicate status is re-derived under the new DRM setting.
 watch(isEncryptEBookData, async (value: boolean) => {
