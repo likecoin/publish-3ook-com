@@ -165,7 +165,6 @@ export function usePublishBook() {
         onStatusChange?.(BookUploadStatus.UPLOADING_FILES)
         await uploadFileRecordsToArweave(records, {
           encryptEbook: input.encryptEbook,
-          sponsored: input.sponsored,
           onRecordUploaded: () => onProgress?.({ fileRecords: toPlainRecords(records) }),
         })
         onProgress?.({ fileRecords: toPlainRecords(records) })

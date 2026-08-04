@@ -1,9 +1,4 @@
-import { useSendTransaction } from '@wagmi/vue'
-import { parseEther } from 'viem'
-import { estimateBundlrFilePrice, uploadSingleFileToBundlr, uploadEbookToGcsDirect, uploadFileToGcsOpen, canSponsorArweaveUpload, getEnabledUploadTier, isRecordUploaded } from '~/utils/arweave'
-import { encryptDataWithAES } from '~/utils/encryption'
-import { EBOOK_FILE_TYPES } from '~/constant'
-import type { ArweaveEstimate } from '~/types'
+import { estimateBundlrFilePrice, uploadEbookToGcsDirect, uploadFileToGcsOpen, getUploadTier, isRecordUploaded } from '~/utils/arweave'
 
 // Minimal record shape the pipelined uploader needs; UploadForm's FileRecord
 // and the publish pipeline's PublishFileRecordWithBlob both satisfy it.
@@ -15,12 +10,10 @@ export interface ArweaveUploadableRecord {
   fileSHA256?: string
   arweaveId?: string
   arweaveLink?: string
-  arweaveKey?: string
 }
 
 export interface UploadFileRecordsOptions<T extends ArweaveUploadableRecord> {
   encryptEbook: boolean
-  sponsored?: boolean
   // Skip blob-less records instead of throwing (interactive form flow, where
   // a restored record may be re-selected and submitted again later).
   skipMissingBlob?: boolean
@@ -29,294 +22,136 @@ export interface UploadFileRecordsOptions<T extends ArweaveUploadableRecord> {
   onRecordUploaded?: (record: T, index: number) => void
 }
 
+// arweaveId/ipfsHash are absent for protected records, which stop at GCS and so
+// have no public copy to address.
 export interface ArweaveUploadResult {
-  arweaveId: string
   arweaveLink: string
-  ipfsHash: string
-  arweaveKey?: string
-}
-
-export interface PreparedArweaveUpload {
-  txHash?: string
-  buffer: Buffer
-  ipfsHash: string
-  key?: string
-  fileType: string
-  fileSize: number
-  sponsored?: boolean
-  fileSHA256?: string
-}
-
-export type PrepareArweaveUploadResult
-  = | PreparedArweaveUpload
-    | { alreadyExists: true, result: ArweaveUploadResult }
-
-interface UploadParams {
-  arrayBuffer: ArrayBuffer
-  fileSize: number
-  fileType: string
-  encrypt: boolean
-  sponsored?: boolean
-  // Hex SHA-256 of the plaintext file; sent to the register endpoint as the
-  // provenance anchor (ADR 0001) so the backend can verify decrypted content.
-  fileSHA256?: string
+  arweaveId?: string
+  ipfsHash?: string
 }
 
 export function useArweaveUpload() {
-  const walletStore = useWalletStore()
   const bookstoreApiStore = useBookstoreApiStore()
-  const { wallet } = storeToRefs(walletStore)
   const { token } = storeToRefs(bookstoreApiStore)
-  const {
-    assertSufficientBalanceForTransfer,
-    waitForTransactionReceipt,
-  } = useNFTContractWriter()
-  const { sendTransactionAsync } = useSendTransaction()
-  const { isSponsoredMode } = useSponsoredTransaction()
   const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
 
-  async function prepareFileAndEstimate(params: UploadParams): Promise<
-    | { alreadyExists: true, result: ArweaveUploadResult }
-    | { buffer: Buffer, ipfsHash: string, key?: string, priceResult: ArweaveEstimate }
-  > {
-    let buffer = Buffer.from(params.arrayBuffer)
-    let key: string | undefined
-
-    if (params.encrypt) {
-      const { rawEncryptedKeyAsBase64, combinedArrayBuffer } = await encryptDataWithAES({ data: params.arrayBuffer })
-      buffer = Buffer.from(combinedArrayBuffer)
-      key = rawEncryptedKeyAsBase64
-    }
-
-    const ipfsHash = await calculateIPFSHash(buffer)
-    if (!ipfsHash) {
-      throw new Error('Failed to calculate IPFS hash')
-    }
-
-    const priceResult = await estimateBundlrFilePrice({
-      fileSize: buffer.length,
-      ipfsHash: params.encrypt ? undefined : ipfsHash,
-      token: token.value,
-    })
-
-    const { arweaveId: existingArweaveId } = priceResult
-
-    if (existingArweaveId) {
-      return {
-        alreadyExists: true,
-        result: {
-          arweaveId: existingArweaveId,
-          arweaveLink: `${ARWEAVE_ENDPOINT}/${existingArweaveId}`,
-          arweaveKey: key,
-          ipfsHash,
-        },
-      }
-    }
-
-    return { buffer, ipfsHash, key, priceResult }
-  }
-
-  async function prepareArweaveUploadPaid(params: UploadParams, prepared: { buffer: Buffer, ipfsHash: string, key?: string, priceResult: ArweaveEstimate }): Promise<PreparedArweaveUpload> {
-    const { buffer, ipfsHash, key, priceResult } = prepared
-    const { evmAddress, ETH } = priceResult
-
-    if (!ETH || !evmAddress) {
-      throw new Error('Failed to get Arweave fee estimate')
-    }
-
-    await assertSufficientBalanceForTransfer({
-      wallet: wallet.value!,
-      to: evmAddress as `0x${string}`,
-      value: parseEther(ETH),
-    })
-
-    const txHash = await sendTransactionAsync({
-      to: evmAddress as `0x${string}`,
-      value: parseEther(ETH),
-    })
-
-    const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
-    if (!receipt || receipt.status !== 'success') {
-      throw new Error('Arweave fee transaction failed')
-    }
-
-    return { txHash, buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length, fileSHA256: params.fileSHA256 }
-  }
-
-  async function prepareArweaveUpload(params: UploadParams): Promise<PrepareArweaveUploadResult> {
-    const prepared = await prepareFileAndEstimate(params)
-    if ('alreadyExists' in prepared) { return prepared }
-
-    // Explicit sponsored flag (bulk all-or-nothing) takes precedence over auto-detect
-    const useSponsored = params.sponsored ?? (
-      isSponsoredMode.value
-      && canSponsorArweaveUpload(prepared.priceResult, prepared.buffer.length, 1)
-    )
-
-    if (useSponsored) {
-      const { buffer, ipfsHash, key } = prepared
-      return { buffer, ipfsHash, key, fileType: params.fileType, fileSize: buffer.length, sponsored: true, fileSHA256: params.fileSHA256 }
-    }
-    return prepareArweaveUploadPaid(params, prepared)
-  }
-
-  async function executeArweaveUpload(prepared: PreparedArweaveUpload): Promise<ArweaveUploadResult> {
-    const { arweaveId, arweaveLink } = await uploadSingleFileToBundlr(prepared.buffer, {
-      fileSize: prepared.fileSize,
-      ipfsHash: prepared.ipfsHash,
-      fileType: prepared.fileType,
-      txHash: prepared.txHash,
-      token: token.value,
-      key: prepared.key,
-      sponsored: prepared.sponsored,
-      fileSHA256: prepared.fileSHA256,
-    })
-
-    if (!arweaveId) {
-      throw new Error('Failed to upload file to Arweave')
-    }
-
-    return { arweaveId, arweaveLink, arweaveKey: prepared.key, ipfsHash: prepared.ipfsHash }
-  }
-
-  async function uploadToArweave(params: UploadParams): Promise<ArweaveUploadResult> {
-    const prepareResult = await prepareArweaveUpload(params)
-    if ('alreadyExists' in prepareResult) {
-      return prepareResult.result
-    }
-    return executeArweaveUpload(prepareResult)
-  }
-
-  // Uploads records lacking an arweaveId, mutating each record in place with
-  // the result. Pipelined: the next file's signature is collected while the
-  // previous file uploads.
+  // Uploads records lacking an upload result, mutating each record in place with
+  // the result. Pipelined: the next file's hashing and duplicate check happen
+  // while the previous file's bytes are still in flight.
   async function uploadFileRecordsToArweave<T extends ArweaveUploadableRecord>(
     records: T[],
     options: UploadFileRecordsOptions<T>,
   ): Promise<void> {
-    const { encryptEbook, sponsored, skipMissingBlob, onRecordSkipped, onRecordPrepare, onRecordUploaded } = options
+    const { encryptEbook, skipMissingBlob, onRecordSkipped, onRecordPrepare, onRecordUploaded } = options
     let pendingUpload: Promise<void> = Promise.resolve()
     let uploadError: Error | null = null
 
     const storeResult = (record: T, index: number, result: ArweaveUploadResult) => {
       Object.assign(record, {
-        arweaveId: result.arweaveId,
         arweaveLink: result.arweaveLink,
-        arweaveKey: result.arweaveKey,
-        ipfsHash: result.ipfsHash,
+        ...(result.arweaveId ? { arweaveId: result.arweaveId } : {}),
+        ...(result.ipfsHash ? { ipfsHash: result.ipfsHash } : {}),
       })
       onRecordUploaded?.(record, index)
     }
 
-    for (let i = 0; i < records.length; i += 1) {
-      const record = records[i]
-      if (!record) { continue }
-      if (isRecordUploaded(record) || (skipMissingBlob && !record.fileBlob)) {
-        onRecordSkipped?.(record, i)
-        continue
-      }
-      if (uploadError) { break }
-      if (!record.fileBlob) {
-        throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
-      }
-
-      // Both GCS tiers stage against a plaintext hash. Computed here when the
-      // caller has none — the bulk flow builds cover records without one, and
-      // there is no reason to fail a record whose blob is already in hand.
-      const gcsTier = getEnabledUploadTier(record.fileType, encryptEbook)
-      if (gcsTier && !record.fileSHA256) {
-        record.fileSHA256 = await digestFileSHA256(await record.fileBlob.arrayBuffer())
-      }
-
-      // The protected tier is the only one that skips Arweave, and so the only one
-      // with no fee, no payment and no duplicate check to run first.
-      if (gcsTier === 'protected') {
-        onRecordPrepare?.(record, i)
-        // No interactive prepare step, so chain the transfer like the Arweave
-        // path below: the next record's prepare overlaps this upload.
-        const fileBlob = record.fileBlob
-        const fileSHA256 = record.fileSHA256!
-        const capturedRecord = record
-        const capturedIndex = i
-        const prevUpload = pendingUpload
-        pendingUpload = prevUpload
-          .then(() => uploadEbookToGcsDirect(fileBlob, {
-            fileType: capturedRecord.fileType ?? '',
-            fileName: capturedRecord.fileName,
-            fileSHA256,
-            token: token.value,
-          }))
-          .then(({ link }) => {
-            Object.assign(capturedRecord, { arweaveLink: link })
-            onRecordUploaded?.(capturedRecord, capturedIndex)
-          })
-          .catch((err) => { uploadError = err; throw err })
-        continue
-      }
-
-      const shouldEncrypt = encryptEbook && EBOOK_FILE_TYPES.includes(record.fileType ?? '')
-
-      onRecordPrepare?.(record, i)
-      // Prepare: encrypt + sign transaction (interactive, requires wallet)
-      const prepareResult = await prepareArweaveUpload({
-        arrayBuffer: await record.fileBlob.arrayBuffer(),
-        fileSize: record.fileBlob.size,
-        fileType: record.fileType ?? '',
-        encrypt: shouldEncrypt,
-        sponsored,
-        fileSHA256: record.fileSHA256,
-      })
-
-      if ('alreadyExists' in prepareResult) {
-        storeResult(record, i, prepareResult.result)
-      }
-      else if (gcsTier === 'open') {
-        // Open records take the same fee, payment and duplicate check as a browser
-        // upload; only the byte transfer moves to GCS, after which the server makes
-        // the Arweave copy and returns its id.
-        //
-        // The scalars are destructured out here on purpose: holding `prepareResult`
-        // in the closure would pin its whole-file buffer — which this path never
-        // uploads, since it sends the Blob — through the PUT and the server's
-        // blocking Irys wait, while the next record allocates its own.
-        const { ipfsHash, txHash: paymentTxHash, sponsored: isSponsored } = prepareResult
-        const fileBlob = record.fileBlob
-        const fileSHA256 = record.fileSHA256!
-        const capturedRecord = record
-        const capturedIndex = i
-        const prevUpload = pendingUpload
-        pendingUpload = prevUpload
-          .then(() => uploadFileToGcsOpen(fileBlob, {
-            fileType: capturedRecord.fileType ?? '',
-            fileName: capturedRecord.fileName,
-            fileSHA256,
-            token: token.value,
-            ipfsHash,
-            paymentTxHash,
-            sponsored: isSponsored,
-          }))
-          .then(({ arweaveId, link }) => storeResult(capturedRecord, capturedIndex, {
-            arweaveId,
-            arweaveLink: link,
-            ipfsHash,
-          }))
-          .catch((err) => { uploadError = err; throw err })
-      }
-      else {
-        // Chain upload after previous upload completes, but don't await here
-        // so the next file's signature can be collected concurrently
-        const capturedRecord = record
-        const capturedIndex = i
-        const prevUpload = pendingUpload
-        pendingUpload = prevUpload
-          .then(() => executeArweaveUpload(prepareResult))
-          .then(result => storeResult(capturedRecord, capturedIndex, result))
-          .catch((err) => { uploadError = err; throw err })
-      }
+    // The chain never rejects: a failure is recorded and swallowed here, then
+    // rethrown once after the loop. Letting it stay rejected would leave it
+    // unobserved for as long as the loop sits on the next record's network
+    // await, which the runtime reports as an unhandled rejection.
+    const chainUpload = (record: T, index: number, upload: () => Promise<ArweaveUploadResult>) => {
+      const prevUpload = pendingUpload
+      pendingUpload = prevUpload
+        .then(() => upload())
+        .then(result => storeResult(record, index, result))
+        .catch((err) => { uploadError ??= err as Error })
     }
 
-    await pendingUpload
+    try {
+      for (let i = 0; i < records.length; i += 1) {
+        const record = records[i]
+        if (!record) { continue }
+        if (uploadError) { break }
+        if (isRecordUploaded(record) || (skipMissingBlob && !record.fileBlob)) {
+          onRecordSkipped?.(record, i)
+          continue
+        }
+        if (!record.fileBlob) {
+          throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
+        }
+
+        const tier = getUploadTier(record.fileType, encryptEbook)
+        if (!tier) {
+        // Fail loudly rather than silently skip a file the author believes they
+        // published; the pickers should have rejected this at selection time.
+          throw new Error(`Unsupported file type ${record.fileType || 'unknown'} for ${record.fileName || 'the selected file'}`)
+        }
+
+        const fileBlob = record.fileBlob
+        const fileType = record.fileType ?? ''
+        const fileName = record.fileName
+
+        // One read serves both hashes, and is deliberately not captured by the
+        // chained upload below — that sends the Blob, so the buffer can be freed
+        // at once rather than held across a 200MB transfer.
+        if (!record.fileSHA256 || (tier === 'open' && !record.ipfsHash)) {
+          const arrayBuffer = await fileBlob.arrayBuffer()
+          record.fileSHA256 ??= await digestFileSHA256(arrayBuffer)
+          if (tier === 'open' && !record.ipfsHash) {
+            record.ipfsHash = await calculateIPFSHash(Buffer.from(arrayBuffer)) || undefined
+          }
+        }
+        const fileSHA256 = record.fileSHA256!
+
+        onRecordPrepare?.(record, i)
+
+        if (tier === 'protected') {
+          chainUpload(record, i, async () => {
+            const { link } = await uploadEbookToGcsDirect(fileBlob, {
+              fileType, fileName, fileSHA256, token: token.value,
+            })
+            return { arweaveLink: link }
+          })
+          continue
+        }
+
+        const ipfsHash = record.ipfsHash
+        if (!ipfsHash) {
+          throw new Error(`Failed to calculate IPFS hash for ${fileName || 'the selected file'}`)
+        }
+
+        // Arweave is content-addressed, so the estimate doubles as the duplicate
+        // check: a file the server already has costs no quota and no upload.
+        const { arweaveId: existingArweaveId } = await estimateBundlrFilePrice({
+          fileSize: fileBlob.size,
+          ipfsHash,
+          token: token.value,
+        })
+        if (existingArweaveId) {
+          storeResult(record, i, {
+            arweaveId: existingArweaveId,
+            arweaveLink: `${ARWEAVE_ENDPOINT}/${existingArweaveId}`,
+            ipfsHash,
+          })
+          continue
+        }
+
+        chainUpload(record, i, async () => {
+          const { arweaveId, link } = await uploadFileToGcsOpen(fileBlob, {
+            fileType, fileName, fileSHA256, token: token.value, ipfsHash,
+          })
+          return { arweaveId, arweaveLink: link, ipfsHash }
+        })
+      }
+    }
+    finally {
+      // Always drain, so a throw from the loop cannot leave an upload running
+      // that would mutate records after the caller has handled the failure.
+      await pendingUpload
+    }
+
+    if (uploadError) { throw uploadError }
   }
 
-  return { prepareArweaveUpload, executeArweaveUpload, uploadToArweave, uploadFileRecordsToArweave }
+  return { uploadFileRecordsToArweave }
 }

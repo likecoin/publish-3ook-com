@@ -73,7 +73,6 @@ export interface PublishListingDraft extends PricingFormSettings {
 export interface PublishBookInput {
   fileRecords: PublishFileRecordWithBlob[]
   encryptEbook: boolean
-  sponsored?: boolean
   iscnFormData: ISCNFormData
   listingDraft: PublishListingDraft
   signatureImage?: File | null
@@ -92,7 +91,6 @@ export interface PublishSession {
   fileRecords: PublishFileRecord[]
   epubMetadata?: EpubMetadata
   encryptEbook: boolean
-  sponsored?: boolean
   iscnFormData: ISCNFormData
   listingDraft: PublishListingDraft
   classId?: string

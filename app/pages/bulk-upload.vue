@@ -617,7 +617,7 @@ async function goToReview() {
 
 async function startProcessing() {
   // Resumed sessions can skip goToReview — re-evaluate here.
-  const quotaInfo = await evaluateArweaveQuota()
+  await evaluateArweaveQuota()
 
   currentStep.value = 'processing'
   isProcessing.value = true
@@ -627,7 +627,6 @@ async function startProcessing() {
   saveBulkUploadSession(books.value, 0)
 
   await processBooksSequentially(books.value, {
-    sponsored: quotaInfo.isSponsored,
     onStatusChange: (bookId, status, error) => {
       const book = books.value.find(b => b.id === bookId)
       if (book) {
