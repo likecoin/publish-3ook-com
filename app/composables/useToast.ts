@@ -2,6 +2,7 @@ import { FetchError } from 'ofetch'
 
 export const useToastComposable = () => {
   const toast = useToast()
+  const { t } = useI18n()
 
   const showSuccessToast = (title: string, options: { description?: string, duration?: number } = {}) => {
     toast.add({
@@ -28,12 +29,13 @@ export const useToastComposable = () => {
     let description: string | undefined
     if (error instanceof FetchError) {
       title = error.message
-      const data = error.data
-      if (typeof data === 'string') {
-        description = data
-      }
-      else if (data) {
-        description = data.message || data.error || JSON.stringify(data)
+      // One unwrapper for the whole app, so a caller never has to pass a
+      // description just to surface the code the API actually returned.
+      const code = getApiErrorCode(error)
+      description = getApiErrorMessage(error, t)
+      if (!code && error.data) {
+        // .data is often raw text/plain, so stringifying it would escape the quotes.
+        description = typeof error.data === 'string' ? error.data : JSON.stringify(error.data)
       }
     }
     else if (typeof error === 'string') {

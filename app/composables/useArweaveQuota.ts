@@ -15,6 +15,10 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
   const bookstoreApiStore = useBookstoreApiStore()
   const { token } = storeToRefs(bookstoreApiStore)
 
+  // Set when the estimate call itself fails: quota coverage is then unknown, so
+  // the review step says so instead of silently reading as "all clear".
+  const quotaCheckFailed = ref(false)
+
   const arweaveQuota = ref<ArweaveQuotaInfo>({
     isSponsored: false,
     isUnlimited: false,
@@ -35,9 +39,11 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
     return Math.max(0, q.requiredBytes - q.remainingBytes)
   })
 
-  // Sponsorship is all-or-none across the batch — partial quota still means every upload pays gas.
-  const quotaIsPartial = computed(() => {
-    if ((arweaveQuota.value.remainingUploads ?? 0) <= 0) { return false }
+  // A shortfall is a guaranteed 403 at upload_init — there is no paid fallback.
+  const isQuotaInsufficient = computed(() => {
+    const q = arweaveQuota.value
+    if (q.isSponsored || q.isUnlimited) { return false }
+    if (q.remainingUploads === undefined && q.remainingBytes === undefined) { return false }
     return quotaShortfallUploads.value > 0 || quotaShortfallBytes.value > 0
   })
 
@@ -66,6 +72,7 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
       requiredBytes,
     }
 
+    quotaCheckFailed.value = false
     if (requiredUploads === 0) {
       arweaveQuota.value = fallback
       return fallback
@@ -89,6 +96,7 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
       return info
     }
     catch {
+      quotaCheckFailed.value = true
       arweaveQuota.value = fallback
       return fallback
     }
@@ -102,7 +110,8 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
     isEvaluatingQuota,
     quotaShortfallUploads,
     quotaShortfallBytes,
-    quotaIsPartial,
+    isQuotaInsufficient,
+    quotaCheckFailed,
     evaluateArweaveQuota,
   }
 }
