@@ -195,10 +195,31 @@
           <UInput
             type="file"
             multiple
-            accept="image/*,.pdf,.epub"
+            :accept="UPLOAD_ACCEPT_ATTRIBUTE"
             @change="handleFilesChange"
           />
         </UFormField>
+
+        <UAlert
+          v-if="unsupportedFiles.length > 0"
+          icon="i-heroicons-x-circle"
+          color="error"
+          variant="soft"
+          :title="$t('bulk_upload.unsupported_files_warning', { count: unsupportedFiles.length })"
+        >
+          <template #description>
+            <div class="flex flex-wrap gap-1 mt-2">
+              <UBadge
+                v-for="file in unsupportedFiles"
+                :key="file.name"
+                variant="soft"
+                color="error"
+              >
+                {{ file.name }}
+              </UBadge>
+            </div>
+          </template>
+        </UAlert>
 
         <p
           v-if="selectedFiles.length > 0"
@@ -451,6 +472,7 @@
 
 <script setup lang="ts">
 import { stringify as csvStringify } from 'csv-stringify/sync'
+import { UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { generateResultCSV, getStatusColor, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -478,6 +500,7 @@ const {
   failedBooks,
   unmatchedBooks,
   extraFiles,
+  unsupportedFiles,
   fileMatchingStatus,
   handleCSVFileUpload,
   handleFilesChange,

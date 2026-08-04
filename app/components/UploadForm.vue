@@ -45,7 +45,7 @@
           type="file"
           multiple
           class="hidden"
-          accept="image/*,application/pdf,application/epub+zip"
+          :accept="UPLOAD_ACCEPT_ATTRIBUTE"
           @change="onFileUpload"
         >
       </form>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { PUBLISH_GUIDE_URL } from '~/constant'
+import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
 
 import type { FileRecord, EpubMetadata } from '~/types'
 
@@ -292,6 +292,13 @@ const onFileUpload = async (event: Event) => {
       for (const file of sortedFiles) {
         const reader = new FileReader()
         let fileRecord: FileRecord = {}
+
+        if (!UPLOADABLE_FILE_TYPES.includes(file.type)) {
+          showErrorToast($t('upload_form.unsupported_file_type_title'), {
+            description: $t('upload_form.unsupported_file_type', { fileName: file.name }),
+          })
+          continue
+        }
 
         if (file.size < UPLOAD_FILESIZE_MAX) {
           reader.onload = (e) => {
