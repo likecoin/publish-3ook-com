@@ -26,7 +26,7 @@
             v-text="record.fileName"
           />
           <UBadge
-            v-if="record.arweaveId"
+            v-if="isRecordUploaded(record)"
             variant="soft"
             color="success"
             size="xs"
@@ -34,7 +34,7 @@
             {{ $t('upload_form.file_already_uploaded') }}
           </UBadge>
           <UButton
-            v-else-if="!record.fileBlob"
+            v-else-if="needsFileReselect(record)"
             variant="soft"
             color="error"
             size="xs"
@@ -151,6 +151,7 @@ import type { FileRecord } from '~/types'
 import type { ISCNFormData } from '~/types/iscn'
 import type { PublishListingDraft, PriceFormItem } from '~/types/publish'
 import { getPriceItemUSDValue } from '~/utils/listing'
+import { isRecordUploaded, needsFileReselect } from '~/utils/arweave'
 
 const { t: $t } = useI18n()
 

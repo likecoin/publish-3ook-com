@@ -190,7 +190,7 @@ import {
 } from '~/utils/publishSession'
 import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
-import { isRecordUploaded } from '~/utils/arweave'
+import { isRecordUploaded, needsFileReselect } from '~/utils/arweave'
 
 const { t: $t } = useI18n()
 
@@ -260,9 +260,7 @@ const pendingSessionTitle = computed(() =>
   || pendingSession.value?.epubMetadata?.title
   || $t('publish_wizard.untitled_draft'))
 // Blobs never persist, so a draft interrupted before its upload step needs the
-// files picked again — but one interrupted after it does not. Share
-// isRecordUploaded with handlePublish so both agree on what counts as uploaded
-// (GCS-direct records carry only arweaveLink, no arweaveId).
+// files picked again — but one interrupted after it does not.
 const pendingSessionNeedsReselect = computed(() =>
   (pendingSession.value?.fileRecords ?? []).some(record => !isRecordUploaded(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
@@ -546,7 +544,7 @@ function seedDetailsFromMetadata() {
 
 async function handlePublish() {
   if (isPublishing.value) { return }
-  const missingFiles = fileRecords.value.filter(r => !r.fileBlob && !r.arweaveId)
+  const missingFiles = fileRecords.value.filter(needsFileReselect)
   if (missingFiles.length) {
     showErrorToast($t('publish_wizard.reselect_before_publish', {
       files: missingFiles.map(r => r.fileName).join(', '),

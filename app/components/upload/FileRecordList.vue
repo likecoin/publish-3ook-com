@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
+import { needsFileReselect } from '~/utils/arweave'
 
 defineProps<{
   fileRecords: FileRecord[]
@@ -73,6 +74,6 @@ const emit = defineEmits<{
 }>()
 
 const needsReselect = (record?: FileRecord) => {
-  return !!record && !record.fileBlob && !record.arweaveId
+  return !!record && needsFileReselect(record)
 }
 </script>
