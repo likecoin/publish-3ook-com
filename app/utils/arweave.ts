@@ -1,44 +1,26 @@
 import { getApiEndpoints } from '~/constant/api'
 import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
-import { uploadToIrys } from '~/utils/irys'
 
 export type UploadTier = 'protected' | 'open'
 
 /**
- * Which storage tier a record belongs in, or null when its type has no GCS tier.
+ * Which storage tier a record belongs in, or null when its type has no tier.
  *
  * Ebooks follow the book's DRM setting. Everything else — covers — is public by
  * nature and takes the open tier whatever that setting is: a cover has to render
  * to anyone browsing the store, so encrypting it or gating it buys nothing.
+ *
+ * Null has no upload path at all, so callers must reject those types at
+ * selection time (UPLOADABLE_FILE_TYPES) rather than discover it here.
  */
-function getUploadTier(
+export function getUploadTier(
   fileType: string | undefined,
   encryptEbook: boolean,
 ): UploadTier | null {
   const type = fileType ?? ''
   if (EBOOK_FILE_TYPES.includes(type)) { return encryptEbook ? 'protected' : 'open' }
   return OPEN_IMAGE_FILE_TYPES.includes(type) ? 'open' : null
-}
-
-/**
- * The record's tier when that tier's GCS flag is on, else null for "upload
- * straight to Arweave from the browser". Client-only flows, so reading runtime
- * config here is safe.
- *
- * One accessor for a three-valued fact, so callers cannot hold a stale boolean
- * pair. Only 'protected' skips Arweave and its fee — an open record still pays,
- * because its Arweave copy is made server-side but it is made.
- */
-export function getEnabledUploadTier(
-  fileType: string | undefined,
-  encryptEbook: boolean,
-): UploadTier | null {
-  const tier = getUploadTier(fileType, encryptEbook)
-  if (!tier) { return null }
-  const { IS_GCS_DIRECT_UPLOAD_ENABLED, IS_GCS_OPEN_UPLOAD_ENABLED } = useRuntimeConfig().public
-  const isEnabled = tier === 'protected' ? IS_GCS_DIRECT_UPLOAD_ENABLED : IS_GCS_OPEN_UPLOAD_ENABLED
-  return isEnabled ? tier : null
 }
 
 // A record with an upload result: Arweave results always carry arweaveId;
@@ -78,82 +60,6 @@ export async function estimateBundlrFilePrice({
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   return data
-}
-
-export async function uploadSingleFileToBundlr(
-  file: Buffer,
-  {
-    fileType,
-    fileSize,
-    ipfsHash,
-    txHash,
-    token,
-    key,
-    sponsored,
-    fileSHA256,
-  }: {
-    fileSize: number
-    fileType?: string
-    ipfsHash: string
-    txHash?: string
-    token: string
-    key?: string
-    sponsored?: boolean
-    fileSHA256?: string
-  },
-) {
-  const tags = [
-    { name: 'App-Name', value: 'publish.3ook.com' },
-    { name: 'App-Version', value: '2.0' },
-    { name: 'User-Agent', value: 'publish.3ook.com' },
-    { name: 'IPFS-CID', value: ipfsHash },
-  ]
-  if (fileType) { tags.push({ name: 'Content-Type', value: fileType }) }
-  if (key) { tags.push({ name: 'Content-Encoding', value: 'aes256gcm' }) }
-
-  const { id: arweaveId, uploadId, signToken } = await uploadToIrys(file, {
-    tags,
-    fileSize,
-    ipfsHash,
-    txHash,
-    token,
-    sponsored,
-  })
-
-  const registrationId = sponsored ? (uploadId || txHash) : (txHash || uploadId)
-  if (!registrationId) {
-    throw new Error('Missing registration ID: neither uploadId nor txHash is available')
-  }
-
-  const { ARWEAVE_ENDPOINT } = useRuntimeConfig().public
-  let arweaveLink = `${ARWEAVE_ENDPOINT}/${arweaveId}`
-
-  if (arweaveId) {
-    const apiEndpoints = getApiEndpoints()
-    const data = await $fetch(apiEndpoints.API_POST_ARWEAVE_V2_REGISTER, {
-      method: 'POST',
-      body: {
-        fileSize,
-        ipfsHash,
-        txHash: registrationId,
-        arweaveId,
-        token: signToken,
-        key,
-        fileSHA256,
-      },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = data as { link?: string }
-    if (result?.link) {
-      arweaveLink = result.link
-    }
-  }
-
-  return {
-    arweaveId,
-    arweaveLink,
-    arweaveKey: key,
-  }
 }
 
 export interface GcsStageParams {
@@ -228,23 +134,22 @@ export async function uploadEbookToGcsDirect(
 }
 
 /**
- * GCS-first upload for DRM-free ebooks (ADR 0001 Phase 3 amendment).
+ * GCS-first upload for DRM-free ebooks and covers (ADR 0001 Phase 3 amendment).
  *
  * The browser uploads once, to GCS; the server reads those bytes back, signs the
  * ANS-104 DataItem, uploads to Irys and blocks on the node's receipt before
  * returning the arweaveId — so the client needs no signer, public key or ANS-104
- * implementation. The fee is unchanged: pay on Base and pass the payment tx here,
- * or use the sponsored quota.
+ * implementation.
+ *
+ * Always sponsored: the Arweave fee is settled against the publisher's daily
+ * quota, never an on-chain payment. A batch the quota cannot cover fails at
+ * upload_init, which is why callers check the quota before starting.
  */
 export async function uploadFileToGcsOpen(
   file: Blob,
   {
-    fileType, fileName, fileSHA256, token, ipfsHash, paymentTxHash, sponsored,
-  }: GcsStageParams & {
-    ipfsHash: string
-    paymentTxHash?: string
-    sponsored?: boolean
-  },
+    fileType, fileName, fileSHA256, token, ipfsHash,
+  }: GcsStageParams & { ipfsHash: string },
 ): Promise<{ id: string, arweaveId: string, link: string }> {
   const apiEndpoints = getApiEndpoints()
   const id = await stageFileInGcs(file, {
@@ -254,11 +159,7 @@ export async function uploadFileToGcsOpen(
     `${apiEndpoints.API_POST_ARWEAVE_V2_GCS_ARWEAVE}/${id}`,
     {
       method: 'POST',
-      body: {
-        ipfsHash,
-        paymentTxHash,
-        txToken: sponsored ? 'SPONSORED' : 'BASEETH',
-      },
+      body: { ipfsHash, txToken: 'SPONSORED' },
       headers: { Authorization: `Bearer ${token}` },
     },
   )

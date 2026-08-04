@@ -127,7 +127,7 @@ const toast = useToast()
 const { showErrorToast } = useToastComposable()
 const imageFile = ref<HTMLInputElement | null>(null)
 const openFilePicker = () => imageFile.value?.click()
-const { uploadToArweave, uploadFileRecordsToArweave } = useArweaveUpload()
+const { uploadFileRecordsToArweave } = useArweaveUpload()
 export type { FileRecord }
 
 const props = defineProps({
@@ -197,11 +197,11 @@ const computedFormClasses = computed(() => [
   'hover:bg-gray-200',
 ])
 
+// The quota cost is the same either way, but the tier is not: re-check so an
+// ebook's duplicate status is re-derived under the new DRM setting.
 watch(isEncryptEBookData, async (value: boolean) => {
   emit('drmChange', value)
-  uploadStatus.value = $t('upload_form.loading')
-  await estimateArweaveFee()
-  uploadStatus.value = ''
+  await runUploadQuotaCheck()
 })
 
 watch(uploadStatus, (val: string) => {
@@ -254,8 +254,8 @@ const {
   isArweaveSponsored,
   arweaveRemainingUploads,
   arweaveRequiredUploads,
-  estimateArweaveFee: runArweaveFeeEstimation,
-} = useArweaveFeeEstimation({
+  checkUploadQuota,
+} = useArweaveUploadPrecheck({
   fileRecords,
   isEncryptEbook: isEncryptEBookData,
   onExistingUpload: (record) => {
@@ -301,13 +301,17 @@ const onFileUpload = async (event: Event) => {
         }
 
         if (file.size < UPLOAD_FILESIZE_MAX) {
-          reader.onload = (e) => {
-            if (!e.target) {
-              return
+          // Images only: fileData feeds the cover preview, and base64-ing a
+          // 200MB ebook would hold ~267MB of string for the record's lifetime.
+          if (file.type.startsWith('image/')) {
+            reader.onload = (e) => {
+              if (!e.target) {
+                return
+              }
+              fileRecord.fileData = e.target.result as string
             }
-            fileRecord.fileData = e.target.result as string
+            reader.readAsDataURL(file)
           }
-          reader.readAsDataURL(file)
 
           const info = await getFileInfoWithToast(file)
           if (info) {
@@ -359,7 +363,7 @@ const onFileUpload = async (event: Event) => {
   }
   finally {
     try {
-      await estimateArweaveFee()
+      await runUploadQuotaCheck()
     }
     catch (error) {
       // eslint-disable-next-line no-console
@@ -388,15 +392,15 @@ const handleDeleteFile = (index: number) => {
   removeMetadataForDeletedFile(removedFile)
 }
 
-const estimateArweaveFee = async (): Promise<void> => {
+const runUploadQuotaCheck = async (): Promise<void> => {
   try {
-    uploadStatus.value = $t('upload_form.estimating_fees')
-    await runArweaveFeeEstimation()
+    uploadStatus.value = $t('upload_form.checking_quota')
+    await checkUploadQuota()
   }
   catch (err) {
     console.error(err)
     showErrorToast($t('upload_form.error_during_upload'), {
-      description: (err as Error).message || $t('upload_form.fee_estimation_error'),
+      description: (err as Error).message || $t('upload_form.upload_error_occurred'),
     })
   }
   finally {
@@ -430,15 +434,11 @@ const setEbookCoverFromImages = async () => {
     let { arweaveId } = file
 
     if (!arweaveId && file.fileBlob) {
-      const result = await uploadToArweave({
-        arrayBuffer: await file.fileBlob.arrayBuffer(),
-        fileSize: file.fileBlob.size,
-        fileType: file.fileType,
-        encrypt: false,
+      // The shared uploader mutates the record in place with the result.
+      await uploadFileRecordsToArweave([file], {
+        encryptEbook: isEncryptEBookData.value,
       })
-      arweaveId = result.arweaveId
-      file.arweaveId = result.arweaveId
-      file.arweaveLink = result.arweaveLink
+      arweaveId = file.arweaveId
     }
 
     if (arweaveId) {
@@ -480,7 +480,6 @@ const onSubmitInternal = async () => {
 
     await uploadFileRecordsToArweave(fileRecords.value, {
       encryptEbook: isEncryptEBookData.value,
-      sponsored: isArweaveSponsored.value,
       skipMissingBlob: true,
       onRecordSkipped: (_record, index) => {
         currentFileIndex.value = index + 1
@@ -585,7 +584,6 @@ const emitCollected = () => {
     fileRecords: fileRecords.value,
     epubMetadata: epubMetadataList.value[0],
     isEncrypt: isEncryptEBookData.value,
-    isSponsored: isArweaveSponsored.value,
   })
 }
 

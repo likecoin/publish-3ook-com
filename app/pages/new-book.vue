@@ -216,7 +216,6 @@ const publishProgressRef = ref()
 const fileRecords = ref<FileRecord[]>([])
 const epubMetadata = ref<EpubMetadata | undefined>()
 const encryptEbook = ref(true)
-const sponsored = ref(false)
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 const listingDraft = ref<PublishListingDraft>(createDefaultListingDraft())
 const signatureImage = ref<File | null>(null)
@@ -329,7 +328,6 @@ function resumeDraft() {
     fileRecords.value = session.fileRecords.map(record => ({ ...record }))
     epubMetadata.value = session.epubMetadata
     encryptEbook.value = session.encryptEbook
-    sponsored.value = session.sponsored ?? false
     iscnFormData.value = session.iscnFormData
     listingDraft.value = { ...createDefaultListingDraft(), ...session.listingDraft }
     classId.value = session.classId || ''
@@ -381,7 +379,6 @@ function serializeDraft(): PublishSession {
       ? { ...epubMetadata.value, coverData: undefined, contentExcerpt: undefined }
       : undefined,
     encryptEbook: encryptEbook.value,
-    sponsored: sponsored.value,
     iscnFormData: iscnFormData.value,
     listingDraft: listingDraft.value,
     classId: classId.value || undefined,
@@ -502,19 +499,16 @@ function handleFilesCollected(payload: {
   fileRecords: FileRecord[]
   epubMetadata?: EpubMetadata
   isEncrypt: boolean
-  isSponsored: boolean
 }) {
   fileRecords.value = payload.fileRecords
   if (payload.epubMetadata) {
     epubMetadata.value = payload.epubMetadata
   }
   encryptEbook.value = payload.isEncrypt
-  sponsored.value = payload.isSponsored
   useLogEvent('book_publish_upload_completed', {
     file_count: payload.fileRecords.length,
     has_epub_metadata: !!payload.epubMetadata,
     is_encrypted: payload.isEncrypt,
-    is_sponsored: payload.isSponsored,
   })
   seedDetailsFromMetadata()
   advanceStep()
@@ -580,7 +574,6 @@ async function handlePublish() {
       fileBlob: record.fileBlob,
     })),
     encryptEbook: encryptEbook.value,
-    sponsored: sponsored.value,
     iscnFormData: iscnFormData.value,
     listingDraft: listingDraft.value,
     signatureImage: signatureImage.value,
@@ -626,7 +619,6 @@ async function handlePublish() {
     useLogEvent('book_listing_created', {
       class_id: result.classId,
       is_encrypted: encryptEbook.value,
-      is_sponsored: sponsored.value,
       is_preview_enabled: listingDraft.value.isPreviewEnabled,
       preview_percentage: listingDraft.value.previewPercentage,
     })

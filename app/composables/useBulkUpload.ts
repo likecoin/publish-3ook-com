@@ -10,7 +10,6 @@ interface ProcessingCallbacks {
   onStatusChange?: (bookId: string, status: BookUploadStatus, message?: string) => void
   onProgress?: (bookId: string, updates: Partial<BulkUploadBook>) => void
   onError?: (bookId: string, error: string) => void
-  sponsored?: boolean
 }
 
 export function useBulkUpload() {
@@ -91,7 +90,7 @@ export function useBulkUpload() {
     book: BulkUploadBook,
     callbacks: ProcessingCallbacks,
   ): Promise<void> {
-    const { onProgress, sponsored } = callbacks
+    const { onProgress } = callbacks
     const records: PublishFileRecordWithBlob[] = []
 
     if (!book.coverArweaveId) {
@@ -110,8 +109,11 @@ export function useBulkUpload() {
       if (!ebookFile) {
         throw new Error('No ebook file found')
       }
-      const ebookBuffer = await ebookFile.arrayBuffer()
-      const detectedType = detectEbookType(ebookBuffer)
+      // Header bytes only: detectEbookType reads the PDF magic or the EPUB's
+      // first ZIP entry, never more. Reading the whole file here would cost a
+      // second full read of a 200MB ebook and pin it for the whole upload —
+      // the uploader hashes from its own single read.
+      const detectedType = detectEbookType(await ebookFile.slice(0, 512).arrayBuffer())
       if (!detectedType) {
         throw new Error(`File ${ebookFile.name} is not a valid PDF or EPUB`)
       }
@@ -121,13 +123,11 @@ export function useBulkUpload() {
         fileName: ebookFile.name,
         fileType: detectedType === 'epub' ? 'application/epub+zip' : 'application/pdf',
         fileBlob: ebookFile,
-        fileSHA256: await digestFileSHA256(ebookBuffer),
       })
     }
 
     await uploadFileRecordsToArweave(records, {
       encryptEbook: book.enableDRM,
-      sponsored,
       onRecordPrepare: (record) => {
         currentStep.value = record.fileType.startsWith('image/')
           ? 'uploading_cover'
