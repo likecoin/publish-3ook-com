@@ -19,6 +19,7 @@
       :prefilled-fields="prefilledFields"
       :content-excerpt="contentExcerpt"
       :table-of-contents="tableOfContents"
+      :description-full="descriptionFull"
     />
 
     <IscnIdentifierFields
@@ -372,10 +373,12 @@ function onFormValidate(): FormError[] {
   if (!data.title) {
     errors.push({ name: 'title', message: $t('iscn_form.title_required') })
   }
-  if (!data.description) {
-    errors.push({ name: 'description', message: $t('iscn_form.description_required') })
+  // The short description is optional for the author but never optional in the
+  // payload, so what is required is having something to derive it from.
+  if (!data.description && !descriptionFull.value) {
+    errors.push({ name: 'descriptionFull', message: $t('iscn_form.description_required') })
   }
-  else if (isDescriptionOverMax.value) {
+  if (isDescriptionOverMax.value) {
     errors.push({ name: 'description', message: $t('validation.description_cannot_exceed', { max: MAX_DESCRIPTION_LENGTH }) })
   }
   if ((data.alternativeHeadline || '').length > MAX_ALTERNATIVE_HEADLINE_LENGTH) {
@@ -408,6 +411,15 @@ function onFormValidate(): FormError[] {
 // Hosts call this on submit: shows inline errors on invalid fields, toasts
 // the messages, and scrolls the first offender into view.
 async function validate(): Promise<boolean> {
+  // Derived on the way out rather than on every keystroke. description is the
+  // catalog field — Stripe, Google Merchant, Meta, OpenAI all read it — so it
+  // is filled here whenever the author left the box empty.
+  if (!formData.value.description) {
+    formData.value.description = deriveShortDescription(
+      descriptionFull.value || '',
+      MAX_DESCRIPTION_LENGTH,
+    )
+  }
   return validateWithFeedback(formRef.value)
 }
 

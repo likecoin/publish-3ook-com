@@ -639,10 +639,14 @@ function seedDetailsFromMetadata() {
   // A long dc:subject list would otherwise seed the form already over the
   // cap, which the keywords field can only block adds against, not trim.
   const tags = (meta.tags || []).slice(0, MAX_BOOK_KEYWORDS)
+  // Into the full description, which is the field the author now writes in.
+  // The short one is left empty and derived from this at submit.
+  if (description && !listingDraft.value.descriptionFull) {
+    listingDraft.value.descriptionFull = description
+  }
   iscnFormData.value = {
     ...iscnFormData.value,
     title: meta.title || '',
-    description,
     publicationDate: new Date().toISOString().split('T')[0] || '',
     author: { name: meta.author ?? '', description: '' },
     language: formatLanguage(meta.language || 'zh'),
@@ -652,7 +656,7 @@ function seedDetailsFromMetadata() {
   // language falls back to zh, so neither is the file speaking.
   const prefilled: ISCNPrefillableField[] = []
   if (meta.title) { prefilled.push('title') }
-  if (description) { prefilled.push('description') }
+  if (description) { prefilled.push('descriptionFull') }
   if (meta.author) { prefilled.push('author.name') }
   if (meta.language) { prefilled.push('language') }
   if (tags.length) { prefilled.push('tags') }

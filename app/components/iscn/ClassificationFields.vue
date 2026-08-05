@@ -96,10 +96,14 @@ const {
   prefilledFields = [],
   contentExcerpt = '',
   tableOfContents = '',
+  descriptionFull = '',
 } = defineProps<{
   prefilledFields?: ISCNPrefillableField[]
   contentExcerpt?: string
   tableOfContents?: string
+  // The author writes the full description first and may leave the short one
+  // empty, so the suggestion reads whichever they actually filled in.
+  descriptionFull?: string
 }>()
 
 const formData = defineModel<ISCNFormData>({ required: true })
@@ -157,8 +161,11 @@ const { isSuggesting, suggestBookMetadata } = useBookMetadataSuggest()
 // applied via explicit click, never silently.
 const suggestedGenre = ref('')
 
+const effectiveDescription = computed(() =>
+  descriptionFull || formData.value.description)
+
 const canSuggestMetadata = computed(() => {
-  return !!formData.value.title && !!formData.value.description
+  return !!formData.value.title && !!effectiveDescription.value
 })
 
 const suggestedGenreLabel = computed(() => {
@@ -172,7 +179,7 @@ async function handleSuggestMetadata() {
   try {
     const result = await suggestBookMetadata({
       title: formData.value.title,
-      description: formData.value.description,
+      description: effectiveDescription.value,
       language: formData.value.language || undefined,
       tableOfContents: tableOfContents || undefined,
       contentExcerpt: contentExcerpt || undefined,
