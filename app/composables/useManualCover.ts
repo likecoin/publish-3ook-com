@@ -44,12 +44,18 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
   // The generated cover is kept rather than replaced: it is what 復原 reverts
   // to, and buildIscnLinksFromFileRecords picks the manual one by provenance
   // rather than by position.
-  function applyManualCover(record: FileRecord) {
+  function applyManualCover(record: FileRecord): FileRecord {
+    // Stated, not left absent: isGeneratedCoverRecord falls back to the
+    // filename when the flag is unset, so an author whose own file ends in
+    // _cover.jpeg would have their pick read as the EPUB's — the very case
+    // the flag exists to close.
+    const manualRecord: FileRecord = { ...record, isGeneratedCover: false }
     fileRecords.value = [
       ...fileRecords.value.filter(existing => !isManualCoverRecord(existing)),
-      record,
+      manualRecord,
     ]
-    writeCoverToMetadata(record)
+    writeCoverToMetadata(manualRecord)
+    return manualRecord
   }
 
   // Throws on an unreadable file; callers already surface upload errors.
@@ -66,8 +72,7 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
       fileSHA256: info.fileSHA256,
       fileData,
     }
-    applyManualCover(record)
-    return record
+    return applyManualCover(record)
   }
 
   function revertToGeneratedCover(): boolean {
