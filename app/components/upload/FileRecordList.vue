@@ -2,7 +2,7 @@
   <ul class="flex flex-col w-full">
     <li
       v-for="(record, index) of fileRecords"
-      :key="record.fileName"
+      :key="`${record.fileName}-${index}`"
       class="border-b border-default"
     >
       <div class="flex justify-between items-center hover:bg-elevated transition-colors w-full py-[4px]">
