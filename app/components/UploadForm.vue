@@ -108,7 +108,6 @@ const { uploadFileRecordsToArweave } = useArweaveUpload()
 export type { FileRecord }
 
 const props = defineProps({
-  defaultEncrypted: { type: Boolean, default: true },
   // The wizard hides the control and asks at its pricing step instead, so the
   // tier is unknown while files are collected here.
   showDrmOption: { type: Boolean, default: true },
@@ -135,7 +134,9 @@ onMounted(() => {
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
-const isEncryptEBookData = ref(props.defaultEncrypted)
+// Two-way: the edit flow seeds this from the saved fingerprints and reads the
+// author's choice back. The wizard hides the control and never binds it.
+const isEncryptEBookData = defineModel<boolean>('encryptEbook', { default: true })
 
 // Nothing dedups or clears under a protected tier, so it is the safe assumption
 // while the host has not asked yet; the real choice drives the upload later.
@@ -175,12 +176,6 @@ const computedFormClasses = computed(() => [
   'bg-elevated',
   'hover:bg-accented',
 ])
-
-// The host's value can arrive after this form mounts (ISCNForm derives it from
-// the saved fingerprints), so re-sync rather than keeping the initial default.
-watch(() => props.defaultEncrypted, (value: boolean) => {
-  isEncryptEBookData.value = value
-})
 
 // The quota cost is the same either way, but the tier is not: re-check so an
 // ebook's duplicate status is re-derived under the new DRM setting.

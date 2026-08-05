@@ -383,7 +383,7 @@
         <div class="space-y-4">
           <UploadForm
             ref="uploadFormRef"
-            :default-encrypted="isContentFingerprintsEncrypted"
+            v-model:encrypt-ebook="encryptEbook"
             @file-upload-status="(status: string) => (uploadStatus = status)"
             @file-ready="(records: FileRecord[]) => (fileRecords = records)"
             @submit="handleUploadSubmit"
@@ -681,6 +681,8 @@ const hasValidReadAction = computed(() => {
   return formData.value.downloadableUrls?.some(d => !!d.url)
 })
 
+// What the saved files already are, which is the right starting point for the
+// radio; the author's own choice then lives in encryptEbook below.
 const isContentFingerprintsEncrypted = computed(() => {
   const contentFingerprints = formData.value.contentFingerprints.map(f => f.url)
   const apiEndpoints = getApiEndpoints()
@@ -688,6 +690,14 @@ const isContentFingerprintsEncrypted = computed(() => {
   return contentFingerprints.some((fingerprint) => {
     return !!fingerprint.startsWith(arweaveLinkEndpoint) || fingerprint.includes('?key=')
   })
+})
+
+const encryptEbook = ref(isContentFingerprintsEncrypted.value)
+
+// Re-derive whenever the fingerprints change: a replacement upload rewrites
+// them, and the radio should then show what the files actually became.
+watch(isContentFingerprintsEncrypted, (value: boolean) => {
+  encryptEbook.value = value
 })
 
 const addContentFingerprint = () => {
