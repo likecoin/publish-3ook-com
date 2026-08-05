@@ -168,6 +168,9 @@ const { showSuccessToast, showInfoToast, showErrorToast } = useToastComposable()
 
 const bookstoreApiStore = useBookstoreApiStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
+// The connected wallet, which is what the recent-genre list is keyed on — not
+// sessionWallet above, whose address the chips in ISCNForm never read.
+const { wallet } = storeToRefs(useWalletStore())
 const { updateBookListingSetting } = bookstoreApiStore
 const { loadClassMetadataIntoForm, saveClassMetadata } = useNFTClassUpdater()
 
@@ -347,6 +350,9 @@ async function handleSave() {
       }
       const { metadata } = await saveClassMetadata(classId, payload.value)
       useLogEvent('iscn_metadata_updated', { class_id: classId })
+      // Same point the wizard records it: a genre written on chain, not one
+      // browsed past. A settings-only save never reaches here.
+      rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
       iscnFormRef.value?.resetSnapshot()
       // Fingerprints may have switched between encrypted and open; keep the
       // listing's hideDownload in sync within the same settings POST.
