@@ -259,30 +259,6 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
     }
   }
 
-  // A dropped image is the author's explicit cover choice, so it replaces the
-  // one the EPUB supplied. Books still missing a cover are filled first.
-  const assignManualCoverImage = (file: File, ipfsHash?: string | null): void => {
-    let targetMetadata = epubMetadataList.value.find(
-      (metadata: EpubMetadata) => !metadata.thumbnailIpfsHash,
-    ) || epubMetadataList.value[0]
-    if (!targetMetadata) {
-      // No EPUB file was uploaded — epubMetadataList is still empty
-      targetMetadata = {
-        thumbnailIpfsHash: null,
-        coverData: null,
-      }
-      epubMetadataList.value.push(targetMetadata)
-    }
-
-    const coverReader = new FileReader()
-    coverReader.onload = (e) => {
-      if (!e.target) { return }
-      targetMetadata.thumbnailIpfsHash = ipfsHash
-      targetMetadata.coverData = e.target.result as string
-    }
-    coverReader.readAsDataURL(file)
-  }
-
   const removeMetadataForDeletedFile = (removedFile: FileRecord) => {
     if (removedFile.fileType?.startsWith('image/')) {
       epubMetadataList.value = epubMetadataList.value
@@ -307,7 +283,6 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
     epubMetadataList,
     validateEpub,
     processEPub,
-    assignManualCoverImage,
     removeMetadataForDeletedFile,
   }
 }
