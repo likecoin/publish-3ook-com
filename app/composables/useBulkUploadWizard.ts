@@ -6,11 +6,58 @@ import {
   validateBook,
   validateBooks,
   validateProgressFieldFormats,
+  normalizeFilename,
+  hasArweaveUploads,
   CSV_REQUIRED_COLUMNS,
   CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS,
 } from '~/utils/bulk-upload'
 import { loadBulkUploadSession, restoreBooksFromSession } from '~/utils/bulkUploadSession'
+import type { DraftFileRequest } from '~/utils/draftFiles'
 import { UPLOADABLE_FILE_TYPES } from '~/constant'
+
+// The three file slots a book can carry. Named once so persisting, restoring
+// and matching walk the same list rather than spelling it out three ways.
+const BOOK_FILE_SLOTS = [
+  { filename: 'coverImageFilename', file: 'coverFile' },
+  { filename: 'pdfFilename', file: 'pdfFile' },
+  { filename: 'epubFilename', file: 'epubFile' },
+] as const
+
+// Files are stored under their CSV filename, which is the identity this flow
+// already trusts: matching and duplicate detection both run on it. The wizard
+// keys by content hash because it has one for upload; hashing a hundred 200MB
+// files here would cost a pass over every byte to learn nothing new.
+
+// A draft is three files; a batch can be hundreds. Past this, nothing is
+// persisted and the re-select prompt covers the batch — the same place every
+// other storage failure lands.
+const MAX_PERSISTED_BATCH_BYTES = 2 * 1024 * 1024 * 1024
+
+// Bounds a single transaction: a quota failure then costs one chunk rather
+// than the whole batch.
+const PERSIST_CHUNK_SIZE = 20
+
+// Leaves the origin room for the session JSON and anything else it stores,
+// rather than filling the quota to the brim with book files.
+const STORAGE_HEADROOM_BYTES = 512 * 1024 * 1024
+
+async function getPersistBudget(): Promise<number> {
+  try {
+    const estimate = await navigator.storage?.estimate?.()
+    if (!estimate?.quota) { return MAX_PERSISTED_BATCH_BYTES }
+    const free = estimate.quota - (estimate.usage || 0) - STORAGE_HEADROOM_BYTES
+    return Math.max(0, Math.min(MAX_PERSISTED_BATCH_BYTES, free))
+  }
+  catch {
+    return MAX_PERSISTED_BATCH_BYTES
+  }
+}
+
+// Structured clone preserves File, so this usually hands back what went in;
+// the reconstruction is for engines that return a plain Blob.
+function toFile(blob: Blob, filename: string): File {
+  return blob instanceof File ? blob : new File([blob], filename, { type: blob.type })
+}
 
 // Owns the bulk-upload wizard's step machine: CSV parsing/validation with
 // on-chain progress verification, file-to-book matching, derived progress
@@ -29,9 +76,15 @@ export function useBulkUploadWizard() {
   const missingOptionalColumns = ref<{ column: string, defaultValue: string }[]>([])
   const selectedFiles = ref<File[]>([])
   const hasExistingSession = ref(false)
+  const isResuming = ref(false)
 
   onMounted(() => {
     hasExistingSession.value = loadBulkUploadSession() !== null
+    // The session lives in sessionStorage and dies with the tab; these files do
+    // not. Without this sweep a closed tab strands its batch's bytes on disk
+    // with nothing left that could ever ask for them. A second tab sweeps the
+    // first tab's files too, which costs that batch its resume but not its run.
+    if (!hasExistingSession.value) { bulkUploadFileStore.clearDraftFiles() }
   })
 
   const pendingBooks = computed(() =>
@@ -49,7 +102,7 @@ export function useBulkUploadWizard() {
   const unmatchedBooks = computed(() =>
     books.value.filter((b) => {
       if (b.status === BookUploadStatus.COMPLETED) { return false }
-      if (b.coverArweaveId && b.bookArweaveId) { return false }
+      if (hasArweaveUploads(b)) { return false }
       return !b.coverFile || (!b.pdfFile && !b.epubFile)
     }),
   )
@@ -57,15 +110,16 @@ export function useBulkUploadWizard() {
   const expectedFilenameSet = computed(() => {
     const set = new Set<string>()
     books.value.forEach((book) => {
-      if (book.coverImageFilename) { set.add(book.coverImageFilename.toLowerCase()) }
-      if (book.pdfFilename) { set.add(book.pdfFilename.toLowerCase()) }
-      if (book.epubFilename) { set.add(book.epubFilename.toLowerCase()) }
+      BOOK_FILE_SLOTS.forEach((slot) => {
+        const key = normalizeFilename(book[slot.filename])
+        if (key) { set.add(key) }
+      })
     })
     return set
   })
 
   const extraFiles = computed(() =>
-    selectedFiles.value.filter(f => !expectedFilenameSet.value.has(f.name.toLowerCase())),
+    selectedFiles.value.filter(f => !expectedFilenameSet.value.has(normalizeFilename(f.name))),
   )
 
   // Files whose type has no storage tier. Kept out of selectedFiles entirely so
@@ -230,56 +284,112 @@ export function useBulkUploadWizard() {
     // Match files to books
     const fileMap = new Map<string, File>()
     files.forEach((file) => {
-      fileMap.set(file.name.toLowerCase(), file)
+      fileMap.set(normalizeFilename(file.name), file)
     })
 
     books.value.forEach((book) => {
-      // Match cover image
-      const coverFile = fileMap.get(book.coverImageFilename.toLowerCase())
-      if (coverFile) {
-        book.coverFile = coverFile
-      }
+      BOOK_FILE_SLOTS.forEach((slot) => {
+        const match = fileMap.get(normalizeFilename(book[slot.filename]))
+        if (match) { book[slot.file] = match }
+      })
+    })
 
-      // Match PDF
-      if (book.pdfFilename) {
-        const pdfFile = fileMap.get(book.pdfFilename.toLowerCase())
-        if (pdfFile) {
-          book.pdfFile = pdfFile
-        }
-      }
+    persistMatchedFiles()
+  }
 
-      // Match EPUB
-      if (book.epubFilename) {
-        const epubFile = fileMap.get(book.epubFilename.toLowerCase())
-        if (epubFile) {
-          book.epubFile = epubFile
-        }
+  // Each pick replaces the batch's files wholesale, matching the match-clearing
+  // above, so the store is emptied rather than reconciled. Runs are chained
+  // because their writes and clears are on separate connections and cannot be
+  // ordered against each other; runId then drops a superseded run's work.
+  let persistRunId = 0
+  let persistChain: Promise<void> = Promise.resolve()
+
+  function persistMatchedFiles() {
+    const runId = ++persistRunId
+    persistChain = persistChain.then(() => writeMatchedFiles(runId))
+  }
+
+  async function writeMatchedFiles(runId: number): Promise<void> {
+    await bulkUploadFileStore.clearDraftFiles()
+    if (runId !== persistRunId) { return }
+
+    const entries: [string, Blob][] = []
+    let total = 0
+    for (const book of books.value) {
+      if (hasArweaveUploads(book)) { continue }
+      for (const slot of BOOK_FILE_SLOTS) {
+        const key = normalizeFilename(book[slot.filename])
+        const file = book[slot.file]
+        if (!key || !file) { continue }
+        entries.push([key, file])
+        total += file.size
       }
+    }
+    if (!entries.length) { return }
+    // All or nothing. One unrestored file sends the author to the picker, which
+    // replaces the whole selection, so a partial batch on disk could only ever
+    // be deleted unread.
+    if (total > await getPersistBudget()) { return }
+
+    for (let index = 0; index < entries.length; index += PERSIST_CHUNK_SIZE) {
+      if (runId !== persistRunId) { return }
+      await bulkUploadFileStore.saveDraftFiles(entries.slice(index, index + PERSIST_CHUNK_SIZE))
+    }
+  }
+
+  // Reattaches whatever survived, so a fully-restored batch stops claiming its
+  // files are missing. Must run before the caller reads the books.
+  async function reattachDraftFiles(restoredBooks: BulkUploadBook[]): Promise<void> {
+    const pending = restoredBooks.filter(book => !hasArweaveUploads(book))
+    const requests: DraftFileRequest[] = pending.flatMap(book =>
+      BOOK_FILE_SLOTS
+        .map(slot => normalizeFilename(book[slot.filename]))
+        .filter(Boolean)
+        .map(key => ({ key })))
+    if (!requests.length) { return }
+
+    const blobs = await bulkUploadFileStore.loadDraftFiles(requests)
+    if (!blobs.size) { return }
+
+    pending.forEach((book) => {
+      BOOK_FILE_SLOTS.forEach((slot) => {
+        const filename = book[slot.filename]
+        const blob = blobs.get(normalizeFilename(filename))
+        if (blob && filename) { book[slot.file] = toFile(blob, filename) }
+      })
     })
   }
 
-  function resumeSession() {
+  async function resumeSession() {
+    if (isResuming.value) { return }
     const session = loadBulkUploadSession()
     if (!session) { return }
 
-    hasExistingSession.value = false
-    books.value = restoreBooksFromSession(session)
+    isResuming.value = true
+    try {
+      const restoredBooks = restoreBooksFromSession(session)
+      // Before the books reach the view: needsFiles below decides which step
+      // the author lands on, and it must see the restored files. The resume
+      // banner stays put until then rather than flashing the CSV step.
+      await reattachDraftFiles(restoredBooks)
+      books.value = restoredBooks
+      hasExistingSession.value = false
 
-    // If all books have their Arweave uploads done, go straight to processing
-    const needsFiles = books.value.some((b) => {
-      if (b.coverArweaveId && b.bookArweaveId) { return false }
-      return !b.coverFile || (!b.pdfFile && !b.epubFile)
-    })
+      // If all books have their Arweave uploads done, go straight to processing
+      const needsFiles = books.value.some((b) => {
+        if (hasArweaveUploads(b)) { return false }
+        return !b.coverFile || (!b.pdfFile && !b.epubFile)
+      })
 
-    if (needsFiles) {
-      currentStep.value = 'files'
+      currentStep.value = needsFiles ? 'files' : 'processing'
     }
-    else {
-      currentStep.value = 'processing'
+    finally {
+      isResuming.value = false
     }
   }
 
   function resetWizard() {
+    bulkUploadFileStore.clearDraftFiles()
     books.value = []
     validationErrors.value = []
     csvError.value = ''
@@ -298,6 +408,7 @@ export function useBulkUploadWizard() {
     missingOptionalColumns,
     selectedFiles,
     hasExistingSession,
+    isResuming,
     pendingBooks,
     completedBooks,
     failedBooks,

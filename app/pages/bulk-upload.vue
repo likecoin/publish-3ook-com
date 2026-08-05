@@ -17,6 +17,7 @@
             <UButton
               :label="$t('bulk_upload.resume_session')"
               color="primary"
+              :loading="isResuming"
               @click="resumeSession"
             />
             <UButton
@@ -502,6 +503,7 @@ const {
   missingOptionalColumns,
   selectedFiles,
   hasExistingSession,
+  isResuming,
   pendingBooks,
   completedBooks,
   failedBooks,
@@ -677,6 +679,8 @@ async function startProcessing() {
 
   if (completedBooks.value.length === books.value.length) {
     clearBulkUploadSession()
+    // Every book is on chain; the source files have nothing left to serve.
+    bulkUploadFileStore.clearDraftFiles()
     showSuccessToast($t('bulk_upload.all_completed'))
   }
 }

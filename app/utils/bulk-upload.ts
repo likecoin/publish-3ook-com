@@ -17,6 +17,19 @@ import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUp
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 
+// Filenames are the identity this flow matches on — CSV row against picked
+// file, and the draft-file store's keys — so every comparison must fold them
+// the same way or the two sides stop agreeing.
+export function normalizeFilename(filename: string | undefined): string {
+  return filename?.trim().toLowerCase() || ''
+}
+
+// Bytes already on Arweave: nothing re-uploads them and nothing needs them on
+// disk.
+export function hasArweaveUploads(book: BulkUploadBook): boolean {
+  return !!book.coverArweaveId && !!book.bookArweaveId
+}
+
 // book_description is absent because either description column satisfies the
 // requirement, which a per-column header check cannot express; validateBook
 // enforces the pair per row instead.
@@ -231,7 +244,7 @@ export function validateBooks(books: BulkUploadBook[]): BulkUploadValidationErro
     if (book.epubFilename) { filenames.push({ name: book.epubFilename, field: 'epub_filename' }) }
 
     for (const { name, field } of filenames) {
-      const key = name.toLowerCase()
+      const key = normalizeFilename(name)
       const existing = seen.get(key)
       if (existing) {
         errors.push({
