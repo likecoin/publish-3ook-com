@@ -364,9 +364,8 @@ const isDescriptionOverMax = computed(() => {
   return (formData.value.description || '').length > MAX_DESCRIPTION_LENGTH
 })
 
-// UForm routes each returned error to the UFormField with the matching name;
-// errors without a matching field (fingerprints, descriptionFull) surface via
-// the validate() toast only.
+// UForm routes each returned error to the UFormField with the matching name,
+// so every error pushed here needs one that is actually rendered.
 function onFormValidate(): FormError[] {
   const errors: FormError[] = []
   const data = formData.value
@@ -388,7 +387,7 @@ function onFormValidate(): FormError[] {
     errors.push({ name: 'author.name', message: $t('iscn_form.author_name_required') })
   }
   if ((descriptionFull.value || '').length > MAX_DESCRIPTION_FULL_LENGTH) {
-    errors.push({ message: $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH }) })
+    errors.push({ name: 'descriptionFull', message: $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH }) })
   }
   // File-derived URLs only exist where the file fields are shown; the wizard
   // injects them at publish time instead.
@@ -411,15 +410,6 @@ function onFormValidate(): FormError[] {
 // Hosts call this on submit: shows inline errors on invalid fields, toasts
 // the messages, and scrolls the first offender into view.
 async function validate(): Promise<boolean> {
-  // Derived on the way out rather than on every keystroke. description is the
-  // catalog field — Stripe, Google Merchant, Meta, OpenAI all read it — so it
-  // is filled here whenever the author left the box empty.
-  if (!formData.value.description) {
-    formData.value.description = deriveShortDescription(
-      descriptionFull.value || '',
-      MAX_DESCRIPTION_LENGTH,
-    )
-  }
   return validateWithFeedback(formRef.value)
 }
 

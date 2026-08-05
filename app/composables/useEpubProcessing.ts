@@ -234,18 +234,15 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
               fileBlob: coverFile,
               ipfsHash: ipfsThumbnailHash ?? undefined,
               fileSHA256,
+              isGeneratedCover: true,
             }
-            const coverReader = new FileReader()
-            coverReader.onload = (e) => {
-              if (!e.target) {
-                return
-              }
-              coverFileRecord.fileData = e.target.result as string
-              options.onCoverExtracted?.(coverFileRecord)
-              epubMetadata.coverData = e.target.result as string
-              epubMetadataList.value.push(epubMetadata)
-            }
-            coverReader.readAsDataURL(coverFile)
+            // Awaited rather than left in a callback: the metadata used to be
+            // pushed from inside onload, so an unreadable cover dropped the
+            // whole entry — spine items, excerpt and all.
+            coverFileRecord.fileData = await fileToDataUrl(coverFile)
+            options.onCoverExtracted?.(coverFileRecord)
+            epubMetadata.coverData = coverFileRecord.fileData
+            epubMetadataList.value.push(epubMetadata)
             return
           }
         }

@@ -297,11 +297,10 @@ const onFileUpload = async (event: Event) => {
               await processEPub({ buffer: fileBytes, file })
             }
             else if (fileRecord.fileType?.startsWith('image/')) {
-              // Images only: fileData feeds the cover preview, and base64-ing a
-              // 200MB ebook would hold ~267MB of string for the record's lifetime.
+              // Images only: a data URL is ~33% larger than the bytes it
+              // encodes, so a 200MB ebook would hold ~267MB of string for the
+              // record's lifetime.
               fileRecord.fileData = await fileToDataUrl(file)
-              // Owns the record list for covers, so it replaces the generic
-              // upsert below rather than running before it.
               applyManualCover(fileRecord)
               uploadStatus.value = ''
               continue

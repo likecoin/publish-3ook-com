@@ -7,7 +7,8 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import type { ISCNFormData } from '~/types/iscn'
-import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
+import { NFT_DEFAULT_MINT_AMOUNT, MAX_DESCRIPTION_LENGTH } from '~/constant'
+import { resolveShortDescription } from '~/utils/description'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { isRecordUploaded, clearStaleOpenTierResults } from '~/utils/arweave'
@@ -186,6 +187,15 @@ export function usePublishBook() {
           input.iscnFormData.coverUrl = links.coverUrl
         }
       }
+
+      // The catalog description is optional for the author but never optional
+      // on chain, so it is resolved here rather than in the form: the wizard
+      // can reach publish without the details step ever being validated.
+      input.iscnFormData.description = resolveShortDescription(
+        input.iscnFormData.description,
+        input.listingDraft.descriptionFull,
+        MAX_DESCRIPTION_LENGTH,
+      )
 
       // Step 2: Create NFT class
       if (!classId) {

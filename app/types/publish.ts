@@ -7,11 +7,11 @@ import type { BookPriceInDecimalByCurrency, EpubMetadata } from '~/types'
 export interface PublishFileRecord {
   fileName: string
   fileType: string
-  // Kept so a blob restored from the draft file store can be checked against
-  // the size it was saved at; drafts written before this lack it.
+  // Checked against the size a restored blob reads back at.
   fileSize?: number
   ipfsHash?: string
   fileSHA256?: string
+  isGeneratedCover?: boolean
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string

@@ -2,8 +2,6 @@
 // per wallet — one account's back catalogue says nothing about another's.
 const RECENT_GENRES_KEY_PREFIX = 'publish_recent_genres:'
 
-// Enough to cover a publisher working through a series without turning the
-// picker into a second, unsorted category list.
 export const MAX_RECENT_GENRES = 3
 
 function storageKey(wallet: string): string {

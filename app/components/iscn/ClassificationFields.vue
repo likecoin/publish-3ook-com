@@ -108,8 +108,6 @@ const {
 
 const formData = defineModel<ISCNFormData>({ required: true })
 
-// Owned by the host rather than here: it means "keywords not saved yet", which
-// is the host's snapshot lifecycle, not this group's.
 const hasSuggested = defineModel<boolean>('hasSuggested', { default: false })
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
@@ -134,12 +132,13 @@ const genreModel = computed({
 })
 
 const { wallet } = storeToRefs(useWalletStore())
-// Read once on mount: localStorage is not reactive, and the list only changes
-// on publish, which navigates away from this form.
+// Keyed off the wallet rather than read once on mount: wagmi restores the
+// connection asynchronously, so a form mounted at page load would read an
+// empty address and show no chips for the rest of the session.
 const recentGenres = ref<string[]>([])
-onMounted(() => {
-  recentGenres.value = loadRecentGenres(wallet.value || '')
-})
+watch(wallet, (address) => {
+  recentGenres.value = loadRecentGenres(address || '')
+}, { immediate: true })
 
 // Drops the current pick, which would be a chip that does nothing, and any
 // value the category list has since dropped.

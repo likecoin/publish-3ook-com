@@ -50,6 +50,8 @@ export const UPLOADABLE_FILE_TYPES = [...OPEN_IMAGE_FILE_TYPES, ...EBOOK_FILE_TY
 // so callers must still validate against UPLOADABLE_FILE_TYPES.
 export const UPLOAD_ACCEPT_ATTRIBUTE = UPLOADABLE_FILE_TYPES.join(',')
 
+export const COVER_ACCEPT_ATTRIBUTE = OPEN_IMAGE_FILE_TYPES.join(',')
+
 export const NFT_DEFAULT_MINT_AMOUNT = 1
 export const NFT_DEFAULT_RESTOCK_AMOUNT = 50
 

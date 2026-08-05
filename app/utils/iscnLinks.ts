@@ -1,11 +1,12 @@
 import { EBOOK_FILE_TYPES } from '~/constant'
-import { isRecordUploaded, isGeneratedCoverRecord } from '~/utils/arweave'
+import { isRecordUploaded, isManualCoverRecord } from '~/utils/arweave'
 
 // Minimal record shape needed to derive ISCN links; both UploadForm's
 // FileRecord and PublishFileRecord satisfy it.
 export interface IscnLinkSourceRecord {
   fileName?: string
   fileType?: string
+  isGeneratedCover?: boolean
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
@@ -60,7 +61,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
   // Both covers survive a manual replacement, so pick by provenance rather than
   // position: the author's choice outranks the one the EPUB supplied.
   const coverRecords = records.filter(r => r.fileType?.startsWith('image/') && r.arweaveId)
-  const coverRecord = coverRecords.find(r => !isGeneratedCoverRecord(r)) || coverRecords[0]
+  const coverRecord = coverRecords.find(r => isManualCoverRecord(r)) || coverRecords[0]
   const coverUrl = coverRecord ? `ar://${coverRecord.arweaveId}` : ''
 
   return { downloadableUrls, contentFingerprints, coverUrl }

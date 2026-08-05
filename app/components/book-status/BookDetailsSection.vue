@@ -160,6 +160,8 @@ import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 import { shouldHideDownload, createEmptyISCNFormData } from '~/utils/iscn'
+import { resolveShortDescription } from '~/utils/description'
+import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
 const { t: $t } = useI18n()
 const { showSuccessToast, showInfoToast, showErrorToast } = useToastComposable()
@@ -332,6 +334,13 @@ async function handleSave() {
     }
 
     if (isChainDirty) {
+      // Same resolution the wizard does at publish: 短簡介 is optional for the
+      // author, never optional on chain.
+      iscnFormData.value.description = resolveShortDescription(
+        iscnFormData.value.description,
+        descriptionFull.value,
+        MAX_DESCRIPTION_LENGTH,
+      )
       // Inline errors + toast + scroll are handled by the form itself.
       if (!(await iscnFormRef.value?.validate())) {
         return
