@@ -964,7 +964,7 @@
   "upload_form.do_not_close_upload": "Please do not close this window until upload is complete.",
   "upload_form.drag_files_here": "Drag files here to upload or ",
   "upload_form.drm_option_encrypted": "Encrypted — readers can only read on 3ook; no downloads",
-  "upload_form.drm_option_open": "Downloadable (recommended) — readers can keep the EPUB/PDF",
+  "upload_form.drm_option_open": "Downloadable — readers can keep the EPUB/PDF",
   "upload_form.drm_option_open_tooltip": "https://ckxpress.com/youtube/",
   "upload_form.encrypting": "Encrypting...",
   "upload_form.epub_has_issues": "This EPUB file has validation issues",
