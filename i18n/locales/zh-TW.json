@@ -974,7 +974,7 @@
   "upload_form.drm_option_open": "開放下載 — 讀者可下載 EPUB／PDF 永久保存",
   "upload_form.drm_option_open_link": "https://ckxpress.com/youtube/",
   "upload_form.drm_option_open_link_label": "了解開放出版的理念",
-  "upload_form.drm_section_description": "發佈後無法更改。",
+  "upload_form.drm_section_description": "日後可在書籍設定中更改；但檔案一經開放下載即永久公開，無法收回。",
   "upload_form.drm_section_title": "檔案保護",
   "upload_form.encrypting": "加密中...",
   "upload_form.epub_has_issues": "此 EPUB 檔案有驗證問題",
