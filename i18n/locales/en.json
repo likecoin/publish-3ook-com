@@ -1006,7 +1006,6 @@
   "upload_form.uploading": "Uploading...",
   "upload_form.valid_combinations": "Valid file combinations:\n• EPUB only (cover auto-extracted)\n• PDF + cover image (PNG/JPG)\n• EPUB + PDF + cover image (PNG/JPG)",
   "upload_form.validation_error": "File validation error",
-  "upload_form.warning": "Warning",
   "user.affiliation_id_placeholder": "Affiliation ID",
   "user.no": "No",
   "user.yes": "Yes",

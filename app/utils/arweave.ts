@@ -1,5 +1,5 @@
 import { getApiEndpoints } from '~/constant/api'
-import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES } from '~/constant'
+import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES, GENERATED_COVER_SUFFIX } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
 
 export type UploadTier = 'protected' | 'open'
@@ -21,6 +21,12 @@ export function getUploadTier(
   const type = fileType ?? ''
   if (EBOOK_FILE_TYPES.includes(type)) { return encryptEbook ? 'protected' : 'open' }
   return OPEN_IMAGE_FILE_TYPES.includes(type) ? 'open' : null
+}
+
+// The cover an EPUB carried, as opposed to one the author picked. Named rather
+// than flagged because the name is the only provenance a restored draft keeps.
+export function isGeneratedCoverRecord(record: { fileName?: string }): boolean {
+  return !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 }
 
 // A record with an upload result: Arweave results always carry arweaveId;

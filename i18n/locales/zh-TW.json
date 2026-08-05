@@ -1006,7 +1006,6 @@
   "upload_form.uploading": "上傳中...",
   "upload_form.valid_combinations": "有效的檔案組合：\n• 僅 EPUB（自動擷取封面）\n• PDF + 封面圖片（PNG/JPG）\n• EPUB + PDF + 封面圖片（PNG/JPG）",
   "upload_form.validation_error": "檔案驗證錯誤",
-  "upload_form.warning": "警告",
   "user.affiliation_id_placeholder": "推廣 ID",
   "user.no": "否",
   "user.yes": "是",
