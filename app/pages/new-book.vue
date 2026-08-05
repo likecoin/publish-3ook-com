@@ -44,6 +44,15 @@
           v-else-if="step === 'details'"
           class="text-left flex flex-col gap-6"
         >
+          <!-- The only cover control in the flow: step 1 takes files, not a
+               cover choice, so a second entry point there would just ask the
+               author to pick between two identical doors. -->
+          <PublishCoverField
+            v-model:file-records="fileRecords"
+            v-model:epub-metadata="epubMetadata"
+            :src="coverImageSrc"
+          />
+
           <ISCNForm
             ref="detailsFormRef"
             v-model="iscnFormData"
