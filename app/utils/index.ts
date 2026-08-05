@@ -240,7 +240,9 @@ export function fileToDataUrl(file: Blob): Promise<string> {
     }
 
     reader.onerror = () => {
-      reject(new Error('Failed to read file: ' + reader.error?.message))
+      // Falls back because a truthy-but-useless "…: undefined" would beat the
+      // callers' own generic message rather than letting it through.
+      reject(new Error('Failed to read file: ' + (reader.error?.message || 'unknown error')))
     }
 
     reader.readAsDataURL(file)
