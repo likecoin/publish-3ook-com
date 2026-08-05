@@ -11,6 +11,7 @@
       name="title"
       :label="$t('common.title')"
       class="flex-1 text-left"
+      :help="prefilledHint('title')"
       required
     >
       <UInput
@@ -36,6 +37,7 @@
       :label="$t('common.description')"
       class="flex-1 text-left"
       :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
+      :help="prefilledHint('description')"
       required
     >
       <UTextarea
@@ -104,7 +106,7 @@
         :label="$t('form.keywords')"
         class="text-left"
         :hint="`${formData.tags.length}/${MAX_BOOK_KEYWORDS}`"
-        :help="hasSuggested ? $t('iscn_form.ai_keywords_hint') : undefined"
+        :help="hasSuggested ? $t('iscn_form.ai_keywords_hint') : prefilledHint('tags')"
       >
         <UInputTags
           v-model="formData.tags"
@@ -132,6 +134,7 @@
 
       <UFormField
         :label="$t('form.language')"
+        :help="prefilledHint('language')"
         required
       >
         <USelect
@@ -169,6 +172,7 @@
         name="author.name"
         :label="$t('iscn_form.author_name')"
         class="text-left"
+        :help="prefilledHint('author.name')"
         required
       >
         <UInput
@@ -468,12 +472,22 @@ const props = withDefaults(defineProps<{
   guardUnsavedChanges?: boolean
   contentExcerpt?: string
   tableOfContents?: string
+  // Fields the host filled in from an uploaded file, so they read as something
+  // to check rather than as the author's own entry.
+  prefilledFields?: string[]
 }>(), {
   showFileFields: true,
   guardUnsavedChanges: true,
   contentExcerpt: '',
   tableOfContents: '',
+  prefilledFields: () => [],
 })
+
+function prefilledHint(field: string): string | undefined {
+  return props.prefilledFields.includes(field)
+    ? $t('iscn_form.prefilled_from_file')
+    : undefined
+}
 
 const formData = defineModel<ISCNFormData>({ required: true })
 

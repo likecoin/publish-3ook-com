@@ -49,6 +49,7 @@
             v-model:description-full="listingDraft.descriptionFull"
             :show-file-fields="false"
             :guard-unsaved-changes="false"
+            :prefilled-fields="prefilledFields"
             :content-excerpt="epubMetadata?.contentExcerpt"
             :table-of-contents="listingDraft.tableOfContents"
           />
@@ -238,6 +239,10 @@ const fileRecords = ref<FileRecord[]>([])
 const epubMetadata = ref<EpubMetadata | undefined>()
 const encryptEbook = ref(true)
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
+// Fields the uploaded file filled in, so step 2 can ask for a look rather than
+// present them as the author's own. Deliberately not persisted: seeding only
+// runs on a fresh step 1, and a resumed draft has already been through step 2.
+const prefilledFields = ref<string[]>([])
 const listingDraft = ref<PublishListingDraft>(createDefaultListingDraft())
 const signatureImage = ref<File | null>(null)
 // A resumed draft can't restore the signature blob (blobs never persist); this
@@ -543,17 +548,28 @@ function handleFilesCollected(payload: {
 function seedDetailsFromMetadata() {
   const meta = epubMetadata.value
   if (!meta || iscnFormData.value.title || iscnFormData.value.author.name) { return }
+  const description = stripHtmlTags(meta.description || '')
+  // A long dc:subject list would otherwise seed the form already over the
+  // cap, which the keywords field can only block adds against, not trim.
+  const tags = (meta.tags || []).slice(0, MAX_BOOK_KEYWORDS)
   iscnFormData.value = {
     ...iscnFormData.value,
     title: meta.title || '',
-    description: stripHtmlTags(meta.description || ''),
+    description,
     publicationDate: new Date().toISOString().split('T')[0] || '',
     author: { name: meta.author ?? '', description: '' },
     language: formatLanguage(meta.language || 'zh'),
-    // A long dc:subject list would otherwise seed the form already over the
-    // cap, which the keywords field can only block adds against, not trim.
-    tags: (meta.tags || []).slice(0, MAX_BOOK_KEYWORDS),
+    tags,
   }
+  // Only what the file actually supplied: publicationDate is today's date and
+  // language falls back to zh, so neither is the file speaking.
+  prefilledFields.value = [
+    meta.title ? 'title' : '',
+    description ? 'description' : '',
+    meta.author ? 'author.name' : '',
+    meta.language ? 'language' : '',
+    tags.length ? 'tags' : '',
+  ].filter(Boolean)
   if (meta.tableOfContents && !listingDraft.value.tableOfContents) {
     listingDraft.value.tableOfContents = meta.tableOfContents
   }
