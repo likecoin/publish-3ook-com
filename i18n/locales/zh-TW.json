@@ -444,6 +444,7 @@
   "iscn_form.other": "其他",
   "iscn_form.pdf": "PDF",
   "iscn_form.preview": "預覽",
+  "iscn_form.prefilled_from_file": "已從檔案帶入，請確認",
   "iscn_form.publisher_description": "出版社描述",
   "iscn_form.select_date": "選擇日期",
   "iscn_form.select_file_type": "選擇檔案類型",
