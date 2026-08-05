@@ -12,7 +12,7 @@ import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { isRecordUploaded, clearStaleOpenTierResults } from '~/utils/arweave'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
-import { isContentFingerprintEncrypted, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
+import { shouldHideDownload, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
 
 export interface PublishCallbacks {
   onStatusChange?: (status: BookUploadStatus, message?: string) => void
@@ -244,8 +244,10 @@ export function usePublishBook() {
         const { listingDraft } = input
         const prices = mapPriceFormItemsToPayload(listingDraft.prices)
         const shouldEnableCustomMessagePage = prices.some(p => !p.isAutoDeliver || p.autoMemo)
-        const hideDownload = input.encryptEbook
-          || isContentFingerprintEncrypted(input.iscnFormData.contentFingerprints.map(f => f.url))
+        const hideDownload = shouldHideDownload({
+          encryptEbook: input.encryptEbook,
+          contentFingerprints: input.iscnFormData.contentFingerprints.map(f => f.url),
+        })
         await newBookListing(classId, {
           defaultPaymentCurrency: 'USD',
           connectedWallets: listingDraft.connectedWallets || null,

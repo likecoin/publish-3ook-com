@@ -421,7 +421,7 @@ import { useEventListener } from '@vueuse/core'
 import type { FormError } from '#ui/types'
 import type { FileRecord, ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
-import { isValidImageUrl } from '~/utils/iscn'
+import { isValidImageUrl, isContentFingerprintEncrypted } from '~/utils/iscn'
 
 import {
   licenseOptions,
@@ -432,7 +432,6 @@ import {
   MAX_BOOK_KEYWORDS,
   BOOK_CATEGORIES,
 } from '~/constant/index'
-import { getApiEndpoints } from '~/constant/api'
 
 const { t: $t } = useI18n()
 const localeRoute = useLocaleRoute()
@@ -696,14 +695,8 @@ const hasValidReadAction = computed(() => {
   return formData.value.downloadableUrls?.some(d => !!d.url)
 })
 
-const isContentFingerprintsEncrypted = computed(() => {
-  const contentFingerprints = formData.value.contentFingerprints.map(f => f.url)
-  const apiEndpoints = getApiEndpoints()
-  const arweaveLinkEndpoint = apiEndpoints.API_GET_ARWEAVE_V2_LINK
-  return contentFingerprints.some((fingerprint) => {
-    return !!fingerprint.startsWith(arweaveLinkEndpoint) || fingerprint.includes('?key=')
-  })
-})
+const isContentFingerprintsEncrypted = computed(() =>
+  isContentFingerprintEncrypted(formData.value.contentFingerprints.map(f => f.url)))
 
 const encryptEbook = ref(isContentFingerprintsEncrypted.value)
 
