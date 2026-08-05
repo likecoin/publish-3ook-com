@@ -32,6 +32,7 @@
         <div v-if="step === 'files'">
           <UploadForm
             ref="uploadFormRef"
+            v-model:encrypt-ebook="encryptEbook"
             collect-only
             :show-drm-option="false"
             :initial-file-records="fileRecords"
@@ -193,7 +194,7 @@
 <script setup lang="ts">
 import { useEventListener, watchDebounced } from '@vueuse/core'
 import type { FileRecord, EpubMetadata } from '~/types'
-import type { ISCNFormData } from '~/types/iscn'
+import type { ISCNFormData, ISCNPrefillableField } from '~/types/iscn'
 import type {
   PublishBookInput,
   PublishListingDraft,
@@ -242,7 +243,7 @@ const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 // Fields the uploaded file filled in, so step 2 can ask for a look rather than
 // present them as the author's own. Deliberately not persisted: seeding only
 // runs on a fresh step 1, and a resumed draft has already been through step 2.
-const prefilledFields = ref<string[]>([])
+const prefilledFields = ref<ISCNPrefillableField[]>([])
 const listingDraft = ref<PublishListingDraft>(createDefaultListingDraft())
 const signatureImage = ref<File | null>(null)
 // A resumed draft can't restore the signature blob (blobs never persist); this
@@ -563,13 +564,13 @@ function seedDetailsFromMetadata() {
   }
   // Only what the file actually supplied: publicationDate is today's date and
   // language falls back to zh, so neither is the file speaking.
-  prefilledFields.value = [
-    meta.title ? 'title' : '',
-    description ? 'description' : '',
-    meta.author ? 'author.name' : '',
-    meta.language ? 'language' : '',
-    tags.length ? 'tags' : '',
-  ].filter(Boolean)
+  const prefilled: ISCNPrefillableField[] = []
+  if (meta.title) { prefilled.push('title') }
+  if (description) { prefilled.push('description') }
+  if (meta.author) { prefilled.push('author.name') }
+  if (meta.language) { prefilled.push('language') }
+  if (tags.length) { prefilled.push('tags') }
+  prefilledFields.value = prefilled
   if (meta.tableOfContents && !listingDraft.value.tableOfContents) {
     listingDraft.value.tableOfContents = meta.tableOfContents
   }

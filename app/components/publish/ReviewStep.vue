@@ -42,6 +42,7 @@
             v-text="iscnFormData.author.name"
           />
           <p
+            v-if="readerPrice"
             class="text-xl font-semibold text-highlighted mt-2"
             v-text="readerPrice"
           />
@@ -104,11 +105,6 @@
           />
         </li>
       </ul>
-      <p class="mt-3 text-sm text-muted">
-        {{ encryptEbook
-          ? $t('upload_form.drm_option_encrypted')
-          : $t('upload_form.drm_option_open') }}
-      </p>
     </UCard>
 
     <!-- Book details -->
@@ -127,12 +123,6 @@
         />
       </template>
       <div class="flex gap-4">
-        <img
-          v-if="coverImageSrc"
-          :src="coverImageSrc"
-          alt=""
-          class="w-[80px] h-auto object-contain rounded border border-default self-start"
-        >
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <template
             v-for="row in metadataRows"
@@ -225,14 +215,17 @@ const { fileRecords, encryptEbook, iscnFormData, listingDraft, coverImageSrc = '
 
 const emit = defineEmits<{ edit: [step: string] }>()
 
+function formatUSD(usd: number): string {
+  return usd === 0 ? $t('publish_review.free') : `US$${usd}`
+}
+
 // The cheapest way in, which is the figure a storefront leads with. Editions
 // seeded but never priced still carry -1, so they are excluded rather than
-// shown as the lowest.
+// shown as the lowest — leaving '' for an all-unpriced draft, which the
+// template hides.
 const readerPrice = computed(() => {
   const values = listingDraft.prices.map(getPriceItemUSDValue).filter(value => value >= 0)
-  if (!values.length) { return '' }
-  const lowest = Math.min(...values)
-  return lowest === 0 ? $t('publish_review.free') : `US$${lowest}`
+  return values.length ? formatUSD(Math.min(...values)) : ''
 })
 
 // Only promises a reader can see on the listing itself.
@@ -288,7 +281,6 @@ const settingsRows = computed(() => [
 ])
 
 function formatPrice(p: PriceFormItem): string {
-  const usd = getPriceItemUSDValue(p)
-  return usd === 0 ? $t('publish_review.free') : `US$${usd}`
+  return formatUSD(getPriceItemUSDValue(p))
 }
 </script>

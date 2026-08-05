@@ -1,5 +1,6 @@
 import type { Book, NavItem } from '@likecoin/epub-ts'
 import type { FileRecord, EpubMetadata, EpubSpineItem } from '~/types'
+import { GENERATED_COVER_SUFFIX } from '~/constant'
 
 // Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
 const CONTENT_EXCERPT_MAX_CHARS = 20000
@@ -211,7 +212,7 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
         if (blobData) {
           const coverFile = new File(
             [blobData],
-            `${metadata?.title || 'cover'}_cover.jpeg`,
+            `${metadata?.title || 'cover'}${GENERATED_COVER_SUFFIX}`,
             {
               type: 'image/jpeg',
             },

@@ -114,6 +114,20 @@ export interface ISCNFormData {
   genre: string
 }
 
+/**
+ * Fields ISCNForm can flag as carried over from an uploaded file.
+ *
+ * A union rather than `string`: producer and consumer sit in different files,
+ * and an unmatched value shows no hint rather than failing, so a typo would be
+ * invisible. Paths are dotted where the field is nested.
+ */
+export type ISCNPrefillableField
+  = | 'title'
+    | 'description'
+    | 'author.name'
+    | 'language'
+    | 'tags'
+
 export interface ISCNTxPayload {
   name: string
   description: string
