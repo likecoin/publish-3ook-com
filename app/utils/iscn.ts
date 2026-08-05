@@ -74,6 +74,17 @@ export function isContentFingerprintEncrypted(contentFingerprints: string[]): bo
   })
 }
 
+// A protected-tier ebook has no public object to hand over, so hiding the
+// download follows the storage tier rather than being a separate author choice.
+// Callers pass whichever of the two signals they hold.
+export function shouldHideDownload(input: {
+  encryptEbook?: boolean
+  contentFingerprints?: string[]
+}): boolean {
+  return !!input.encryptEbook
+    || isContentFingerprintEncrypted(input.contentFingerprints ?? [])
+}
+
 export function isValidImageUrl(urlString: string): boolean {
   if (!urlString) { return false }
 

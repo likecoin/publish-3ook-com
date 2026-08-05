@@ -159,7 +159,7 @@ import { getPortfolioURL } from '~/utils'
 import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
-import { isContentFingerprintEncrypted, createEmptyISCNFormData } from '~/utils/iscn'
+import { shouldHideDownload, createEmptyISCNFormData } from '~/utils/iscn'
 
 const { t: $t } = useI18n()
 const { showSuccessToast, showInfoToast, showErrorToast } = useToastComposable()
@@ -343,9 +343,11 @@ async function handleSave() {
       // listing's hideDownload in sync within the same settings POST.
       const contentFingerprints = metadata.contentFingerprints as string[] | undefined
       if (contentFingerprints) {
-        const shouldHideDownload = isContentFingerprintEncrypted(contentFingerprints)
-        if (shouldHideDownload !== hideDownload.value) {
-          hideDownload.value = shouldHideDownload
+        // No encryptEbook here: the radio is inert without a replacement
+        // upload, so the saved fingerprints are the only trustworthy signal.
+        const nextHideDownload = shouldHideDownload({ contentFingerprints })
+        if (nextHideDownload !== hideDownload.value) {
+          hideDownload.value = nextHideDownload
           isListingDirty = true
         }
       }
