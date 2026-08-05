@@ -1,4 +1,4 @@
-import { estimateBundlrFilePrice, canSponsorArweaveUpload, getUploadTier } from '~/utils/arweave'
+import { estimateBundlrFilePrice, canSponsorArweaveUpload, getUploadTier, clearOpenTierResult } from '~/utils/arweave'
 import type { FileRecord } from '~/types'
 
 interface UseArweaveUploadPrecheckOptions {
@@ -43,17 +43,12 @@ export function useArweaveUploadPrecheck(options: UseArweaveUploadPrecheckOption
 
   async function checkUploadQuota(): Promise<void> {
     const runId = ++latestRunId
-    // A protected record must never carry a dedup hit: those ids only come from a
-    // public Arweave copy, and isRecordUploaded() would then skip the file, so a
-    // book the author chose to protect would be served from that public copy.
-    // arweaveLink goes too: it is written alongside every open-tier id, so
-    // clearing the id alone still leaves isRecordUploaded() true. Only records
-    // holding an id reach here, so a GCS-protected link is never cleared.
+    // A protected record must never carry a dedup hit: those ids only come from
+    // a public Arweave copy, and isRecordUploaded() would then skip the file.
+    // The uploader enforces this too; here it keeps the form's own "already
+    // uploaded" badges honest while the author is still choosing.
     options.fileRecords.value.forEach((record) => {
-      if (record.arweaveId && !isOpenTier(record)) {
-        record.arweaveId = undefined
-        record.arweaveLink = undefined
-      }
+      if (!isOpenTier(record)) { clearOpenTierResult(record) }
     })
 
     // Both tiers count: upload_init reserves quota for whatever it stages and
