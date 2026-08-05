@@ -7,209 +7,30 @@
     class="flex flex-col gap-6"
     @submit.prevent
   >
-    <UFormField
-      name="title"
-      :label="$t('common.title')"
-      class="flex-1 text-left"
-      :help="prefilledHint('title')"
-      required
-    >
-      <UInput
-        v-model="formData.title"
-        :placeholder="$t('iscn_form.enter_iscn_title')"
-      />
-    </UFormField>
-
-    <UFormField
-      name="alternativeHeadline"
-      :label="$t('iscn_form.subtitle')"
-      class="flex-1 text-left"
-      :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
-    >
-      <UInput
-        v-model="formData.alternativeHeadline"
-        :placeholder="$t('iscn_form.enter_subtitle')"
-      />
-    </UFormField>
-
-    <UFormField
-      name="description"
-      :label="$t('common.description')"
-      class="flex-1 text-left"
-      :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
-      :help="prefilledHint('description')"
-      required
-    >
-      <UTextarea
-        v-model="formData.description"
-        :placeholder="$t('iscn_form.enter_iscn_description')"
-        autoresize
-      />
-    </UFormField>
-
-    <ToggleTextarea
-      v-model="descriptionFull"
-      :label="$t('iscn_form.description_full')"
-      :toggle-label="$t('iscn_form.enable_description_full')"
-      :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
-      :max-length="MAX_DESCRIPTION_FULL_LENGTH"
-      :force-open="isDescriptionOverMax"
+    <IscnIdentityFields
+      v-model="formData"
+      v-model:description-full="descriptionFull"
+      :prefilled-fields="prefilledFields"
     />
 
-    <!-- Category and keywords describe the book, so they belong with the title
-    and description rather than with the identifiers below. -->
-    <div class="flex flex-col gap-4">
-      <div class="flex flex-wrap items-end gap-3">
-        <!-- w-fit: FormField's root has no width of its own, so as a flex
-        item it would absorb the row and push the button to the far edge. -->
-        <UFormField
-          :label="$t('form.genre')"
-          class="w-fit shrink-0"
-        >
-          <USelect
-            v-model="genreModel"
-            :items="bookCategoryOptions"
-            :placeholder="$t('iscn_form.select_genre')"
-            :ui="{ content: 'w-fit min-w-(--reka-select-trigger-width)' }"
-          />
-          <UButton
-            v-if="suggestedGenre && suggestedGenre !== formData.genre"
-            class="mt-2"
-            size="xs"
-            variant="soft"
-            icon="i-heroicons-light-bulb"
-            :label="$t('iscn_form.use_suggested_genre', { genre: suggestedGenreLabel })"
-            @click="applySuggestedGenre"
-          />
-        </UFormField>
-        <UButton
-          icon="i-heroicons-sparkles"
-          variant="soft"
-          :label="$t('iscn_form.ai_suggest')"
-          :loading="isSuggesting"
-          :disabled="!canSuggestMetadata"
-          @click="handleSuggestMetadata"
-        />
-        <!-- basis-full wraps it onto its own line within the row, keeping it
-        tied to the button rather than floating between the two fields. -->
-        <p
-          v-if="!canSuggestMetadata"
-          class="basis-full text-xs text-muted"
-          v-text="$t('iscn_form.ai_suggest_requires')"
-        />
-      </div>
+    <IscnClassificationFields
+      v-model="formData"
+      v-model:has-suggested="hasSuggested"
+      :prefilled-fields="prefilledFields"
+      :content-excerpt="contentExcerpt"
+      :table-of-contents="tableOfContents"
+    />
 
-      <!-- The list merges author-entered and AI keywords, so flag the provenance
-      once a suggestion has run. The counter is the only cue at the cap: reka-ui
-      rejects the add silently, without even its duplicate-tag invalid styling. -->
-      <UFormField
-        :label="$t('form.keywords')"
-        class="text-left"
-        :hint="`${formData.tags.length}/${MAX_BOOK_KEYWORDS}`"
-        :help="hasSuggested ? $t('iscn_form.ai_keywords_hint') : prefilledHint('tags')"
-      >
-        <UInputTags
-          v-model="formData.tags"
-          :max="MAX_BOOK_KEYWORDS"
-          :placeholder="$t('iscn_form.enter_keywords')"
-        />
-      </UFormField>
-    </div>
+    <IscnIdentifierFields
+      v-model="formData"
+      :prefilled-fields="prefilledFields"
+      :show-file-fields="showFileFields"
+    />
 
-    <div class="grid grid-cols-3 gap-4">
-      <UFormField :label="$t('form.isbn')">
-        <UInput
-          v-model="formData.isbn"
-          :placeholder="$t('form.enter_isbn')"
-        />
-      </UFormField>
-
-      <UFormField :label="$t('form.publication_date')">
-        <UInput
-          v-model="formData.publicationDate"
-          type="date"
-          :placeholder="$t('iscn_form.select_date')"
-        />
-      </UFormField>
-
-      <UFormField
-        :label="$t('form.language')"
-        :help="prefilledHint('language')"
-        required
-      >
-        <USelect
-          v-model="formData.language"
-          :items="languageOptions"
-          :placeholder="$t('iscn_form.select_language')"
-        />
-      </UFormField>
-
-      <UFormField
-        v-if="showFileFields"
-        name="coverUrl"
-        required
-        :label="$t('form.cover_image')"
-        class="text-left"
-      >
-        <UInput
-          v-model="formData.coverUrl"
-          placeholder="ar://{arweave_id}"
-          class="font-mono"
-        />
-      </UFormField>
-
-      <UFormField :label="$t('form_labels.book_info')">
-        <UInput
-          v-model="formData.bookInfoUrl"
-          :placeholder="$t('iscn_form.enter_book_info_url')"
-        />
-      </UFormField>
-    </div>
-
-    <!-- Author Info -->
-    <div class="grid grid-cols-2 gap-4">
-      <UFormField
-        name="author.name"
-        :label="$t('iscn_form.author_name')"
-        class="text-left"
-        :help="prefilledHint('author.name')"
-        required
-      >
-        <UInput
-          v-model="formData.author.name"
-          :placeholder="$t('iscn_form.enter_author_name')"
-        />
-      </UFormField>
-
-      <UFormField :label="$t('iscn_form.author_description')">
-        <UTextarea
-          v-model="formData.author.description"
-          :placeholder="$t('iscn_form.enter_author_description')"
-          autoresize
-        />
-      </UFormField>
-    </div>
-
-    <!-- Publisher Info -->
-    <div class="grid grid-cols-2 gap-4">
-      <UFormField
-        :label="$t('form.publisher')"
-        class="text-left"
-      >
-        <UInput
-          v-model="formData.publisher.name"
-          :placeholder="$t('form.enter_publisher_name')"
-        />
-      </UFormField>
-
-      <UFormField :label="$t('iscn_form.publisher_description')">
-        <UTextarea
-          v-model="formData.publisher.description"
-          :placeholder="$t('iscn_form.enter_publisher_description')"
-          autoresize
-        />
-      </UFormField>
-    </div>
+    <IscnPeopleFields
+      v-model="formData"
+      :prefilled-fields="prefilledFields"
+    />
 
     <UFormField
       :label="$t('iscn_form.license')"
@@ -425,12 +246,9 @@ import { isValidImageUrl, isContentFingerprintEncrypted } from '~/utils/iscn'
 
 import {
   licenseOptions,
-  languageOptions,
   MAX_DESCRIPTION_LENGTH,
   MAX_DESCRIPTION_FULL_LENGTH,
   MAX_ALTERNATIVE_HEADLINE_LENGTH,
-  MAX_BOOK_KEYWORDS,
-  BOOK_CATEGORIES,
 } from '~/constant/index'
 
 const { t: $t } = useI18n()
@@ -441,17 +259,6 @@ const downloadTypeOptions = [
   { label: 'PDF', value: 'pdf' },
   { label: 'Image', value: 'image' },
   { label: 'Other', value: 'other' },
-]
-
-// Reka UI's SelectItem rejects an empty-string value (it is reserved for the
-// cleared state), so the reset option uses a sentinel mapped back to '' below.
-const GENRE_NONE_VALUE = '__none__'
-const bookCategoryOptions = [
-  { label: $t('iscn_form.genre_none'), value: GENRE_NONE_VALUE },
-  ...BOOK_CATEGORIES.map(cat => ({
-    label: $t(cat.i18nKey),
-    value: cat.value as string,
-  })),
 ]
 
 const shouldShowUploadModal = ref(false)
@@ -483,12 +290,6 @@ const props = withDefaults(defineProps<{
   prefilledFields: () => [],
 })
 
-function prefilledHint(field: ISCNPrefillableField): string | undefined {
-  return props.prefilledFields.includes(field)
-    ? $t('iscn_form.prefilled_from_file')
-    : undefined
-}
-
 const formData = defineModel<ISCNFormData>({ required: true })
 
 // descriptionFull is listing-owned, so it is a separate model: keeping it out of
@@ -496,90 +297,9 @@ const formData = defineModel<ISCNFormData>({ required: true })
 // costs a transaction.
 const descriptionFull = defineModel<string>('descriptionFull')
 
-// Bridge the empty stored genre to the dropdown's non-empty sentinel option.
-const genreModel = computed({
-  get: () => formData.value.genre || GENRE_NONE_VALUE,
-  set: (value: string) => {
-    formData.value.genre = value === GENRE_NONE_VALUE ? '' : value
-  },
-})
-
-const { showErrorToast } = useToastComposable()
-const { isSuggesting, suggestBookMetadata } = useBookMetadataSuggest()
-// Set when the AI suggests a genre while the author already picked one;
-// the chip renders only while it differs from the author's pick, so it is
-// applied via explicit click, never silently.
-const suggestedGenre = ref('')
+// Owned here rather than in the classification group: it means "the suggested
+// keywords are not saved yet", which resetSnapshot below decides, not the group.
 const hasSuggested = ref(false)
-
-const canSuggestMetadata = computed(() => {
-  return !!formData.value.title && !!formData.value.description
-})
-
-const suggestedGenreLabel = computed(() => {
-  const option = bookCategoryOptions.find(opt => opt.value === suggestedGenre.value)
-  return option?.label || suggestedGenre.value
-})
-
-async function handleSuggestMetadata() {
-  if (isSuggesting.value) { return }
-  useLogEvent('book_metadata_suggest_click')
-  try {
-    const result = await suggestBookMetadata({
-      title: formData.value.title,
-      description: formData.value.description,
-      language: formData.value.language || undefined,
-      tableOfContents: props.tableOfContents || undefined,
-      contentExcerpt: props.contentExcerpt || undefined,
-      existingKeywords: formData.value.tags,
-    })
-
-    // Merge instead of replace so author-entered keywords are never lost;
-    // NFKC-fold keys so backend-normalized suggestions dedupe against
-    // width/case variants the author typed.
-    const tagKey = (tag: string) => tag.normalize('NFKC').trim().toLowerCase()
-    const existingTags = formData.value.tags
-    const seen = new Set(existingTags.map(tagKey))
-    const mergedTags = [...existingTags]
-    for (const keyword of result.keywords) {
-      // Suggestions stop at the cap rather than displacing author-entered tags.
-      if (mergedTags.length >= MAX_BOOK_KEYWORDS) { break }
-      if (seen.has(tagKey(keyword))) { continue }
-      seen.add(tagKey(keyword))
-      mergedTags.push(keyword)
-    }
-    formData.value.tags = mergedTags
-    // A full list adds nothing, so the provenance hint would be a lie.
-    if (mergedTags.length > existingTags.length) { hasSuggested.value = true }
-
-    // Guards against cross-repo drift of the duplicated category list.
-    const isGenreValid = BOOK_CATEGORIES.some(cat => cat.value === result.genre)
-    // Logged before the early return below so a rejected genre still counts as
-    // a suggestion; an empty genre with keywords is a partial success, not none.
-    const isGenreAutoApplied = isGenreValid && !formData.value.genre
-    useLogEvent('book_metadata_suggest_success', {
-      keywords_added: mergedTags.length - existingTags.length,
-      suggested_genre: isGenreValid ? result.genre : '',
-      is_genre_auto_applied: isGenreAutoApplied,
-    })
-    if (!isGenreValid) { return }
-    if (isGenreAutoApplied) {
-      formData.value.genre = result.genre
-    }
-    else {
-      suggestedGenre.value = result.genre
-    }
-  }
-  catch (error) {
-    useLogEvent('book_metadata_suggest_failed', { error: (error as Error)?.message })
-    showErrorToast($t('iscn_form.ai_suggest_failed'))
-  }
-}
-
-function applySuggestedGenre() {
-  useLogEvent('book_metadata_suggest_genre_applied', { genre: suggestedGenre.value })
-  formData.value.genre = suggestedGenre.value
-}
 
 const initialFormDataSnapshot = ref<string>('')
 
