@@ -155,7 +155,7 @@ onMounted(() => {
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
-const drmOption = ref(props.defaultEncrypted ? 'encrypted' : 'open')
+const drmOption = ref<'encrypted' | 'open'>(props.defaultEncrypted ? 'encrypted' : 'open')
 const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
 const drmOptions = computed(() => [
   { label: $t('upload_form.drm_option_encrypted'), value: 'encrypted' },
@@ -196,6 +196,13 @@ const computedFormClasses = computed(() => [
   'bg-gray-100',
   'hover:bg-gray-200',
 ])
+
+// This form renders before the wizard restores its draft, so re-sync when the
+// host's value arrives — otherwise submitting step 1 emits the initial default
+// back and silently discards a resumed draft's choice.
+watch(() => props.defaultEncrypted, (value: boolean) => {
+  drmOption.value = value ? 'encrypted' : 'open'
+})
 
 // The quota cost is the same either way, but the tier is not: re-check so an
 // ebook's duplicate status is re-derived under the new DRM setting.

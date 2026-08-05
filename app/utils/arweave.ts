@@ -29,6 +29,15 @@ export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: str
   return !!(record.arweaveId || record.arweaveLink)
 }
 
+// Blobs never survive a reload, so a restored record is only publishable if its
+// upload already landed. Checking arweaveId alone would strand protected-tier
+// files, which carry a link and no id.
+export function needsFileReselect(
+  record: { fileBlob?: Blob, arweaveId?: string, arweaveLink?: string },
+): boolean {
+  return !record.fileBlob && !isRecordUploaded(record)
+}
+
 export function canSponsorArweaveUpload(
   estimate: Pick<ArweaveEstimate, 'remainingBytes' | 'remainingUploads' | 'isUnlimited'>,
   totalSize: number,

@@ -147,7 +147,9 @@
       </template>
       <template #body>
         <p class="text-sm text-gray-600">
-          {{ $t('publish_wizard.resume_draft_description', { title: pendingSessionTitle }) }}
+          {{ pendingSessionNeedsReselect
+            ? $t('publish_wizard.resume_draft_description_reselect', { title: pendingSessionTitle })
+            : $t('publish_wizard.resume_draft_description', { title: pendingSessionTitle }) }}
         </p>
       </template>
       <template #footer>
@@ -188,6 +190,7 @@ import {
 } from '~/utils/publishSession'
 import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
+import { isRecordUploaded, needsFileReselect } from '~/utils/arweave'
 
 const { t: $t } = useI18n()
 
@@ -256,6 +259,10 @@ const pendingSessionTitle = computed(() =>
   pendingSession.value?.iscnFormData?.title
   || pendingSession.value?.epubMetadata?.title
   || $t('publish_wizard.untitled_draft'))
+// Blobs never persist, so a draft interrupted before its upload step needs the
+// files picked again — but one interrupted after it does not.
+const pendingSessionNeedsReselect = computed(() =>
+  (pendingSession.value?.fileRecords ?? []).some(record => !isRecordUploaded(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
 const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
 const coverImageSrc = computed(() =>
@@ -537,7 +544,7 @@ function seedDetailsFromMetadata() {
 
 async function handlePublish() {
   if (isPublishing.value) { return }
-  const missingFiles = fileRecords.value.filter(r => !r.fileBlob && !r.arweaveId)
+  const missingFiles = fileRecords.value.filter(needsFileReselect)
   if (missingFiles.length) {
     showErrorToast($t('publish_wizard.reselect_before_publish', {
       files: missingFiles.map(r => r.fileName).join(', '),
