@@ -333,7 +333,12 @@ export function useBulkUploadWizard() {
 
     for (let index = 0; index < entries.length; index += PERSIST_CHUNK_SIZE) {
       if (runId !== persistRunId) { return }
-      await bulkUploadFileStore.saveDraftFiles(entries.slice(index, index + PERSIST_CHUNK_SIZE))
+      // A failed chunk — quota, eviction, no IndexedDB — strands the ones
+      // already written, so drop them rather than carry on with the rest.
+      if (!await bulkUploadFileStore.saveDraftFiles(entries.slice(index, index + PERSIST_CHUNK_SIZE))) {
+        if (runId === persistRunId) { await bulkUploadFileStore.clearDraftFiles() }
+        return
+      }
     }
   }
 
