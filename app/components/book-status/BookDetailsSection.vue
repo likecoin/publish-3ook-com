@@ -238,8 +238,8 @@ const moderatorWalletsTableRows = computed(() => moderatorWallets.value.map((wal
 const readOnlyRows = computed(() => [
   { label: $t('common.title'), value: iscnFormData.value.title },
   { label: $t('iscn_form.subtitle'), value: iscnFormData.value.alternativeHeadline },
-  { label: $t('common.description'), value: iscnFormData.value.description },
-  { label: $t('iscn_form.description_full'), value: descriptionFull.value },
+  { label: $t('common.description'), value: descriptionFull.value },
+  { label: $t('iscn_form.description_short'), value: iscnFormData.value.description },
   { label: $t('iscn_form.author_name'), value: iscnFormData.value.author.name },
   { label: $t('form.publisher'), value: iscnFormData.value.publisher.name },
   { label: $t('form.isbn'), value: iscnFormData.value.isbn },

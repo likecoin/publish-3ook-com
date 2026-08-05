@@ -25,29 +25,37 @@
       />
     </UFormField>
 
+    <!-- The full description first: it is the one the author has in mind, and
+    the catalog line below is derived from it when they leave it empty. -->
     <UFormField
-      name="description"
+      name="descriptionFull"
       :label="$t('common.description')"
       class="flex-1 text-left"
-      :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
-      :help="prefilledHint('description')"
+      :hint="`${(descriptionFull || '').length}/${MAX_DESCRIPTION_FULL_LENGTH}`"
+      :help="prefilledHint('descriptionFull')"
       required
     >
       <UTextarea
-        v-model="formData.description"
+        v-model="descriptionFull"
         :placeholder="$t('iscn_form.enter_iscn_description')"
+        :rows="6"
         autoresize
       />
     </UFormField>
 
-    <ToggleTextarea
-      v-model="descriptionFull"
-      :label="$t('iscn_form.description_full')"
-      :toggle-label="$t('iscn_form.enable_description_full')"
-      :placeholder="$t('iscn_form.enter_iscn_description_full', { maxLength: MAX_DESCRIPTION_FULL_LENGTH })"
-      :max-length="MAX_DESCRIPTION_FULL_LENGTH"
-      :force-open="isDescriptionOverMax"
-    />
+    <UFormField
+      name="description"
+      :label="$t('iscn_form.description_short')"
+      class="flex-1 text-left"
+      :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
+      :help="$t('iscn_form.description_short_help')"
+    >
+      <UTextarea
+        v-model="formData.description"
+        :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
+        autoresize
+      />
+    </UFormField>
   </div>
 </template>
 
@@ -75,8 +83,8 @@ const descriptionFull = defineModel<string>('descriptionFull')
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
 
-// Forces the long field open when the short one is over its cap, so the
-// author can see somewhere to move the overflow to.
-const isDescriptionOverMax = computed(() =>
-  (formData.value.description || '').length > MAX_DESCRIPTION_LENGTH)
+// Shown as the short field's placeholder so the author can see what will be
+// stored if they leave it alone. ISCNForm writes the same value at submit.
+const derivedShortDescription = computed(() =>
+  deriveShortDescription(descriptionFull.value || '', MAX_DESCRIPTION_LENGTH))
 </script>

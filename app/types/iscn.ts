@@ -124,6 +124,7 @@ export interface ISCNFormData {
 export type ISCNPrefillableField
   = | 'title'
     | 'description'
+    | 'descriptionFull'
     | 'author.name'
     | 'language'
     | 'tags'
