@@ -96,6 +96,7 @@
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
 import { needsFileReselect, isRecordUploaded } from '~/utils/arweave'
+import { GENERATED_COVER_SUFFIX } from '~/constant'
 
 defineProps<{
   fileRecords: FileRecord[]
@@ -106,21 +107,19 @@ const emit = defineEmits<{
   reselect: [index: number]
 }>()
 
-// The EPUB's own cover, extracted during processing rather than picked by the
-// author. Same suffix validateFiles uses to tell the two apart.
-const isGeneratedCover = (record: FileRecord) => !!record.fileName?.endsWith('_cover.jpeg')
+const isGeneratedCover = (record: FileRecord) =>
+  !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 
 // Tracks what was dismissed rather than what is open, so a file's issues are
 // visible the moment it lands and stay hidden once the author collapses them.
-const collapsed = ref(new Set<string>())
+// Keyed by record, not by name: upsertFileRecord only replaces a same-named
+// record that has no blob, so two drops of one filename coexist as two rows.
+const collapsed = ref(new Set<FileRecord>())
 
 const isExpanded = (record: FileRecord) =>
-  !!record.hasValidationIssues && !collapsed.value.has(record.fileName || '')
+  !!record.hasValidationIssues && !collapsed.value.has(record)
 
 function toggleIssues(record: FileRecord) {
-  const key = record.fileName || ''
-  const next = new Set(collapsed.value)
-  if (!next.delete(key)) { next.add(key) }
-  collapsed.value = next
+  if (!collapsed.value.delete(record)) { collapsed.value.add(record) }
 }
 </script>

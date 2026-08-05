@@ -420,6 +420,7 @@
 import { useEventListener } from '@vueuse/core'
 import type { FormError } from '#ui/types'
 import type { FileRecord, ISCNFormData } from '~/types'
+import type { ISCNPrefillableField } from '~/types/iscn'
 import { isValidImageUrl } from '~/utils/iscn'
 
 import {
@@ -474,7 +475,7 @@ const props = withDefaults(defineProps<{
   tableOfContents?: string
   // Fields the host filled in from an uploaded file, so they read as something
   // to check rather than as the author's own entry.
-  prefilledFields?: string[]
+  prefilledFields?: ISCNPrefillableField[]
 }>(), {
   showFileFields: true,
   guardUnsavedChanges: true,
@@ -483,7 +484,7 @@ const props = withDefaults(defineProps<{
   prefilledFields: () => [],
 })
 
-function prefilledHint(field: string): string | undefined {
+function prefilledHint(field: ISCNPrefillableField): string | undefined {
   return props.prefilledFields.includes(field)
     ? $t('iscn_form.prefilled_from_file')
     : undefined
@@ -695,8 +696,6 @@ const hasValidReadAction = computed(() => {
   return formData.value.downloadableUrls?.some(d => !!d.url)
 })
 
-// What the saved files already are, which is the right starting point for the
-// radio; the author's own choice then lives in encryptEbook below.
 const isContentFingerprintsEncrypted = computed(() => {
   const contentFingerprints = formData.value.contentFingerprints.map(f => f.url)
   const apiEndpoints = getApiEndpoints()

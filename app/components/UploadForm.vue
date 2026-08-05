@@ -1,8 +1,7 @@
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Stacked, not side by side: the dropzone stays available at full width
-         once files are listed, so adding a cover is the same gesture as the
-         first drop. -->
+    <!-- Stacked so the dropzone stays full width once files are listed, making
+         adding a cover the same gesture as the first drop. -->
     <div class="flex flex-col gap-3">
       <form
         :class="[computedFormClasses, isDragging ? 'bg-default' : '']"
@@ -86,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
+import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES, GENERATED_COVER_SUFFIX } from '~/constant'
 
 import type { FileRecord, EpubMetadata } from '~/types'
 
@@ -105,8 +104,9 @@ const { uploadFileRecordsToArweave } = useArweaveUpload()
 export type { FileRecord }
 
 const props = defineProps({
-  // The wizard hides the control and asks at its pricing step instead, so the
-  // tier is unknown while files are collected here.
+  // The wizard hides the control and asks at its pricing step instead. It still
+  // binds the model: the tier decides what a record's stored upload result
+  // means, so guessing it here would clear a resumed draft's real uploads.
   showDrmOption: { type: Boolean, default: true },
   // Collect-only mode (new-book wizard): onSubmit validates and emits the
   // selected files without uploading; the publish pipeline uploads later.
@@ -124,13 +124,10 @@ const fileRecords = ref<FileRecord[]>([])
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
-// Two-way: the edit flow seeds this from the saved fingerprints and reads the
-// author's choice back. The wizard hides the control and never binds it.
+// Both hosts seed this and both must keep it bound even when the radio is
+// hidden: the tier decides what a record's stored upload result means, so a
+// wrong value here silently discards a resumed draft's real uploads.
 const isEncryptEBookData = defineModel<boolean>('encryptEbook', { default: true })
-
-// Nothing dedups or clears under a protected tier, so it is the safe assumption
-// while the host has not asked yet; the real choice drives the upload later.
-const precheckEncryptEbook = computed(() => !props.showDrmOption || isEncryptEBookData.value)
 
 const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
 
@@ -153,28 +150,18 @@ const totalFiles = ref(0)
 const completedFiles = ref(0)
 
 const computedFormClasses = computed(() => [
-  'flex',
-  'w-full',
-  'flex-col',
-  isSizeExceeded.value ? 'bg-transparent' : '',
-  'items-center',
-  'justify-between',
+  'flex w-full flex-col items-center justify-between',
+  'border-2 border-dashed border-default rounded-[12px]',
+  'text-muted cursor-pointer hover:bg-accented',
   // Tighter once it sits above a file list, so it stays reachable without
   // pushing the list off screen.
   fileRecords.value.length ? 'p-[16px]' : 'p-[28px]',
-  'border-2',
-  'border-dashed',
-  'border-default',
-  'rounded-[12px]',
-  'text-muted',
-  'cursor-pointer',
-  'bg-elevated',
-  'hover:bg-accented',
+  isSizeExceeded.value ? 'bg-transparent' : 'bg-elevated',
 ])
 
 // The quota cost is the same either way, but the tier is not: re-check so an
 // ebook's duplicate status is re-derived under the new DRM setting.
-watch(precheckEncryptEbook, async () => {
+watch(isEncryptEBookData, async () => {
   await runUploadQuotaCheck()
 })
 
@@ -231,7 +218,7 @@ const {
   checkUploadQuota,
 } = useArweaveUploadPrecheck({
   fileRecords,
-  isEncryptEbook: precheckEncryptEbook,
+  isEncryptEbook: isEncryptEBookData,
   onExistingUpload: (record) => {
     const metadata = epubMetadataList.value.find(
       (data: EpubMetadata) => data.thumbnailIpfsHash === record.ipfsHash,
@@ -302,7 +289,6 @@ const onFileUpload = async (event: Event) => {
             if (fileRecord.fileType === 'application/epub+zip') {
               const validation = await validateEpub(fileBytes)
               if (validation.hasIssues) {
-                // The list expands the row on its own; nothing to raise here.
                 fileRecord.validationErrors = validation.errors
                 fileRecord.validationWarnings = validation.warnings
                 fileRecord.hasValidationIssues = true
@@ -372,7 +358,7 @@ const runUploadQuotaCheck = async (): Promise<void> => {
 }
 
 const handleRecordUploaded = (record: FileRecord) => {
-  if (record.fileName?.endsWith('cover.jpeg')) {
+  if (record.fileName?.endsWith(GENERATED_COVER_SUFFIX)) {
     const metadata = epubMetadataList.value.find(
       (file: EpubMetadata) => file.thumbnailIpfsHash === record.ipfsHash,
     )
@@ -506,7 +492,7 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
     return file.fileType?.startsWith('image/')
   })
   const manualCoverFiles = coverFiles.filter((file) => {
-    return !(file.fileName?.endsWith('_cover.jpeg'))
+    return !(file.fileName?.endsWith(GENERATED_COVER_SUFFIX))
   })
 
   if (epubFiles.length === 0 && pdfFiles.length === 0) {
@@ -550,8 +536,7 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
 }
 
 // Collect-only submit: hand the selection (blobs included) to the wizard
-// without uploading anything. No DRM value travels with it — the wizard hides
-// the control and asks later, so this one would only be the untouched default.
+// without uploading anything.
 const emitCollected = () => {
   emit('submit', {
     fileRecords: fileRecords.value,

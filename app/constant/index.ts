@@ -33,6 +33,10 @@ export {
 
 export const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 
+// Suffix useEpubProcessing gives a cover it extracted from the EPUB itself,
+// which is how the flow tells a generated cover from one the author picked.
+export const GENERATED_COVER_SUFFIX = '_cover.jpeg'
+
 // Cover/image types that may take the open (public) storage tier. SVG is
 // deliberately absent: it can carry script, and these objects are served with the
 // content type they were stored under.
