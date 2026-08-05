@@ -41,14 +41,9 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
     target.thumbnailArweaveId = record?.arweaveId ?? null
   }
 
-  /**
-   * Makes an already-built image record the book's cover.
-   *
-   * One cover per book, so a second choice replaces the first rather than
-   * stacking rows that only fail at 下一步. The generated cover is kept: it is
-   * what 復原 reverts to, and buildIscnLinksFromFileRecords picks the manual
-   * one by provenance regardless of order.
-   */
+  // The generated cover is kept rather than replaced: it is what 復原 reverts
+  // to, and buildIscnLinksFromFileRecords picks the manual one by provenance
+  // rather than by position.
   function applyManualCover(record: FileRecord) {
     fileRecords.value = [
       ...fileRecords.value.filter(existing => !isManualCoverRecord(existing)),
@@ -59,7 +54,8 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
 
   // Throws on an unreadable file; callers already surface upload errors.
   async function selectManualCoverFile(file: File): Promise<FileRecord> {
-    const info = await getFileInfo(file)
+    // Two independent full reads of the same file, so run them together.
+    const [info, fileData] = await Promise.all([getFileInfo(file), fileToDataUrl(file)])
     if (!info) { throw new Error('Failed to read the selected cover image') }
     const record: FileRecord = {
       fileName: file.name,
@@ -68,7 +64,7 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
       fileBlob: file,
       ipfsHash: info.ipfsHash || undefined,
       fileSHA256: info.fileSHA256,
-      fileData: await fileToDataUrl(file),
+      fileData,
     }
     applyManualCover(record)
     return record

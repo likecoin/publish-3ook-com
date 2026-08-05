@@ -26,10 +26,11 @@ export function deriveShortDescription(full: string, maxLength: number): string 
 
   const slice = text.slice(0, maxLength)
 
+  // Tracked as an end position, not an index, so endings of different lengths
+  // compare against each other correctly. Any trailing space is trimmed below.
   const sentenceEnd = SENTENCE_ENDINGS.reduce((best, ending) => {
     const index = slice.lastIndexOf(ending)
-    // +1 keeps the punctuation; a trailing space is trimmed off below.
-    return index > best ? index + 1 : best
+    return index < 0 ? best : Math.max(best, index + ending.length)
   }, -1)
   if (sentenceEnd > maxLength * SENTENCE_SEARCH_FLOOR) {
     return slice.slice(0, sentenceEnd).trim()
@@ -41,4 +42,20 @@ export function deriveShortDescription(full: string, maxLength: number): string 
   }
 
   return slice.trim()
+}
+
+/**
+ * What `description` must be in the payload.
+ *
+ * Resolved where the payload is built rather than while the author types. The
+ * wizard can reach publish without ever opening the details form — a resumed
+ * draft may jump straight to pricing — and writing a derived value into the
+ * field would freeze it against later edits to the full description.
+ */
+export function resolveShortDescription(
+  description: string | undefined,
+  full: string | undefined,
+  maxLength: number,
+): string {
+  return (description || '').trim() || deriveShortDescription(full || '', maxLength)
 }

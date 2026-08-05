@@ -6,6 +6,9 @@ export interface FileRecord {
   ipfsHash?: string
   fileSHA256?: string
   fileData?: string
+  // Set only on a cover extracted from the EPUB itself, never on one the
+  // author picked. Decides which cover 復原 restores and which one publishes.
+  isGeneratedCover?: boolean
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string

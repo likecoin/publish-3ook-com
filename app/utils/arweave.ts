@@ -23,16 +23,25 @@ export function getUploadTier(
   return OPEN_IMAGE_FILE_TYPES.includes(type) ? 'open' : null
 }
 
-// The cover an EPUB carried, as opposed to one the author picked. Named rather
-// than flagged because the name is the only provenance a restored draft keeps.
-export function isGeneratedCoverRecord(record: { fileName?: string }): boolean {
-  return !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
+/**
+ * The cover an EPUB carried, as opposed to one the author picked.
+ *
+ * The flag is the truth and is persisted with the draft; the name suffix is
+ * only a fallback for drafts written before the flag existed. Inferring from
+ * the name alone was wrong: an author whose own file happened to end in
+ * `_cover.jpeg` had it treated as generated, so the cover shown in the preview
+ * was not the one that got published.
+ */
+export function isGeneratedCoverRecord(
+  record: { fileName?: string, isGeneratedCover?: boolean },
+): boolean {
+  return record.isGeneratedCover ?? !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 }
 
 // The author's own cover choice. Both kinds coexist after a replacement, and
 // only this one may be pruned — the generated one is what 復原 reverts to.
 export function isManualCoverRecord(
-  record: { fileName?: string, fileType?: string },
+  record: { fileName?: string, fileType?: string, isGeneratedCover?: boolean },
 ): boolean {
   return !!record.fileType?.startsWith('image/') && !isGeneratedCoverRecord(record)
 }

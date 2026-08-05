@@ -59,9 +59,7 @@
 
 <script setup lang="ts">
 import type { EpubMetadata, FileRecord } from '~/types'
-import { OPEN_IMAGE_FILE_TYPES } from '~/constant'
-
-const COVER_ACCEPT_ATTRIBUTE = OPEN_IMAGE_FILE_TYPES.join(',')
+import { OPEN_IMAGE_FILE_TYPES, COVER_ACCEPT_ATTRIBUTE } from '~/constant'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()

@@ -226,8 +226,6 @@ export function fileToArrayBuffer(file: Blob): Promise<ArrayBuffer> {
   })
 }
 
-// Images only: a data URL is ~33% larger than the bytes it encodes, so a
-// 200MB ebook would hold ~267MB of string for the record's lifetime.
 export function fileToDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

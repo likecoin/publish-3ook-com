@@ -44,9 +44,6 @@
           v-else-if="step === 'details'"
           class="text-left flex flex-col gap-6"
         >
-          <!-- The only cover control in the flow: step 1 takes files, not a
-               cover choice, so a second entry point there would just ask the
-               author to pick between two identical doors. -->
           <PublishCoverField
             v-model:file-records="fileRecords"
             v-model:epub-metadata="epubMetadata"
@@ -210,7 +207,8 @@ import type {
   PublishSession,
 } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS } from '~/constant'
+import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS, MAX_DESCRIPTION_LENGTH } from '~/constant'
+import { resolveShortDescription } from '~/utils/description'
 import {
   savePublishSession,
   loadPublishSession,
@@ -346,8 +344,9 @@ onMounted(async () => {
     return
   }
   // Files with no draft to belong to: a previous session ended without
-  // reaching either clear point.
-  await clearDraftFiles()
+  // reaching either clear point. Not awaited — nothing below needs it, and
+  // this is the common path onto a fresh wizard.
+  clearDraftFiles()
   if (legacyClassId || legacyIscnId) {
     await initFromLegacyQuery(legacyClassId || legacyIscnId, !!legacyClassId)
   }
@@ -406,19 +405,16 @@ function resumeDraft() {
     const resumedStep = STEP_KEYS.find(key => key === session.wizardStep)
     step.value = hasPublishStarted.value ? 'review' : (resumedStep || 'files')
   }
+  // The records hold the blobs now; keeping a second reference would pin files
+  // the author goes on to delete.
+  restoredFileBlobs.value = new Map()
   pendingSession.value = null
   showResumePrompt.value = false
   isDraftReady.value = true
 }
 
-/**
- * Re-derives the cover preview from the restored bytes.
- *
- * Data URLs are the one thing the draft deliberately never carries, so before
- * this a resumed draft reached the review step with no cover at all — the
- * reader's-eye card simply hid the image. It also gives 復原 something to
- * revert to, which is why that button can now appear after a reload.
- */
+// Data URLs are the one thing the draft never carries, so a resumed draft has
+// no cover to show and nothing for 復原 to revert to until they are rebuilt.
 async function hydrateCoverPreview() {
   const images = fileRecords.value.filter(
     record => record.fileBlob && !record.fileData && record.fileType?.startsWith('image/'),
@@ -463,6 +459,7 @@ function serializeDraft(): PublishSession {
       fileName: record.fileName || '',
       fileType: record.fileType || '',
       fileSize: record.fileSize,
+      isGeneratedCover: record.isGeneratedCover,
       ipfsHash: record.ipfsHash,
       fileSHA256: record.fileSHA256,
       arweaveId: record.arweaveId,
@@ -493,15 +490,22 @@ function serializeDraft(): PublishSession {
 const persistedFileHashes = new Set<string>()
 
 function persistDraftFiles() {
+  const currentHashes = new Set(
+    fileRecords.value.map(record => record.fileSHA256).filter((hash): hash is string => !!hash),
+  )
+  // Deleting a wrong 200MB EPUB, or replacing a cover, leaves bytes behind
+  // that nothing will ever ask for again.
+  const stale = [...persistedFileHashes].filter(hash => !currentHashes.has(hash))
+  if (stale.length) {
+    stale.forEach(hash => persistedFileHashes.delete(hash))
+    deleteDraftFiles(stale)
+  }
   fileRecords.value.forEach((record) => {
     const { fileSHA256, fileBlob } = record
     if (!fileSHA256 || !fileBlob || persistedFileHashes.has(fileSHA256)) { return }
-    // Marked before the write, and not un-marked on failure: retrying a
-    // rejected 200MB put on every debounce tick would be worse than the
-    // re-select prompt it is trying to avoid.
+    // Marked before the write and left marked on failure: retrying a rejected
+    // 200MB put every half second would be worse than the re-select prompt.
     persistedFileHashes.add(fileSHA256)
-    // Not awaited: the draft is saved either way, and a failure here only
-    // means the file gets asked for again, which is where this started.
     saveDraftFile(fileSHA256, fileBlob)
   })
 }
@@ -618,7 +622,11 @@ function handleFilesCollected(payload: {
 }) {
   fileRecords.value = payload.fileRecords
   if (payload.epubMetadata) {
-    epubMetadata.value = payload.epubMetadata
+    // Merged, not replaced. Returning to step 1 remounts UploadForm with an
+    // empty metadata list, so dropping only a cover there hands back a stub
+    // carrying just the cover fields — replacing would drop the spine items,
+    // excerpt and table of contents the EPUB pass produced.
+    epubMetadata.value = { ...epubMetadata.value, ...payload.epubMetadata }
   }
   // No is_encrypted here: the choice is made two steps later, so this would
   // only ever report the default. book_listing_created carries the real value.
@@ -684,6 +692,18 @@ async function handlePublish() {
     return
   }
   if (!(await validatePricingStep())) { return }
+  // The details step is optional to visit — a resumed draft can jump straight
+  // to pricing — so nothing else guarantees a description exists. Caught here
+  // because publish validates it only after the files have cost upload quota.
+  if (!resolveShortDescription(
+    iscnFormData.value.description,
+    listingDraft.value.descriptionFull,
+    MAX_DESCRIPTION_LENGTH,
+  )) {
+    showErrorToast($t('iscn_form.description_required'))
+    goToStep('details')
+    return
+  }
 
   isPublishFailed.value = false
   hasPublishStarted.value = true

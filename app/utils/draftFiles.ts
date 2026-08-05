@@ -32,6 +32,17 @@ function openDatabase(): Promise<IDBDatabase | null> {
       resolve(null)
       return
     }
+    let isSettled = false
+    // Closes a connection that arrives after we have given up, so a block that
+    // clears later cannot leave one open with nobody to close it.
+    const settle = (db: IDBDatabase | null) => {
+      if (isSettled) {
+        db?.close()
+        return
+      }
+      isSettled = true
+      resolve(db)
+    }
     try {
       const request = indexedDB.open(DB_NAME, DB_VERSION)
       request.onupgradeneeded = () => {
@@ -40,44 +51,63 @@ function openDatabase(): Promise<IDBDatabase | null> {
           db.createObjectStore(STORE_NAME)
         }
       }
-      request.onsuccess = () => resolve(request.result)
+      request.onsuccess = () => settle(request.result)
       request.onerror = () => {
         warn('Failed to open the draft file store:', request.error)
-        resolve(null)
+        settle(null)
       }
       // Another tab holds an older version open; treat it as unavailable
       // rather than waiting on a tab this one cannot close.
-      request.onblocked = () => resolve(null)
+      request.onblocked = () => settle(null)
     }
     catch (error) {
       warn('Failed to open the draft file store:', error)
-      resolve(null)
+      settle(null)
     }
   })
 }
 
-// Resolves with the request's result, or null if anything at all went wrong.
-// Waits for the transaction to complete on writes: a quota failure surfaces
-// there, not on the request.
+/**
+ * Runs every request on one connection and one transaction, and resolves with
+ * their results in order — or null if anything at all went wrong.
+ *
+ * Batched rather than one call per key: the resume path awaits this before the
+ * prompt renders, and a draft has several files, so opening a connection per
+ * file put that many round trips in front of the first paint.
+ *
+ * Waits for the transaction to complete rather than the request: a quota
+ * failure surfaces there.
+ */
 function runTransaction<T>(
   mode: IDBTransactionMode,
-  run: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T | null> {
-  return openDatabase().then(db => new Promise<T | null>((resolve) => {
+  run: (store: IDBObjectStore) => IDBRequest<T>[],
+): Promise<T[] | null> {
+  return openDatabase().then(db => new Promise<T[] | null>((resolve) => {
     if (!db) {
       resolve(null)
       return
     }
-    let result: T | null = null
-    const settle = (value: T | null) => {
+    let isSettled = false
+    const settle = (value: T[] | null) => {
+      if (isSettled) { return }
+      isSettled = true
       db.close()
       resolve(value)
     }
+    // A connection force-closed by another tab's upgrade or by storage
+    // eviction fires no transaction event at all, so without these the promise
+    // would never settle — and the caller of this one is awaited before the
+    // resume prompt can render.
+    db.onversionchange = () => settle(null)
+    db.onclose = () => settle(null)
     try {
       const transaction = db.transaction(STORE_NAME, mode)
-      const request = run(transaction.objectStore(STORE_NAME))
-      request.onsuccess = () => { result = request.result }
-      transaction.oncomplete = () => settle(result)
+      const requests = run(transaction.objectStore(STORE_NAME))
+      const results: T[] = []
+      requests.forEach((request, index) => {
+        request.onsuccess = () => { results[index] = request.result }
+      })
+      transaction.oncomplete = () => settle(results)
       transaction.onerror = () => {
         warn('Draft file transaction failed:', transaction.error)
         settle(null)
@@ -96,8 +126,17 @@ function runTransaction<T>(
 
 export async function saveDraftFile(fileSHA256: string, blob: Blob): Promise<boolean> {
   if (!fileSHA256) { return false }
-  const result = await runTransaction('readwrite', store => store.put(blob, fileSHA256))
+  const result = await runTransaction('readwrite', store => [store.put(blob, fileSHA256)])
   return result !== null
+}
+
+// Drops files the draft no longer refers to. Without this a wrong 200MB EPUB
+// deleted at step 1, or a cover replaced five times, stays on disk until the
+// whole draft is cleared.
+export async function deleteDraftFiles(fileSHA256s: string[]): Promise<void> {
+  const keys = fileSHA256s.filter(Boolean)
+  if (!keys.length) { return }
+  await runTransaction('readwrite', store => keys.map(key => store.delete(key)))
 }
 
 /**
@@ -112,26 +151,31 @@ export async function loadDraftFiles(
   records: { fileSHA256?: string, fileSize?: number }[],
 ): Promise<Map<string, Blob>> {
   const restored = new Map<string, Blob>()
-  const hashes = [...new Set(records.map(record => record.fileSHA256).filter(Boolean))]
+  const hashes = [...new Set(
+    records.map(record => record.fileSHA256).filter((hash): hash is string => !!hash),
+  )]
   if (!hashes.length) { return restored }
+
+  const blobs = await runTransaction<Blob>('readonly', store => hashes.map(hash => store.get(hash)))
+  if (!blobs) { return restored }
 
   const sizeByHash = new Map(
     records.filter(record => record.fileSHA256).map(record => [record.fileSHA256!, record.fileSize]),
   )
-  for (const hash of hashes) {
-    const blob = await runTransaction<Blob>('readonly', store => store.get(hash!))
-    if (!(blob instanceof Blob) || !blob.size) { continue }
-    const expectedSize = sizeByHash.get(hash!)
+  hashes.forEach((hash, index) => {
+    const blob = blobs[index]
+    if (!(blob instanceof Blob) || !blob.size) { return }
+    const expectedSize = sizeByHash.get(hash)
     if (expectedSize && blob.size !== expectedSize) {
       warn('Discarding a draft file that read back the wrong size:', hash)
-      continue
+      return
     }
-    restored.set(hash!, blob)
-  }
+    restored.set(hash, blob)
+  })
   return restored
 }
 
 // One draft's files, dropped whole with the draft. No history to evict.
 export async function clearDraftFiles(): Promise<void> {
-  await runTransaction('readwrite', store => store.clear())
+  await runTransaction('readwrite', store => [store.clear()])
 }

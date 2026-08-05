@@ -1,62 +1,61 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <UFormField
-      name="title"
-      :label="$t('common.title')"
-      class="flex-1 text-left"
-      :help="prefilledHint('title')"
-      required
-    >
-      <UInput
-        v-model="formData.title"
-        :placeholder="$t('iscn_form.enter_iscn_title')"
-      />
-    </UFormField>
+  <UFormField
+    name="title"
+    :label="$t('common.title')"
+    class="flex-1 text-left"
+    :help="prefilledHint('title')"
+    required
+  >
+    <UInput
+      v-model="formData.title"
+      :placeholder="$t('iscn_form.enter_iscn_title')"
+    />
+  </UFormField>
 
-    <UFormField
-      name="alternativeHeadline"
-      :label="$t('iscn_form.subtitle')"
-      class="flex-1 text-left"
-      :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
-    >
-      <UInput
-        v-model="formData.alternativeHeadline"
-        :placeholder="$t('iscn_form.enter_subtitle')"
-      />
-    </UFormField>
+  <UFormField
+    name="alternativeHeadline"
+    :label="$t('iscn_form.subtitle')"
+    class="flex-1 text-left"
+    :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
+  >
+    <UInput
+      v-model="formData.alternativeHeadline"
+      :placeholder="$t('iscn_form.enter_subtitle')"
+    />
+  </UFormField>
 
-    <!-- The full description first: it is the one the author has in mind, and
-    the catalog line below is derived from it when they leave it empty. -->
-    <UFormField
-      name="descriptionFull"
-      :label="$t('common.description')"
-      class="flex-1 text-left"
-      :hint="`${(descriptionFull || '').length}/${MAX_DESCRIPTION_FULL_LENGTH}`"
-      :help="prefilledHint('descriptionFull')"
-      required
-    >
-      <UTextarea
-        v-model="descriptionFull"
-        :placeholder="$t('iscn_form.enter_iscn_description')"
-        :rows="6"
-        autoresize
-      />
-    </UFormField>
+  <!-- The full description first: it is the one the author has in mind, and
+  the catalog line below is derived from it when they leave it empty. -->
+  <UFormField
+    name="descriptionFull"
+    :label="$t('common.description')"
+    class="flex-1 text-left"
+    :hint="`${(descriptionFull || '').length}/${MAX_DESCRIPTION_FULL_LENGTH}`"
+    :help="prefilledHint('descriptionFull')"
+    :required="!formData.description"
+  >
+    <UTextarea
+      v-model="descriptionFull"
+      :placeholder="$t('iscn_form.enter_iscn_description')"
+      :maxlength="MAX_DESCRIPTION_FULL_LENGTH"
+      :rows="6"
+      autoresize
+    />
+  </UFormField>
 
-    <UFormField
-      name="description"
-      :label="$t('iscn_form.description_short')"
-      class="flex-1 text-left"
-      :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
-      :help="$t('iscn_form.description_short_help')"
-    >
-      <UTextarea
-        v-model="formData.description"
-        :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
-        autoresize
-      />
-    </UFormField>
-  </div>
+  <UFormField
+    name="description"
+    :label="$t('iscn_form.description_short')"
+    class="flex-1 text-left"
+    :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
+    :help="$t('iscn_form.description_short_help')"
+  >
+    <UTextarea
+      v-model="formData.description"
+      :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
+      autoresize
+    />
+  </UFormField>
 </template>
 
 <script setup lang="ts">
@@ -77,8 +76,6 @@ const { prefilledFields = [] } = defineProps<{
 
 const formData = defineModel<ISCNFormData>({ required: true })
 
-// Listing-owned, so it stays a separate model all the way down: keeping it out
-// of formData keeps it out of the on-chain dirty check.
 const descriptionFull = defineModel<string>('descriptionFull')
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
