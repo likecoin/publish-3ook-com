@@ -58,33 +58,10 @@
         @reselect="openFilePicker"
       />
     </div>
-    <URadioGroup
-      v-model="drmOption"
-      :items="drmOptions"
-      orientation="vertical"
-      :ui="{ label: 'text-left' }"
-    >
-      <template #label="{ item }">
-        <span>{{ item.label }}</span>
-        <UTooltip
-          v-if="item.value === 'open'"
-          :text="$t('upload_form.drm_option_open_tooltip')"
-        >
-          <a
-            :href="$t('upload_form.drm_option_open_tooltip')"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center ml-1"
-            @click.stop
-          >
-            <UIcon
-              name="i-heroicons-question-mark-circle"
-              class="w-4 h-4 text-dimmed hover:text-primary"
-            />
-          </a>
-        </UTooltip>
-      </template>
-    </URadioGroup>
+    <PublishFileProtectionField
+      v-if="showDrmOption"
+      v-model="isEncryptEBookData"
+    />
     <ArweaveSponsorStatus
       :is-sponsored="isArweaveSponsored"
       :remaining-uploads="arweaveRemainingUploads"
@@ -132,6 +109,9 @@ export type { FileRecord }
 
 const props = defineProps({
   defaultEncrypted: { type: Boolean, default: true },
+  // The wizard hides the control and asks at its pricing step instead, so the
+  // tier is unknown while files are collected here.
+  showDrmOption: { type: Boolean, default: true },
   // Collect-only mode (new-book wizard): onSubmit validates and emits the
   // selected files without uploading; the publish pipeline uploads later.
   collectOnly: { type: Boolean, default: false },
@@ -155,14 +135,13 @@ onMounted(() => {
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
-const drmOption = ref<'encrypted' | 'open'>(props.defaultEncrypted ? 'encrypted' : 'open')
-const isEncryptEBookData = computed(() => drmOption.value === 'encrypted')
-const drmOptions = computed(() => [
-  { label: $t('upload_form.drm_option_encrypted'), value: 'encrypted' },
-  { label: $t('upload_form.drm_option_open'), value: 'open' },
-])
+const isEncryptEBookData = ref(props.defaultEncrypted)
 
-const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus', 'drmChange'])
+// Nothing dedups or clears under a protected tier, so it is the safe assumption
+// while the host has not asked yet; the real choice drives the upload later.
+const precheckEncryptEbook = computed(() => !props.showDrmOption || isEncryptEBookData.value)
+
+const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
 const uploadStatus = ref('')
 const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
@@ -197,17 +176,15 @@ const computedFormClasses = computed(() => [
   'hover:bg-accented',
 ])
 
-// This form renders before the wizard restores its draft, so re-sync when the
-// host's value arrives — otherwise submitting step 1 emits the initial default
-// back and silently discards a resumed draft's choice.
+// The host's value can arrive after this form mounts (ISCNForm derives it from
+// the saved fingerprints), so re-sync rather than keeping the initial default.
 watch(() => props.defaultEncrypted, (value: boolean) => {
-  drmOption.value = value ? 'encrypted' : 'open'
+  isEncryptEBookData.value = value
 })
 
 // The quota cost is the same either way, but the tier is not: re-check so an
 // ebook's duplicate status is re-derived under the new DRM setting.
-watch(isEncryptEBookData, async (value: boolean) => {
-  emit('drmChange', value)
+watch(precheckEncryptEbook, async () => {
   await runUploadQuotaCheck()
 })
 
@@ -264,7 +241,7 @@ const {
   checkUploadQuota,
 } = useArweaveUploadPrecheck({
   fileRecords,
-  isEncryptEbook: isEncryptEBookData,
+  isEncryptEbook: precheckEncryptEbook,
   onExistingUpload: (record) => {
     const metadata = epubMetadataList.value.find(
       (data: EpubMetadata) => data.thumbnailIpfsHash === record.ipfsHash,
@@ -594,12 +571,12 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
 }
 
 // Collect-only submit: hand the selection (blobs included) to the wizard
-// without uploading anything.
+// without uploading anything. No DRM value travels with it — the wizard hides
+// the control and asks later, so this one would only be the untouched default.
 const emitCollected = () => {
   emit('submit', {
     fileRecords: fileRecords.value,
     epubMetadata: epubMetadataList.value[0],
-    isEncrypt: isEncryptEBookData.value,
   })
 }
 

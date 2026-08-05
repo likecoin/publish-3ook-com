@@ -33,10 +33,9 @@
           <UploadForm
             ref="uploadFormRef"
             collect-only
+            :show-drm-option="false"
             :initial-file-records="fileRecords"
-            :default-encrypted="encryptEbook"
             @file-ready="handleFileReady"
-            @drm-change="(value: boolean) => (encryptEbook = value)"
             @submit="handleFilesCollected"
           />
         </div>
@@ -56,7 +55,26 @@
 
           <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
         </div>
-        <div v-else-if="step === 'pricing'">
+        <div
+          v-else-if="step === 'pricing'"
+          class="flex flex-col gap-[24px]"
+        >
+          <!-- Ahead of pricing: how readers get the file, then what they pay
+               for it. The tier is fixed once the book publishes. -->
+          <UCard>
+            <template #header>
+              <h3
+                class="font-bold font-mono"
+                v-text="$t('upload_form.drm_section_title')"
+              />
+            </template>
+            <PublishFileProtectionField v-model="encryptEbook" />
+            <p
+              class="mt-3 text-xs text-muted"
+              v-text="$t('upload_form.drm_section_description')"
+            />
+          </UCard>
+
           <PublishPricingForm
             ref="pricingFormRef"
             v-model:prices="listingDraft.prices"
@@ -505,17 +523,16 @@ function handleFileReady(records: FileRecord[]) {
 function handleFilesCollected(payload: {
   fileRecords: FileRecord[]
   epubMetadata?: EpubMetadata
-  isEncrypt: boolean
 }) {
   fileRecords.value = payload.fileRecords
   if (payload.epubMetadata) {
     epubMetadata.value = payload.epubMetadata
   }
-  encryptEbook.value = payload.isEncrypt
+  // No is_encrypted here: the choice is made two steps later, so this would
+  // only ever report the default. book_listing_created carries the real value.
   useLogEvent('book_publish_upload_completed', {
     file_count: payload.fileRecords.length,
     has_epub_metadata: !!payload.epubMetadata,
-    is_encrypted: payload.isEncrypt,
   })
   seedDetailsFromMetadata()
   advanceStep()
