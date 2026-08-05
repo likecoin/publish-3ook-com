@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex gap-3">
       <form
-        :class="[computedFormClasses, isDragging ? 'bg-white' : '']"
+        :class="[computedFormClasses, isDragging ? 'bg-default' : '']"
         @drop.prevent="onFileUpload"
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
@@ -13,7 +13,7 @@
           class="w-5 h-5"
         />
         <p
-          class="text-gray-600 my-[16px]"
+          class="text-muted my-[16px]"
           v-text="$t('upload_form.drag_files_here')"
         />
         <UButton
@@ -24,14 +24,14 @@
           {{ $t('common.select_file') }}
         </UButton>
         <p
-          class="text-xs text-gray-500 mt-2"
+          class="text-xs text-muted mt-2"
           v-text="$t('upload_form.file_size_suggestion')"
         />
         <a
           :href="PUBLISH_GUIDE_URL"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-xs text-primary-500 hover:text-primary-600 mt-2 flex items-center gap-1"
+          class="text-xs text-primary hover:text-primary/80 mt-2 flex items-center gap-1"
           @click.stop
         >
           <UIcon
@@ -79,7 +79,7 @@
           >
             <UIcon
               name="i-heroicons-question-mark-circle"
-              class="w-4 h-4 text-gray-400 hover:text-primary-500"
+              class="w-4 h-4 text-dimmed hover:text-primary"
             />
           </a>
         </UTooltip>
@@ -189,12 +189,12 @@ const computedFormClasses = computed(() => [
   'mb-[12px]',
   'border-2',
   'border-dashed',
-  'border-gray-300',
+  'border-default',
   'rounded-[12px]',
-  'text-gray-500',
+  'text-muted',
   'cursor-pointer',
-  'bg-gray-100',
-  'hover:bg-gray-200',
+  'bg-elevated',
+  'hover:bg-accented',
 ])
 
 // This form renders before the wizard restores its draft, so re-sync when the
@@ -283,7 +283,7 @@ const onFileUpload = async (event: Event) => {
       = (event as InputEvent).dataTransfer?.files || (event.target as HTMLInputElement)?.files
 
     if (event.currentTarget instanceof HTMLElement) {
-      event.currentTarget.classList.remove('bg-gray-100')
+      event.currentTarget.classList.remove('bg-elevated')
     }
 
     if (files?.length) {

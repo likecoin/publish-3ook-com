@@ -22,7 +22,7 @@
           class="flex items-center justify-between text-sm"
         >
           <span
-            class="font-medium text-gray-700"
+            class="font-medium text-highlighted"
             v-text="record.fileName"
           />
           <UBadge
@@ -44,7 +44,7 @@
           />
         </li>
       </ul>
-      <p class="mt-3 text-sm text-gray-500">
+      <p class="mt-3 text-sm text-muted">
         {{ encryptEbook
           ? $t('upload_form.drm_option_encrypted')
           : $t('upload_form.drm_option_open') }}
@@ -71,7 +71,7 @@
           v-if="coverImageSrc"
           :src="coverImageSrc"
           alt=""
-          class="w-[80px] h-auto object-contain rounded border border-gray-200 self-start"
+          class="w-[80px] h-auto object-contain rounded border border-default self-start"
         >
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <template
@@ -79,11 +79,11 @@
             :key="row.label"
           >
             <dt
-              class="text-gray-500"
+              class="text-muted"
               v-text="row.label"
             />
             <dd
-              class="text-gray-700"
+              class="text-highlighted"
               v-text="row.value || '—'"
             />
           </template>
@@ -113,13 +113,13 @@
           class="flex items-baseline gap-x-3 flex-wrap"
         >
           <span
-            class="font-medium text-gray-700"
+            class="font-medium text-highlighted"
             v-text="p.name || $t('nft_book_form.product_name_placeholder')"
           />
-          <span class="text-gray-700">
+          <span class="text-highlighted">
             {{ formatPrice(p) }}
             <span
-              class="text-gray-400"
+              class="text-dimmed"
               v-text="p.deliveryMethod === 'auto'
                 ? `(${$t('nft_book_form.unlimited')})`
                 : `(${$t('nft_book_form.stock')}: ${p.stock})`"
@@ -133,11 +133,11 @@
           :key="row.label"
         >
           <dt
-            class="text-gray-500"
+            class="text-muted"
             v-text="row.label"
           />
           <dd
-            class="text-gray-700"
+            class="text-highlighted"
             v-text="row.value"
           />
         </template>

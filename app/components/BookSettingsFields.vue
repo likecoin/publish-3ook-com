@@ -130,7 +130,7 @@
             @keydown.enter.prevent="commitPreviewPercentage"
           >
             <template #trailing>
-              <span class="text-gray-500 text-sm">%</span>
+              <span class="text-muted text-sm">%</span>
             </template>
           </UInput>
         </div>

@@ -18,12 +18,12 @@
     <UIcon
       v-else-if="mimeType === 'application/epub+zip' || mimeType === 'application/pdf'"
       name="i-heroicons-book-open"
-      class="text-dark-gray w-[40px] h-[40px]"
+      class="text-muted w-[40px] h-[40px]"
     />
     <UIcon
       v-else
       name="i-heroicons-document"
-      class="text-dark-gray w-[40px] h-[40px]"
+      class="text-muted w-[40px] h-[40px]"
     />
   </div>
 </template>

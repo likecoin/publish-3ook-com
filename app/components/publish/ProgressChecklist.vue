@@ -4,31 +4,31 @@
       v-for="item in checklistItems"
       :key="item.key"
       class="flex items-center gap-3 p-2 rounded-lg"
-      :class="item.state === 'active' ? 'bg-primary-50' : ''"
+      :class="item.state === 'active' ? 'bg-primary/10' : ''"
     >
       <UIcon
         v-if="item.state === 'done'"
         name="i-heroicons-check-circle-solid"
-        class="w-5 h-5 text-green-500"
+        class="w-5 h-5 text-success"
       />
       <UIcon
         v-else-if="item.state === 'failed'"
         name="i-heroicons-x-circle-solid"
-        class="w-5 h-5 text-red-500"
+        class="w-5 h-5 text-error"
       />
       <UIcon
         v-else-if="item.state === 'active'"
         name="i-heroicons-arrow-path"
-        class="w-5 h-5 text-primary-500 animate-spin"
+        class="w-5 h-5 text-primary animate-spin"
       />
       <UIcon
         v-else
         name="i-heroicons-minus-circle"
-        class="w-5 h-5 text-gray-300"
+        class="w-5 h-5 text-dimmed"
       />
       <span
         class="text-sm"
-        :class="item.state === 'pending' ? 'text-gray-400' : 'text-gray-700'"
+        :class="item.state === 'pending' ? 'text-dimmed' : 'text-highlighted'"
         v-text="item.label"
       />
     </div>

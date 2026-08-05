@@ -4,13 +4,13 @@
       <div class="flex items-center gap-3">
         <UIcon
           name="i-heroicons-exclamation-triangle"
-          class="w-6 h-6 text-yellow-500 shrink-0"
+          class="w-6 h-6 text-warning shrink-0"
         />
-        <h3 class="font-semibold text-gray-900">
+        <h3 class="font-semibold text-highlighted">
           {{ $t('upload_form.epub_validation_title') }}
         </h3>
       </div>
-      <p class="text-sm text-gray-500 mt-2">
+      <p class="text-sm text-muted mt-2">
         {{ $t('upload_form.epub_validation_notice') }}
       </p>
     </template>
@@ -18,7 +18,7 @@
       <div class="max-h-[300px] overflow-y-auto space-y-2 text-sm">
         <div
           v-if="errors"
-          class="text-red-600"
+          class="text-error"
         >
           <p class="font-semibold mb-1">
             {{ $t('upload_form.epub_validation_errors') }}:
@@ -27,7 +27,7 @@
         </div>
         <div
           v-if="warnings"
-          class="text-yellow-600"
+          class="text-warning"
         >
           <p class="font-semibold mb-1">
             {{ $t('upload_form.epub_validation_warnings') }}:
