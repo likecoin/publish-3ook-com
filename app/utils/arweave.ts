@@ -29,6 +29,24 @@ export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: str
   return !!(record.arweaveId || record.arweaveLink)
 }
 
+/**
+ * Drops the public Arweave result from a record that now belongs in the
+ * protected tier, so isRecordUploaded() stops reporting it as uploaded.
+ *
+ * arweaveLink goes with the id: it is written alongside every open-tier id, so
+ * clearing the id alone would still skip the upload and leave a protected book
+ * resolving to its public copy. A GCS-protected record carries a link and no
+ * id, so the id guard leaves it untouched.
+ *
+ * ipfsHash stays — only the open path reads it, and keeping it saves re-hashing
+ * a 200MB file if the author toggles back.
+ */
+export function clearOpenTierResult(record: { arweaveId?: string, arweaveLink?: string }): void {
+  if (!record.arweaveId) { return }
+  record.arweaveId = undefined
+  record.arweaveLink = undefined
+}
+
 // Blobs never survive a reload, so a restored record is only publishable if its
 // upload already landed. Checking arweaveId alone would strand protected-tier
 // files, which carry a link and no id.

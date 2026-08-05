@@ -1,4 +1,4 @@
-import { estimateBundlrFilePrice, uploadEbookToGcsDirect, uploadFileToGcsOpen, getUploadTier, isRecordUploaded } from '~/utils/arweave'
+import { estimateBundlrFilePrice, uploadEbookToGcsDirect, uploadFileToGcsOpen, getUploadTier, isRecordUploaded, clearOpenTierResult } from '~/utils/arweave'
 
 // Minimal record shape the pipelined uploader needs; UploadForm's FileRecord
 // and the publish pipeline's PublishFileRecordWithBlob both satisfy it.
@@ -72,6 +72,12 @@ export function useArweaveUpload() {
         const record = records[i]
         if (!record) { continue }
         if (uploadError) { break }
+        // Resolved before the skip check, and enforced here rather than in the
+        // form, so the invariant holds wherever the DRM choice is made — the
+        // wizard asks at its pricing step, long after the files were collected.
+        const tier = getUploadTier(record.fileType, encryptEbook)
+        if (tier === 'protected') { clearOpenTierResult(record) }
+
         if (isRecordUploaded(record) || (skipMissingBlob && !record.fileBlob)) {
           onRecordSkipped?.(record, i)
           continue
@@ -79,8 +85,6 @@ export function useArweaveUpload() {
         if (!record.fileBlob) {
           throw new Error(`Missing file data for ${record.fileName || 'the selected file'}; please re-select the file`)
         }
-
-        const tier = getUploadTier(record.fileType, encryptEbook)
         if (!tier) {
         // Fail loudly rather than silently skip a file the author believes they
         // published; the pickers should have rejected this at selection time.
