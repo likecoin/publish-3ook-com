@@ -57,7 +57,6 @@
         v-if="fileRecords.length"
         :file-records="fileRecords"
         @delete="handleDeleteFile"
-        @show-issues="showEpubIssuesForFile"
         @reselect="openFilePicker"
       />
     </div>
@@ -82,11 +81,6 @@
       :can-proceed-anyway="canProceedAnyway"
       @fix="pendingSubmitAfterConfirm = false"
       @proceed="confirmProceedAnyway"
-    />
-    <UploadEpubIssuesModal
-      v-model:open="showEpubValidationModal"
-      :errors="epubValidationErrors"
-      :warnings="epubValidationWarnings"
     />
   </div>
 </template>
@@ -154,9 +148,6 @@ const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
 const pendingSubmitAfterConfirm = ref(false)
 const canProceedAnyway = ref(true)
-const showEpubValidationModal = ref(false)
-const epubValidationErrors = ref('')
-const epubValidationWarnings = ref('')
 const currentFileIndex = ref(0)
 const totalFiles = ref(0)
 const completedFiles = ref(0)
@@ -311,13 +302,10 @@ const onFileUpload = async (event: Event) => {
             if (fileRecord.fileType === 'application/epub+zip') {
               const validation = await validateEpub(fileBytes)
               if (validation.hasIssues) {
+                // The list expands the row on its own; nothing to raise here.
                 fileRecord.validationErrors = validation.errors
                 fileRecord.validationWarnings = validation.warnings
                 fileRecord.hasValidationIssues = true
-
-                epubValidationErrors.value = validation.errors
-                epubValidationWarnings.value = validation.warnings
-                showEpubValidationModal.value = true
               }
               await processEPub({ buffer: fileBytes, file })
             }
@@ -358,14 +346,6 @@ const onFileUpload = async (event: Event) => {
     }
     uploadStatus.value = ''
     emit('fileReady', fileRecords.value)
-  }
-}
-
-const showEpubIssuesForFile = (fileRecord: FileRecord) => {
-  if (fileRecord.validationErrors || fileRecord.validationWarnings) {
-    epubValidationErrors.value = fileRecord.validationErrors || ''
-    epubValidationWarnings.value = fileRecord.validationWarnings || ''
-    showEpubValidationModal.value = true
   }
 }
 
