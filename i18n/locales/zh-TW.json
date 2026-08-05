@@ -979,6 +979,7 @@
   "upload_form.epub_validation_warnings": "警告",
   "upload_form.error_during_upload": "檔案上傳期間發生錯誤",
   "upload_form.file_already_uploaded": "已上傳",
+  "upload_form.file_generated_cover": "自動產生",
   "upload_form.file_needs_reselect": "請重新選擇此檔案",
   "upload_form.file_size_suggestion": "建議檔案大小: < 50 MB",
   "upload_form.fix_files": "修正檔案",

@@ -1,6 +1,9 @@
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex gap-3">
+    <!-- Stacked, not side by side: the dropzone stays available at full width
+         once files are listed, so adding a cover is the same gesture as the
+         first drop. -->
+    <div class="flex flex-col gap-3">
       <form
         :class="[computedFormClasses, isDragging ? 'bg-default' : '']"
         @drop.prevent="onFileUpload"
@@ -124,13 +127,6 @@ const props = defineProps({
 
 const fileRecords = ref<FileRecord[]>([])
 
-onMounted(() => {
-  if (props.initialFileRecords.length && !fileRecords.value.length) {
-    fileRecords.value = props.initialFileRecords.map(record => ({ ...record }))
-    emit('fileReady', fileRecords.value)
-  }
-})
-
 const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
@@ -143,6 +139,16 @@ const isEncryptEBookData = defineModel<boolean>('encryptEbook', { default: true 
 const precheckEncryptEbook = computed(() => !props.showDrmOption || isEncryptEBookData.value)
 
 const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
+
+// The wizard restores its draft after this form has mounted, so a one-shot copy
+// left a resumed draft's list empty. Declared below the emit it calls: with
+// immediate the first run happens during setup, before a hoisted const exists.
+watch(() => props.initialFileRecords, (records: FileRecord[]) => {
+  if (!records.length || fileRecords.value.length) { return }
+  fileRecords.value = records.map(record => ({ ...record }))
+  emit('fileReady', fileRecords.value)
+}, { immediate: true })
+
 const uploadStatus = ref('')
 const showValidationWarning = ref(false)
 const validationErrorMessage = ref('')
@@ -156,17 +162,15 @@ const totalFiles = ref(0)
 const completedFiles = ref(0)
 
 const computedFormClasses = computed(() => [
-  'block',
   'flex',
   'w-full',
-  fileRecords.value.length ? 'max-w-[320px]' : '',
   'flex-col',
-  'justify-center',
   isSizeExceeded.value ? 'bg-transparent' : '',
   'items-center',
   'justify-between',
-  'p-[28px]',
-  'mb-[12px]',
+  // Tighter once it sits above a file list, so it stays reachable without
+  // pushing the list off screen.
+  fileRecords.value.length ? 'p-[16px]' : 'p-[28px]',
   'border-2',
   'border-dashed',
   'border-default',

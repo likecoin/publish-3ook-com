@@ -979,6 +979,7 @@
   "upload_form.epub_validation_warnings": "Warnings",
   "upload_form.error_during_upload": "Error during file upload",
   "upload_form.file_already_uploaded": "Uploaded",
+  "upload_form.file_generated_cover": "Auto-generated",
   "upload_form.file_needs_reselect": "Please re-select this file",
   "upload_form.file_size_suggestion": "Suggested file size: < 50 MB",
   "upload_form.fix_files": "Fix files",

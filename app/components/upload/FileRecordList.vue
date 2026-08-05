@@ -3,29 +3,35 @@
     <table class="w-full">
       <tbody class="w-full">
         <tr
-          v-for="(
-            { fileData, fileName, fileSize, fileType }, index
-          ) of fileRecords"
-          :key="fileName"
+          v-for="(record, index) of fileRecords"
+          :key="record.fileName"
           class="flex justify-between items-center border-b border-default hover:bg-elevated transition-colors w-full"
         >
           <td class="py-[4px]">
             <ImgPreviewer
-              :file-type="fileType"
-              :file-data="fileData"
+              :file-type="record.fileType"
+              :file-data="record.fileData"
               size="small"
             />
           </td>
           <td>
-            <div class="flex flex-col">
+            <div class="flex flex-col items-start">
               <p class="font-semibold text-highlighted">
-                {{ fileName }}
+                {{ record.fileName }}
               </p>
+              <UBadge
+                v-if="isGeneratedCover(record)"
+                variant="soft"
+                color="neutral"
+                size="xs"
+              >
+                {{ $t('upload_form.file_generated_cover') }}
+              </UBadge>
               <p class="text-muted text-sm">
-                {{ Math.round((fileSize || 0) * 0.001) }} KB
+                {{ Math.round((record.fileSize || 0) * 0.001) }} KB
               </p>
               <button
-                v-if="needsReselect(fileRecords[index])"
+                v-if="needsFileReselect(record)"
                 type="button"
                 class="text-error hover:text-error/80 text-xs underline text-left cursor-pointer"
                 @click="emit('reselect', index)"
@@ -35,17 +41,17 @@
           </td>
           <td class="flex items-center gap-2">
             <UIcon
-              v-if="fileRecords[index]?.arweaveId"
+              v-if="isRecordUploaded(record)"
               name="i-heroicons-check-circle"
               class="w-5 h-5 text-success"
               :title="$t('upload_form.file_already_uploaded')"
             />
             <UIcon
-              v-if="fileRecords[index]?.hasValidationIssues"
+              v-if="record.hasValidationIssues"
               name="i-heroicons-exclamation-triangle"
               class="w-5 h-5 text-warning cursor-help"
               :title="$t('upload_form.epub_has_issues')"
-              @click="emit('showIssues', fileRecords[index]!)"
+              @click="emit('showIssues', record)"
             />
             <UIcon
               name="i-heroicons-trash"
@@ -61,7 +67,7 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
-import { needsFileReselect } from '~/utils/arweave'
+import { needsFileReselect, isRecordUploaded } from '~/utils/arweave'
 
 defineProps<{
   fileRecords: FileRecord[]
@@ -73,7 +79,7 @@ const emit = defineEmits<{
   reselect: [index: number]
 }>()
 
-const needsReselect = (record?: FileRecord) => {
-  return !!record && needsFileReselect(record)
-}
+// The EPUB's own cover, extracted during processing rather than picked by the
+// author. Same suffix validateFiles uses to tell the two apart.
+const isGeneratedCover = (record: FileRecord) => !!record.fileName?.endsWith('_cover.jpeg')
 </script>
