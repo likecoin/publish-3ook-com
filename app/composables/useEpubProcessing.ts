@@ -236,12 +236,18 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
               fileSHA256,
               isGeneratedCover: true,
             }
-            // Awaited rather than left in a callback: the metadata used to be
-            // pushed from inside onload, so an unreadable cover dropped the
-            // whole entry — spine items, excerpt and all.
-            coverFileRecord.fileData = await fileToDataUrl(coverFile)
+            // Preview bytes only: the cover still uploads from its blob and
+            // hashes, so an unreadable one must not cost the entry its spine
+            // items and excerpt.
+            try {
+              coverFileRecord.fileData = await fileToDataUrl(coverFile)
+              epubMetadata.coverData = coverFileRecord.fileData
+            }
+            catch (coverError) {
+              // eslint-disable-next-line no-console
+              console.warn('Failed to build the cover preview:', coverError)
+            }
             options.onCoverExtracted?.(coverFileRecord)
-            epubMetadata.coverData = coverFileRecord.fileData
             epubMetadataList.value.push(epubMetadata)
             return
           }
