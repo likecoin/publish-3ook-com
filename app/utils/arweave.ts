@@ -47,6 +47,26 @@ export function clearOpenTierResult(record: { arweaveId?: string, arweaveLink?: 
   record.arweaveLink = undefined
 }
 
+/**
+ * Applies that invariant across a whole selection.
+ *
+ * Must run before anything decides an upload is unnecessary: both the uploader
+ * and the publish pipeline short-circuit on isRecordUploaded(), which a stale
+ * open-tier id keeps true. The tier can change long after the files were
+ * chosen — the wizard asks at its pricing step, and a failed publish can be
+ * retried with a different answer.
+ */
+export function clearStaleOpenTierResults(
+  records: { fileType?: string, arweaveId?: string, arweaveLink?: string }[],
+  encryptEbook: boolean,
+): void {
+  records.forEach((record) => {
+    if (getUploadTier(record.fileType, encryptEbook) === 'protected') {
+      clearOpenTierResult(record)
+    }
+  })
+}
+
 // Blobs never survive a reload, so a restored record is only publishable if its
 // upload already landed. Checking arweaveId alone would strand protected-tier
 // files, which carry a link and no id.
