@@ -199,7 +199,6 @@ const {
   epubMetadataList,
   validateEpub,
   processEPub,
-  assignManualCoverImage,
   removeMetadataForDeletedFile,
 } = useEpubProcessing({
   getFileInfo: getFileInfoWithToast,
@@ -208,6 +207,21 @@ const {
     showErrorToast($t('upload_form.error_during_upload'), {
       description: (err as Error).message || $t('upload_form.epub_processing_error'),
     })
+  },
+})
+
+const { applyManualCover } = useManualCover({
+  fileRecords,
+  // Fills a book still missing a cover before replacing one that has it, and
+  // creates the entry when no EPUB supplied metadata at all (PDF + cover).
+  resolveTarget: () => {
+    const pending = epubMetadataList.value.find(
+      (metadata: EpubMetadata) => !metadata.thumbnailIpfsHash,
+    ) || epubMetadataList.value[0]
+    if (pending) { return pending }
+    const created: EpubMetadata = { thumbnailIpfsHash: null, coverData: null }
+    epubMetadataList.value.push(created)
+    return created
   },
 })
 
@@ -251,7 +265,6 @@ const onFileUpload = async (event: Event) => {
         return isImageA ? 1 : -1
       })
       for (const file of sortedFiles) {
-        const reader = new FileReader()
         let fileRecord: FileRecord = {}
 
         if (!UPLOADABLE_FILE_TYPES.includes(file.type)) {
@@ -262,18 +275,6 @@ const onFileUpload = async (event: Event) => {
         }
 
         if (file.size < UPLOAD_FILESIZE_MAX) {
-          // Images only: fileData feeds the cover preview, and base64-ing a
-          // 200MB ebook would hold ~267MB of string for the record's lifetime.
-          if (file.type.startsWith('image/')) {
-            reader.onload = (e) => {
-              if (!e.target) {
-                return
-              }
-              fileRecord.fileData = e.target.result as string
-            }
-            reader.readAsDataURL(file)
-          }
-
           const info = await getFileInfoWithToast(file)
           if (info) {
             const { fileBytes, fileSHA256, ipfsHash } = info
@@ -296,7 +297,14 @@ const onFileUpload = async (event: Event) => {
               await processEPub({ buffer: fileBytes, file })
             }
             else if (fileRecord.fileType?.startsWith('image/')) {
-              assignManualCoverImage(file, ipfsHash)
+              // Images only: fileData feeds the cover preview, and base64-ing a
+              // 200MB ebook would hold ~267MB of string for the record's lifetime.
+              fileRecord.fileData = await fileToDataUrl(file)
+              // Owns the record list for covers, so it replaces the generic
+              // upsert below rather than running before it.
+              applyManualCover(fileRecord)
+              uploadStatus.value = ''
+              continue
             }
           }
         }

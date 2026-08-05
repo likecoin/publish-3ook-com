@@ -29,6 +29,14 @@ export function isGeneratedCoverRecord(record: { fileName?: string }): boolean {
   return !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 }
 
+// The author's own cover choice. Both kinds coexist after a replacement, and
+// only this one may be pruned — the generated one is what 復原 reverts to.
+export function isManualCoverRecord(
+  record: { fileName?: string, fileType?: string },
+): boolean {
+  return !!record.fileType?.startsWith('image/') && !isGeneratedCoverRecord(record)
+}
+
 // A record with an upload result: Arweave results always carry arweaveId;
 // GCS-direct results only ever carry the API link.
 export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: string }): boolean {
