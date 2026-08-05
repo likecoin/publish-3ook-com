@@ -219,7 +219,7 @@ import {
 } from '~/utils/publishSession'
 import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
-import { isRecordUploaded, needsFileReselect } from '~/utils/arweave'
+import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
 
 const { t: $t } = useI18n()
 
@@ -292,10 +292,20 @@ const pendingSessionTitle = computed(() =>
   pendingSession.value?.iscnFormData?.title
   || pendingSession.value?.epubMetadata?.title
   || $t('publish_wizard.untitled_draft'))
-// Blobs never persist, so a draft interrupted before its upload step needs the
-// files picked again — but one interrupted after it does not.
+// Bytes recovered from the draft file store, by fileSHA256. Held apart from
+// pendingSession because the localStorage draft genuinely has no blobs in it;
+// a sibling store owns them.
+const restoredFileBlobs = ref<Map<string, Blob>>(new Map())
+
+function restoredBlobFor(record: { fileSHA256?: string }): Blob | undefined {
+  return record.fileSHA256 ? restoredFileBlobs.value.get(record.fileSHA256) : undefined
+}
+
+// A draft interrupted before its upload step needs the files picked again,
+// unless their bytes came back — one interrupted after it never did.
 const pendingSessionNeedsReselect = computed(() =>
-  (pendingSession.value?.fileRecords ?? []).some(record => !isRecordUploaded(record)))
+  (pendingSession.value?.fileRecords ?? []).some(record =>
+    !isRecordUploaded(record) && !restoredBlobFor(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
 const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
 const coverImageSrc = computed(() =>
@@ -328,10 +338,16 @@ onMounted(async () => {
   const legacyClassId = route.query.class_id?.toString() || ''
   const legacyIscnId = route.query.iscn_id?.toString() || ''
   if (session) {
+    // Before the prompt renders, so it can say the files are still here rather
+    // than announcing a re-selection that turns out not to be needed.
+    restoredFileBlobs.value = await loadDraftFiles(session.fileRecords)
     pendingSession.value = session
     showResumePrompt.value = true
     return
   }
+  // Files with no draft to belong to: a previous session ended without
+  // reaching either clear point.
+  await clearDraftFiles()
   if (legacyClassId || legacyIscnId) {
     await initFromLegacyQuery(legacyClassId || legacyIscnId, !!legacyClassId)
   }
@@ -365,8 +381,14 @@ function resumeDraft() {
       status: session.status,
       wizard_step: session.wizardStep,
     })
-    fileRecords.value = session.fileRecords.map(record => ({ ...record }))
+    fileRecords.value = session.fileRecords.map(record => ({
+      ...record,
+      fileBlob: restoredBlobFor(record),
+    }))
+    // Already in the store, so the first debounce tick must not put them back.
+    restoredFileBlobs.value.forEach((_blob, hash) => persistedFileHashes.add(hash))
     epubMetadata.value = session.epubMetadata
+    hydrateCoverPreview()
     encryptEbook.value = session.encryptEbook
     iscnFormData.value = session.iscnFormData
     listingDraft.value = { ...createDefaultListingDraft(), ...session.listingDraft }
@@ -389,9 +411,41 @@ function resumeDraft() {
   isDraftReady.value = true
 }
 
+/**
+ * Re-derives the cover preview from the restored bytes.
+ *
+ * Data URLs are the one thing the draft deliberately never carries, so before
+ * this a resumed draft reached the review step with no cover at all — the
+ * reader's-eye card simply hid the image. It also gives 復原 something to
+ * revert to, which is why that button can now appear after a reload.
+ */
+async function hydrateCoverPreview() {
+  const images = fileRecords.value.filter(
+    record => record.fileBlob && !record.fileData && record.fileType?.startsWith('image/'),
+  )
+  await Promise.all(images.map(async (record) => {
+    try {
+      record.fileData = await fileToDataUrl(record.fileBlob!)
+    }
+    catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to rebuild the cover preview:', error)
+    }
+  }))
+  // The author's own cover outranks the one the EPUB supplied, which the
+  // positional fallback in coverImageSrc cannot tell apart.
+  const cover = fileRecords.value.find(record => isManualCoverRecord(record) && record.fileData)
+    || fileRecords.value.find(record => record.fileType?.startsWith('image/') && record.fileData)
+  if (epubMetadata.value && !epubMetadata.value.coverData && cover?.fileData) {
+    epubMetadata.value.coverData = cover.fileData
+  }
+}
+
 function discardDraft() {
   useLogEvent('book_publish_draft_discarded', { status: pendingSession.value?.status })
   clearPublishSession()
+  clearDraftFiles()
+  restoredFileBlobs.value = new Map()
   pendingSession.value = null
   showResumePrompt.value = false
   isDraftReady.value = true
@@ -402,11 +456,13 @@ function serializeDraft(): PublishSession {
     version: 1,
     status: lastStepStatus.value,
     wizardStep: step.value,
-    // Blobs and data-URL previews never persist (size/quota); a resumed file
-    // without a blob is flagged for re-selection.
+    // Blobs and data-URL previews stay out of localStorage (size/quota). The
+    // bytes go to the draft file store instead, keyed by fileSHA256; a record
+    // whose blob does not come back is flagged for re-selection.
     fileRecords: fileRecords.value.map(record => ({
       fileName: record.fileName || '',
       fileType: record.fileType || '',
+      fileSize: record.fileSize,
       ipfsHash: record.ipfsHash,
       fileSHA256: record.fileSHA256,
       arweaveId: record.arweaveId,
@@ -430,9 +486,30 @@ function serializeDraft(): PublishSession {
   }
 }
 
+// Written once per blob rather than on every debounce tick: re-putting a 200MB
+// EPUB every time an unrelated field changes would be the whole cost of the
+// feature for none of the benefit. Session-scoped, which is all it needs to
+// be — a reload starts with no blobs to re-save.
+const persistedFileHashes = new Set<string>()
+
+function persistDraftFiles() {
+  fileRecords.value.forEach((record) => {
+    const { fileSHA256, fileBlob } = record
+    if (!fileSHA256 || !fileBlob || persistedFileHashes.has(fileSHA256)) { return }
+    // Marked before the write, and not un-marked on failure: retrying a
+    // rejected 200MB put on every debounce tick would be worse than the
+    // re-select prompt it is trying to avoid.
+    persistedFileHashes.add(fileSHA256)
+    // Not awaited: the draft is saved either way, and a failure here only
+    // means the file gets asked for again, which is where this started.
+    saveDraftFile(fileSHA256, fileBlob)
+  })
+}
+
 function persistDraft() {
   if (!isDraftReady.value) { return }
   savePublishSession(serializeDraft())
+  persistDraftFiles()
 }
 
 watchDebounced(
@@ -666,6 +743,7 @@ async function handlePublish() {
   if (result) {
     lastStepStatus.value = BookUploadStatus.COMPLETED
     clearPublishSession()
+    clearDraftFiles()
     // Here rather than at the picker: this is the point where a genre is known
     // to have been committed, not merely browsed past.
     rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
