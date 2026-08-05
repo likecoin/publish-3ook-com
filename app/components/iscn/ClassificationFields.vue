@@ -9,12 +9,34 @@
         :label="$t('form.genre')"
         class="w-fit shrink-0"
       >
-        <USelect
+        <!-- Filtering is over the translated label, which is what the author
+             reads: 「文學」, not the stored Literary Collections. -->
+        <USelectMenu
           v-model="genreModel"
+          value-key="value"
           :items="bookCategoryOptions"
           :placeholder="$t('iscn_form.select_genre')"
-          :ui="{ content: 'w-fit min-w-(--reka-select-trigger-width)' }"
+          :search-input="{ placeholder: $t('iscn_form.search_genre') }"
+          :ui="{ content: 'w-fit min-w-(--reka-combobox-trigger-width)' }"
         />
+        <div
+          v-if="recentGenreOptions.length"
+          class="mt-2 flex flex-wrap items-center gap-1"
+        >
+          <span
+            class="text-xs text-muted"
+            v-text="$t('iscn_form.recent_genres')"
+          />
+          <UButton
+            v-for="option of recentGenreOptions"
+            :key="option.value"
+            size="xs"
+            variant="soft"
+            color="neutral"
+            :label="option.label"
+            @click="applyRecentGenre(option.value)"
+          />
+        </div>
         <UButton
           v-if="suggestedGenre && suggestedGenre !== formData.genre"
           class="mt-2"
@@ -106,6 +128,27 @@ const genreModel = computed({
     formData.value.genre = value === GENRE_NONE_VALUE ? '' : value
   },
 })
+
+const { wallet } = storeToRefs(useWalletStore())
+// Read once on mount: localStorage is not reactive, and the list only changes
+// on publish, which navigates away from this form.
+const recentGenres = ref<string[]>([])
+onMounted(() => {
+  recentGenres.value = loadRecentGenres(wallet.value || '')
+})
+
+// Drops the current pick, which would be a chip that does nothing, and any
+// value the category list has since dropped.
+const recentGenreOptions = computed(() =>
+  recentGenres.value
+    .filter(genre => genre !== formData.value.genre)
+    .map(genre => bookCategoryOptions.find(option => option.value === genre))
+    .filter(option => !!option))
+
+function applyRecentGenre(genre: string) {
+  useLogEvent('book_genre_recent_applied', { genre })
+  formData.value.genre = genre
+}
 
 const { showErrorToast } = useToastComposable()
 const { isSuggesting, suggestBookMetadata } = useBookMetadataSuggest()
