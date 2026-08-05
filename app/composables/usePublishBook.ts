@@ -10,7 +10,7 @@ import type { ISCNFormData } from '~/types/iscn'
 import { NFT_DEFAULT_MINT_AMOUNT } from '~/constant'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
-import { isRecordUploaded } from '~/utils/arweave'
+import { isRecordUploaded, clearStaleOpenTierResults } from '~/utils/arweave'
 import { mapPriceFormItemsToPayload } from '~/utils/listing'
 import { isContentFingerprintEncrypted, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
 
@@ -161,6 +161,11 @@ export function usePublishBook() {
       let mintTxHash = input.mintTxHash
 
       // Step 1: Upload files to Arweave or GCS-direct (resume guard)
+      // Ahead of the guard, not inside the uploader: a retry that switched to
+      // 加密保護 has every record already uploaded, so the guard would skip the
+      // upload entirely and buildIscnLinksFromFileRecords below would point the
+      // fingerprints at the public Arweave copy the author just opted out of.
+      clearStaleOpenTierResults(records, input.encryptEbook)
       if (records.some(r => !isRecordUploaded(r))) {
         onStatusChange?.(BookUploadStatus.UPLOADING_FILES)
         await uploadFileRecordsToArweave(records, {
