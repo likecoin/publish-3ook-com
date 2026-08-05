@@ -446,6 +446,8 @@
   "iscn_form.preview": "Preview",
   "iscn_form.prefilled_from_file": "Carried over from your file — please check",
   "iscn_form.publisher_description": "Publisher Description",
+  "iscn_form.recent_genres": "Recently used",
+  "iscn_form.search_genre": "Search categories",
   "iscn_form.select_date": "Select date",
   "iscn_form.select_file_type": "Select file type",
   "iscn_form.select_genre": "Select category",

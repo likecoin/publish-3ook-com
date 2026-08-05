@@ -666,6 +666,9 @@ async function handlePublish() {
   if (result) {
     lastStepStatus.value = BookUploadStatus.COMPLETED
     clearPublishSession()
+    // Here rather than at the picker: this is the point where a genre is known
+    // to have been committed, not merely browsed past.
+    rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
     useLogEvent('book_listing_created', {
       class_id: result.classId,
       is_encrypted: encryptEbook.value,
