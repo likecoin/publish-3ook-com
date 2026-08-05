@@ -974,7 +974,7 @@
   "upload_form.drm_option_open": "Downloadable — readers can keep the EPUB/PDF",
   "upload_form.drm_option_open_link": "https://ckxpress.com/youtube/",
   "upload_form.drm_option_open_link_label": "About open publishing",
-  "upload_form.drm_section_description": "Cannot be changed after publishing.",
+  "upload_form.drm_section_description": "Changeable later in the book's settings — but once open, the file is public permanently and cannot be recalled.",
   "upload_form.drm_section_title": "File protection",
   "upload_form.encrypting": "Encrypting...",
   "upload_form.epub_has_issues": "This EPUB file has validation issues",
