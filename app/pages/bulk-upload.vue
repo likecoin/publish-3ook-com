@@ -581,8 +581,10 @@ async function downloadCSVTemplate() {
   // Keep aligned with CSV_ALL_COLUMNS order (positional).
   const sampleRow = [
     'My Book Title', // book_title
-    'A great book about...', // book_description
-    '', // book_description_full
+    // Left empty on purpose: it is derived from the full description below
+    // unless the author wants a different catalog line.
+    '', // book_description
+    'A great book about...', // book_description_full
     'Author Name', // author_name
     'Author bio', // author_description
     'Publisher', // publisher
