@@ -16,7 +16,7 @@
             {{ record.fileName }}
           </p>
           <UBadge
-            v-if="isGeneratedCover(record)"
+            v-if="isGeneratedCoverRecord(record)"
             variant="soft"
             color="neutral"
             size="xs"
@@ -95,8 +95,7 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
-import { needsFileReselect, isRecordUploaded } from '~/utils/arweave'
-import { GENERATED_COVER_SUFFIX } from '~/constant'
+import { needsFileReselect, isRecordUploaded, isGeneratedCoverRecord } from '~/utils/arweave'
 
 defineProps<{
   fileRecords: FileRecord[]
@@ -106,9 +105,6 @@ const emit = defineEmits<{
   delete: [index: number]
   reselect: [index: number]
 }>()
-
-const isGeneratedCover = (record: FileRecord) =>
-  !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 
 // Tracks what was dismissed rather than what is open, so a file's issues are
 // visible the moment it lands and stay hidden once the author collapses them.

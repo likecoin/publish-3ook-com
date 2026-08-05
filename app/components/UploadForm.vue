@@ -85,7 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES, GENERATED_COVER_SUFFIX } from '~/constant'
+import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
+import { isGeneratedCoverRecord } from '~/utils/arweave'
 
 import type { FileRecord, EpubMetadata } from '~/types'
 
@@ -96,7 +97,6 @@ const UPLOAD_FILESIZE_MAX = 200 * 1024 * 1024
 const store = useWalletStore()
 const { validateWalletConsistency } = store
 const { wallet } = storeToRefs(store)
-const toast = useToast()
 const { showErrorToast } = useToastComposable()
 const imageFile = ref<HTMLInputElement | null>(null)
 const openFilePicker = () => imageFile.value?.click()
@@ -296,17 +296,7 @@ const onFileUpload = async (event: Event) => {
               await processEPub({ buffer: fileBytes, file })
             }
             else if (fileRecord.fileType?.startsWith('image/')) {
-              if (!assignManualCoverImage(file, ipfsHash)) {
-                // A cover image has already been assigned — only one cover is allowed
-                toast.add({
-                  icon: 'i-heroicons-exclamation-circle',
-                  title: $t('upload_form.warning'),
-                  description: $t('upload_form.only_one_cover_image'),
-                  duration: 3000,
-                  color: 'warning',
-                })
-                return
-              }
+              assignManualCoverImage(file, ipfsHash)
             }
           }
         }
@@ -358,7 +348,9 @@ const runUploadQuotaCheck = async (): Promise<void> => {
 }
 
 const handleRecordUploaded = (record: FileRecord) => {
-  if (record.fileName?.endsWith(GENERATED_COVER_SUFFIX)) {
+  // Match on the hash the metadata points at, not on the generated name: a
+  // manual cover replaces the EPUB's, and only the hash follows that.
+  if (record.fileType?.startsWith('image/')) {
     const metadata = epubMetadataList.value.find(
       (file: EpubMetadata) => file.thumbnailIpfsHash === record.ipfsHash,
     )
@@ -492,7 +484,7 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
     return file.fileType?.startsWith('image/')
   })
   const manualCoverFiles = coverFiles.filter((file) => {
-    return !(file.fileName?.endsWith(GENERATED_COVER_SUFFIX))
+    return !isGeneratedCoverRecord(file)
   })
 
   if (epubFiles.length === 0 && pdfFiles.length === 0) {
