@@ -6,6 +6,8 @@ import { createBookTokenMetadataBuilder, shouldHideDownload } from '~/utils/iscn
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { getApiErrorMessage, isBatchFatalApiError } from '~/utils/apiError'
+import { resolveShortDescription } from '~/utils/description'
+import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
 // isBatchFatal marks a failure whose cause dooms every remaining book, not just
 // this one. See isBatchFatalApiError.
@@ -198,7 +200,12 @@ export function useBulkUpload() {
     const iscnFormData = ref({
       type: 'Book',
       title: book.title,
-      description: book.description,
+      // The catalog line is never optional on chain, only optional in the CSV.
+      description: resolveShortDescription(
+        book.description,
+        book.descriptionFull,
+        MAX_DESCRIPTION_LENGTH,
+      ),
       alternativeHeadline: '',
       isbn: book.isbn || '',
       publisher: {

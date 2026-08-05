@@ -17,7 +17,10 @@ import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUp
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 
-export const CSV_REQUIRED_COLUMNS = ['book_title', 'book_description', 'author_name', 'cover_image_filename']
+// book_description is absent because either description column satisfies the
+// requirement, which a per-column header check cannot express; validateBook
+// enforces the pair per row instead.
+export const CSV_REQUIRED_COLUMNS = ['book_title', 'author_name', 'cover_image_filename']
 
 export const CSV_ALL_COLUMNS = [
   'book_title',
@@ -143,8 +146,10 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
     errors.push({ rowIndex, field: 'book_title', message: 'bulk_upload.error_book_title_required' })
   }
 
-  if (!book.description) {
-    errors.push({ rowIndex, field: 'book_description', message: 'bulk_upload.error_book_description_required' })
+  // Either column will do: the short one is derived from the full one at publish
+  // time, the same way the wizard's optional 短簡介 is.
+  if (!book.description && !book.descriptionFull) {
+    errors.push({ rowIndex, field: 'book_description/book_description_full', message: 'bulk_upload.error_book_description_required' })
   }
 
   if (book.description && book.description.length > MAX_DESCRIPTION_LENGTH) {
