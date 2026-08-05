@@ -81,9 +81,9 @@
                 />
                 <div
                   v-else
-                  class="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg"
+                  class="flex flex-col gap-3 p-3 bg-elevated rounded-lg"
                 >
-                  <p class="text-xs text-gray-600">
+                  <p class="text-xs text-muted">
                     {{ $t('nft_book_form.custom_pricing_description') }}
                   </p>
                   <UFormField :label="$t('nft_book_form.custom_price_usd')">
@@ -187,7 +187,7 @@
                       v-text="$t('nft_book_form.autograph_image')"
                     />
                     <span
-                      class="text-gray-500 text-[12px] block"
+                      class="text-muted text-[12px] block"
                       v-text="$t('nft_book_form.image_requirements')"
                     />
                   </template>
@@ -203,12 +203,12 @@
                     <img
                       :src="signatureImagePreview"
                       alt="Signature preview"
-                      class="w-full max-h-[180px] object-contain rounded border border-gray-200"
+                      class="w-full max-h-[180px] object-contain rounded border border-default"
                     >
                   </div>
                   <p
                     v-else-if="hasExistingSignatureImage"
-                    class="mt-2 text-sm text-gray-500"
+                    class="mt-2 text-sm text-muted"
                     v-text="$t('nft_book_form.autograph_image_uploaded')"
                   />
                 </UFormField>
@@ -295,14 +295,14 @@
                in full, so the actual range can exceed the nominal %. -->
           <div
             v-if="mode === 'new' && previewCut"
-            class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-sm"
+            class="p-3 border border-default rounded-lg bg-elevated text-sm"
           >
             <template v-if="previewCut.ok">
               <p
                 class="font-medium"
                 v-text="$t('nft_book_form.preview_actual_range')"
               />
-              <ul class="mt-1 list-disc list-inside text-gray-600">
+              <ul class="mt-1 list-disc list-inside text-muted">
                 <li
                   v-for="item in previewCut.includedItems"
                   :key="item.href"
@@ -310,7 +310,7 @@
                 />
               </ul>
               <p
-                class="mt-1 text-gray-600"
+                class="mt-1 text-muted"
                 v-text="$t('nft_book_form.preview_actual_percent', { percent: previewCut.effectivePercentageRounded })"
               />
             </template>
@@ -318,7 +318,7 @@
             <!-- The server refuses these files: a reader would get a 403. -->
             <p
               v-else
-              class="text-red-600"
+              class="text-error"
               v-text="previewCut.message"
             />
           </div>
@@ -347,12 +347,12 @@
             <div
               v-for="(stripeWallet) in stripeConnectWallets"
               :key="stripeWallet"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              class="flex items-center justify-between p-3 bg-elevated rounded-lg"
             >
               <div class="flex items-center gap-2">
                 <UIcon
                   name="i-heroicons-wallet"
-                  class="text-gray-500"
+                  class="text-muted"
                 />
                 <span
                   class="font-mono text-sm"
@@ -370,7 +370,7 @@
             </div>
             <div
               v-if="stripeConnectWallets.length === 0 && sessionWalletStripeStatus?.isReady"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
+              class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
             >
               {{ $t('nft_book_form.no_wallets') }}
               <UButton
@@ -383,7 +383,7 @@
             </div>
             <div
               v-else-if="stripeConnectWallets.length === 0"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
+              class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
             >
               {{ $t('nft_book_form.no_wallets') }}
               <UButton

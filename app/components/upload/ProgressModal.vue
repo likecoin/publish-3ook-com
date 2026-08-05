@@ -10,12 +10,12 @@
           <UBadge variant="soft">
             {{ uploadStatus }}
           </UBadge>
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-muted">
             {{ $t('upload_form.do_not_close_upload') }}
           </p>
         </div>
         <template v-if="totalFiles > 1">
-          <div class="flex items-center text-sm text-gray-600">
+          <div class="flex items-center text-sm text-muted">
             <span>{{ $t('upload_form.processing_file', { index: currentFileIndex, total: totalFiles }) }}</span>
           </div>
           <UProgress

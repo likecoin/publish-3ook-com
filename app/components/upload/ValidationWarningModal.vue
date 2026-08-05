@@ -4,23 +4,23 @@
       <div class="flex items-start gap-3 p-4">
         <UIcon
           name="i-heroicons-exclamation-triangle"
-          class="w-6 h-6 text-yellow-500 shrink-0 mt-0.5"
+          class="w-6 h-6 text-warning shrink-0 mt-0.5"
         />
         <div class="space-y-2">
-          <h3 class="font-semibold text-gray-900">
+          <h3 class="font-semibold text-highlighted">
             {{ $t('upload_form.validation_error') }}
           </h3>
-          <p class="text-gray-600">
+          <p class="text-muted">
             {{ errorMessage }}
           </p>
-          <p class="text-sm text-gray-500 whitespace-pre-line">
+          <p class="text-sm text-muted whitespace-pre-line">
             {{ $t('upload_form.valid_combinations') }}
           </p>
           <a
             :href="PUBLISH_GUIDE_URL"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-sm text-primary-500 hover:text-primary-600 flex items-center gap-1"
+            class="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
             <UIcon
               name="i-heroicons-question-mark-circle"

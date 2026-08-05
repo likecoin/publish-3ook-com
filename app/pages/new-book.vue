@@ -6,12 +6,12 @@
     >
       <!-- Stepper Navigation -->
       <div class="justify-evenly items-center flex space-x-4 relative">
-        <div class="absolute w-full h-px bg-gray-300 top-[50%] left-0 z-[-1]" />
+        <div class="absolute w-full h-px bg-accented top-[50%] left-0 z-[-1]" />
         <button
           v-for="(s, index) in steps"
           :key="s.key"
           type="button"
-          class="flex items-center space-x-2 bg-white p-2 rounded-lg"
+          class="flex items-center space-x-2 bg-default p-2 rounded-lg"
           :class="index <= maxVisitedStepIndex && !isPublishing ? 'cursor-pointer' : 'cursor-default'"
           :disabled="index > maxVisitedStepIndex || isPublishing"
           @click="goToStep(s.key)"
@@ -19,7 +19,7 @@
           <UAvatar
             :size="s.key === step ? 'lg' : 'md'"
             :text="(index + 1).toString()"
-            :class="s.key === step ? 'bg-primary-100' : 'bg-gray-200'"
+            :class="s.key === step ? 'bg-primary/20' : 'bg-accented'"
           />
           <p class="text-sm font-semibold">
             {{ s.title }}
@@ -28,7 +28,7 @@
       </div>
 
       <!-- Step Content -->
-      <div class="mt-6 p-4 border rounded-lg bg-gray-100 flex flex-col gap-[24px]">
+      <div class="mt-6 p-4 border border-default rounded-lg bg-elevated flex flex-col gap-[24px]">
         <div v-if="step === 'files'">
           <UploadForm
             ref="uploadFormRef"
@@ -92,7 +92,7 @@
                 />
                 <p
                   v-if="isPublishing"
-                  class="text-xs text-gray-500"
+                  class="text-xs text-muted"
                   v-text="$t('publish_wizard.publishing_do_not_close')"
                 />
               </div>
@@ -146,7 +146,7 @@
         />
       </template>
       <template #body>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-muted">
           {{ pendingSessionNeedsReselect
             ? $t('publish_wizard.resume_draft_description_reselect', { title: pendingSessionTitle })
             : $t('publish_wizard.resume_draft_description', { title: pendingSessionTitle }) }}

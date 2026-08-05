@@ -7,7 +7,7 @@
             { fileData, fileName, fileSize, fileType }, index
           ) of fileRecords"
           :key="fileName"
-          class="flex justify-between items-center border-b-shade-gray border-b text-dark-gray hover:bg-light-gray transition-colors w-full"
+          class="flex justify-between items-center border-b border-default hover:bg-elevated transition-colors w-full"
         >
           <td class="py-[4px]">
             <ImgPreviewer
@@ -18,16 +18,16 @@
           </td>
           <td>
             <div class="flex flex-col">
-              <p class="font-semibold text-gray-700">
+              <p class="font-semibold text-highlighted">
                 {{ fileName }}
               </p>
-              <p class="text-gray-500 text-sm">
+              <p class="text-muted text-sm">
                 {{ Math.round((fileSize || 0) * 0.001) }} KB
               </p>
               <button
                 v-if="needsReselect(fileRecords[index])"
                 type="button"
-                class="text-red-600 hover:text-red-700 text-xs underline text-left cursor-pointer"
+                class="text-error hover:text-error/80 text-xs underline text-left cursor-pointer"
                 @click="emit('reselect', index)"
                 v-text="$t('upload_form.file_needs_reselect')"
               />
@@ -37,19 +37,19 @@
             <UIcon
               v-if="fileRecords[index]?.arweaveId"
               name="i-heroicons-check-circle"
-              class="w-5 h-5 text-green-500"
+              class="w-5 h-5 text-success"
               :title="$t('upload_form.file_already_uploaded')"
             />
             <UIcon
               v-if="fileRecords[index]?.hasValidationIssues"
               name="i-heroicons-exclamation-triangle"
-              class="w-5 h-5 text-yellow-500 cursor-help"
+              class="w-5 h-5 text-warning cursor-help"
               :title="$t('upload_form.epub_has_issues')"
               @click="emit('showIssues', fileRecords[index]!)"
             />
             <UIcon
               name="i-heroicons-trash"
-              class="cursor-pointer text-red-500"
+              class="cursor-pointer text-error"
               @click="emit('delete', index)"
             />
           </td>
