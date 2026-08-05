@@ -338,7 +338,12 @@ onMounted(async () => {
   if (session) {
     // Before the prompt renders, so it can say the files are still here rather
     // than announcing a re-selection that turns out not to be needed.
-    restoredFileBlobs.value = await loadDraftFiles(session.fileRecords)
+    restoredFileBlobs.value = await draftFileStore.loadDraftFiles(
+      session.fileRecords.map(record => ({
+        key: record.fileSHA256 || '',
+        expectedSize: record.fileSize,
+      })),
+    )
     pendingSession.value = session
     showResumePrompt.value = true
     return
@@ -346,7 +351,7 @@ onMounted(async () => {
   // Files with no draft to belong to: a previous session ended without
   // reaching either clear point. Not awaited — nothing below needs it, and
   // this is the common path onto a fresh wizard.
-  clearDraftFiles()
+  draftFileStore.clearDraftFiles()
   if (legacyClassId || legacyIscnId) {
     await initFromLegacyQuery(legacyClassId || legacyIscnId, !!legacyClassId)
   }
@@ -440,7 +445,7 @@ async function hydrateCoverPreview() {
 function discardDraft() {
   useLogEvent('book_publish_draft_discarded', { status: pendingSession.value?.status })
   clearPublishSession()
-  clearDraftFiles()
+  draftFileStore.clearDraftFiles()
   restoredFileBlobs.value = new Map()
   pendingSession.value = null
   showResumePrompt.value = false
@@ -498,7 +503,7 @@ function persistDraftFiles() {
   const stale = [...persistedFileHashes].filter(hash => !currentHashes.has(hash))
   if (stale.length) {
     stale.forEach(hash => persistedFileHashes.delete(hash))
-    deleteDraftFiles(stale)
+    draftFileStore.deleteDraftFiles(stale)
   }
   fileRecords.value.forEach((record) => {
     const { fileSHA256, fileBlob } = record
@@ -506,7 +511,7 @@ function persistDraftFiles() {
     // Marked before the write and left marked on failure: retrying a rejected
     // 200MB put every half second would be worse than the re-select prompt.
     persistedFileHashes.add(fileSHA256)
-    saveDraftFile(fileSHA256, fileBlob)
+    draftFileStore.saveDraftFile(fileSHA256, fileBlob)
   })
 }
 
@@ -767,7 +772,7 @@ async function handlePublish() {
   if (result) {
     lastStepStatus.value = BookUploadStatus.COMPLETED
     clearPublishSession()
-    clearDraftFiles()
+    draftFileStore.clearDraftFiles()
     // Here rather than at the picker: this is the point where a genre is known
     // to have been committed, not merely browsed past.
     rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
