@@ -89,6 +89,8 @@ export async function postNewUser({
 export interface OrderData {
   id: string
   email: string
+  // An EVM (`0x`) address once the claimer has migrated,
+  // otherwise a legacy `like1` one. The API sends no separate EVM field.
   wallet: string
   classId: string
   price: number
@@ -96,6 +98,9 @@ export interface OrderData {
   status: string
   timestamp: number
   message: string
+  // Present on gift purchases,
+  // where `email` is the buyer but `wallet` is the recipient's.
+  giftInfo?: { toEmail?: string }
 }
 
 export interface OrdersResponse {

@@ -59,6 +59,10 @@ export const useOrdersStore = defineStore('orders', () => {
     }
 
     const readersMap = new Map<string, ReaderData>()
+    // A reader's orders can span wallets: legacy `like1` claims,
+    // plus EVM ones made after they migrated.
+    // Pick the best address separately so the row shows where the books live.
+    const walletChoiceMap = new Map<string, { wallet: string, isEvm: boolean, time: number }>()
 
     allOrders.value.forEach((order) => {
       const readerEmail = order.email
@@ -69,6 +73,18 @@ export const useOrdersStore = defineStore('orders', () => {
       const amount = (order.price || 0) * (order.quantity || 1)
       const hasMessage = !!(order.message && order.message.trim())
       const wallet = order.wallet
+
+      // Gift orders record the recipient's wallet against the buyer's email,
+      // so they can't speak for this reader's own address.
+      if (wallet && !order.giftInfo) {
+        const isEvm = wallet.startsWith('0x')
+        const time = order.timestamp
+        const chosen = walletChoiceMap.get(readerEmail)
+        // An EVM address always wins; between two of a kind, the later one does.
+        if (!chosen || (isEvm === chosen.isEvm ? time > chosen.time : isEvm)) {
+          walletChoiceMap.set(readerEmail, { wallet, isEvm, time })
+        }
+      }
 
       if (readersMap.has(readerEmail)) {
         const existing = readersMap.get(readerEmail)
@@ -88,10 +104,6 @@ export const useOrdersStore = defineStore('orders', () => {
         }
 
         existing.purchasedBooks[order.classId] = true
-
-        if (wallet && !existing.readerWallet) {
-          existing.readerWallet = wallet
-        }
       }
       else {
         const purchasedBooks: Record<string, boolean> = {}
@@ -102,7 +114,6 @@ export const useOrdersStore = defineStore('orders', () => {
 
         readersMap.set(readerEmail, {
           readerEmail,
-          readerWallet: wallet,
           firstPurchaseTime: purchaseTime,
           lastPurchaseTime: purchaseTime,
           lifetimeValue: amount,
@@ -120,6 +131,7 @@ export const useOrdersStore = defineStore('orders', () => {
 
       return {
         ...reader,
+        readerWallet: walletChoiceMap.get(reader.readerEmail)?.wallet,
         ...bookSortFields,
       }
     })
