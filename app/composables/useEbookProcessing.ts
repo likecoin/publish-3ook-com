@@ -1,6 +1,14 @@
 import type { Book, NavItem } from '@likecoin/epub-ts'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { FileRecord, EpubMetadata, EpubSpineItem } from '~/types'
-import { GENERATED_COVER_SUFFIX } from '~/constant'
+import {
+  EBOOK_FILE_TYPES,
+  GENERATED_COVER_SUFFIX,
+  PDF_COVER_TARGET_WIDTH,
+  PDF_COVER_MAX_SCALE,
+  PDF_COVER_JPEG_QUALITY,
+} from '~/constant'
+import { getPdfDocument } from '~/utils/pdf'
 
 // Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
 const CONTENT_EXCERPT_MAX_CHARS = 20000
@@ -64,20 +72,63 @@ async function extractSpineData(
   return { spineItems, contentExcerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim() }
 }
 
-interface UseEpubProcessingOptions {
+interface UseEbookProcessingOptions {
   // File hashing delegate; return null to skip (the host surfaces its own error).
   getFileInfo: (file: Blob) => Promise<Awaited<ReturnType<typeof getFileInfo>> | null>
-  // Receives the cover record auto-extracted from an EPUB for the host's file list.
+  // Receives the cover record auto-extracted from an ebook for the host's file list.
   onCoverExtracted?: (record: FileRecord) => void
   onError?: (error: unknown) => void
 }
 
-// Owns the EPUB metadata list extracted from uploaded files: epubcheck
-// validation, metadata/ToC/tags/cover extraction, and cover-slot assignment.
-export function useEpubProcessing(options: UseEpubProcessingOptions) {
+// Owns the metadata list extracted from uploaded ebooks: epubcheck validation,
+// EPUB metadata/ToC/tags extraction, cover extraction for both EPUB and PDF,
+// and cover-slot assignment.
+export function useEbookProcessing(options: UseEbookProcessingOptions) {
   const { t: $t } = useI18n()
 
   const epubMetadataList = ref<EpubMetadata[]>([])
+
+  // False when the cover could not be hashed. Names and types the file here so
+  // GENERATED_COVER_SUFFIX and the MIME type cannot drift apart.
+  const attachCover = async (
+    blob: Blob,
+    baseName: string,
+    metadata: EpubMetadata,
+  ): Promise<boolean> => {
+    const coverFile = new File(
+      [blob],
+      `${baseName}${GENERATED_COVER_SUFFIX}`,
+      { type: 'image/jpeg' },
+    )
+    const coverInfo = await options.getFileInfo(coverFile)
+    if (!coverInfo) { return false }
+
+    const { fileSHA256, ipfsHash: ipfsThumbnailHash } = coverInfo
+    metadata.thumbnailIpfsHash = ipfsThumbnailHash
+
+    const coverFileRecord: FileRecord = {
+      fileName: coverFile.name,
+      fileSize: coverFile.size,
+      fileType: coverFile.type,
+      fileBlob: coverFile,
+      ipfsHash: ipfsThumbnailHash ?? undefined,
+      fileSHA256,
+      isGeneratedCover: true,
+    }
+    // Preview bytes only: the cover still uploads from its blob and
+    // hashes, so an unreadable one must not cost the entry its spine
+    // items and excerpt.
+    try {
+      coverFileRecord.fileData = await fileToDataUrl(coverFile)
+      metadata.coverData = coverFileRecord.fileData
+    }
+    catch (coverError) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to build the cover preview:', coverError)
+    }
+    options.onCoverExtracted?.(coverFileRecord)
+    return true
+  }
 
   const formatLanguage = (language: string) => {
     let formattedLanguage = ''
@@ -210,47 +261,7 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
         const response = await fetch(coverUrl)
         const blobData = await response.blob()
         if (blobData) {
-          const coverFile = new File(
-            [blobData],
-            `${metadata?.title || 'cover'}${GENERATED_COVER_SUFFIX}`,
-            {
-              type: 'image/jpeg',
-            },
-          )
-
-          const coverInfo = await options.getFileInfo(coverFile)
-          if (coverInfo) {
-            const {
-              fileSHA256,
-              ipfsHash: ipfsThumbnailHash,
-            } = coverInfo
-
-            epubMetadata.thumbnailIpfsHash = ipfsThumbnailHash
-
-            const coverFileRecord: FileRecord = {
-              fileName: coverFile.name,
-              fileSize: coverFile.size,
-              fileType: coverFile.type,
-              fileBlob: coverFile,
-              ipfsHash: ipfsThumbnailHash ?? undefined,
-              fileSHA256,
-              isGeneratedCover: true,
-            }
-            // Preview bytes only: the cover still uploads from its blob and
-            // hashes, so an unreadable one must not cost the entry its spine
-            // items and excerpt.
-            try {
-              coverFileRecord.fileData = await fileToDataUrl(coverFile)
-              epubMetadata.coverData = coverFileRecord.fileData
-            }
-            catch (coverError) {
-              // eslint-disable-next-line no-console
-              console.warn('Failed to build the cover preview:', coverError)
-            }
-            options.onCoverExtracted?.(coverFileRecord)
-            epubMetadataList.value.push(epubMetadata)
-            return
-          }
+          await attachCover(blobData, metadata?.title || 'cover', epubMetadata)
         }
       }
       epubMetadataList.value.push(epubMetadata)
@@ -259,6 +270,51 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
       // eslint-disable-next-line no-console
       console.error(err)
       options.onError?.(err)
+    }
+  }
+
+  // Best-effort by design: an encrypted or damaged file simply leaves the book
+  // without a cover, and validateFiles then asks the author for their own. That
+  // path is recoverable, so it stays silent rather than raising onError.
+  const processPdf = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }) => {
+    let pdf: PDFDocumentProxy | undefined
+    try {
+      pdf = await getPdfDocument(buffer)
+      const page = await pdf.getPage(1)
+      const unscaled = page.getViewport({ scale: 1 })
+      const viewport = page.getViewport({
+        scale: Math.min(PDF_COVER_TARGET_WIDTH / unscaled.width, PDF_COVER_MAX_SCALE),
+      })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(viewport.width)
+      canvas.height = Math.round(viewport.height)
+      // Stated rather than left to the default: JPEG has no alpha, so a
+      // transparent page background would otherwise come out black.
+      await page.render({ canvas, viewport, background: '#ffffff' }).promise
+
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(resolve, 'image/jpeg', PDF_COVER_JPEG_QUALITY))
+      if (!blob) { return }
+
+      // Named after the PDF so removeMetadataForDeletedFile can find this entry
+      // again; without it a deleted PDF would leave its cover behind.
+      const pdfMetadata: EpubMetadata = { epubFileName: file.name }
+      const baseName = file.name.replace(/\.pdf$/i, '') || 'cover'
+      if (await attachCover(blob, baseName, pdfMetadata)) {
+        epubMetadataList.value.push(pdfMetadata)
+        useLogEvent('book_publish_cover_generated_from_pdf')
+      }
+    }
+    catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to extract a cover from the PDF:', error)
+    }
+    finally {
+      // A book-sized PDF stays resident in the worker until destroyed. Caught
+      // here too: finally runs after the catch above, so a rejection would
+      // escape this otherwise-silent path.
+      await pdf?.destroy().catch(() => {})
     }
   }
 
@@ -275,7 +331,7 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
           metadata.epubFileName || metadata.thumbnailIpfsHash,
         )
     }
-    else if (removedFile.fileType === 'application/epub+zip') {
+    else if (removedFile.fileType && EBOOK_FILE_TYPES.includes(removedFile.fileType)) {
       epubMetadataList.value = epubMetadataList.value.filter(
         (metadata: EpubMetadata) => metadata.epubFileName !== removedFile.fileName,
       )
@@ -286,6 +342,7 @@ export function useEpubProcessing(options: UseEpubProcessingOptions) {
     epubMetadataList,
     validateEpub,
     processEPub,
+    processPdf,
     removeMetadataForDeletedFile,
   }
 }

@@ -24,10 +24,10 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
   const hasManualCover = computed(() =>
     fileRecords.value.some(record => isManualCoverRecord(record)))
 
-  // 復原 needs a cover the EPUB supplied *and* the bytes to show it with. A
-  // PDF book has neither; a draft resumed from localStorage has the record's
-  // name but not its preview data, and reverting to a cover it cannot display
-  // would just blank the field. Persisting the blobs is what restores it.
+  // 復原 needs a cover the ebook itself supplied — the EPUB's own or a PDF's
+  // rendered first page — *and* the bytes to show it with. A draft resumed from
+  // localStorage has the name but not the preview data; persisting the blobs is
+  // what restores it.
   const canRevertCover = computed(() =>
     !!generatedCoverRecord.value?.fileData && hasManualCover.value)
 
