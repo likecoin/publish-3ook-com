@@ -117,6 +117,7 @@ import { FetchError } from 'ofetch'
 import { useObjectUrl } from '@vueuse/core'
 import { getApiEndpoints } from '~/constant/api'
 import { decryptDataWithAES } from '~/utils/encryption'
+import { getPdfDocument } from '~/utils/pdf'
 
 type DetectedFileType = 'PNG' | 'JPEG' | 'GIF' | 'WebP' | 'BMP' | 'PDF' | 'EPUB' | null
 
@@ -174,7 +175,6 @@ const downloadFilename = ref('')
 
 let rendition: { display: () => Promise<unknown>, prev: () => void, next: () => void, destroy: () => void } | null = null
 let pdfDocument: PDFDocumentProxy | null = null
-let pdfjsLib: typeof import('pdfjs-dist') | null = null
 
 function detectFileType(buffer: ArrayBuffer): DetectedFileType {
   const bytes = new Uint8Array(buffer.slice(0, 12))
@@ -192,17 +192,6 @@ function detectFileType(buffer: ArrayBuffer): DetectedFileType {
   // EPUB is a ZIP archive (PK\x03\x04)
   if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) { return 'EPUB' }
   return null
-}
-
-async function loadPdfJs() {
-  if (pdfjsLib) { return pdfjsLib }
-  const pdfjs = await import('pdfjs-dist')
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString()
-  pdfjsLib = pdfjs
-  return pdfjs
 }
 
 async function renderPdfPage(pageNum: number) {
@@ -371,14 +360,7 @@ async function loadBook() {
 
       case 'PDF':
         try {
-          const pdfjs = await loadPdfJs()
-          const loadingTask = pdfjs.getDocument({
-            data: arrayBuffer,
-            wasmUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/wasm/`,
-            cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/cmaps/`,
-            cMapPacked: true,
-          })
-          pdfDocument = await loadingTask.promise
+          pdfDocument = await getPdfDocument(arrayBuffer)
           pdfTotalPages.value = pdfDocument.numPages
           pdfCurrentPage.value = 1
           isPdfLoaded.value = true

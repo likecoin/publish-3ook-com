@@ -199,8 +199,9 @@ const {
   epubMetadataList,
   validateEpub,
   processEPub,
+  processPdf,
   removeMetadataForDeletedFile,
-} = useEpubProcessing({
+} = useEbookProcessing({
   getFileInfo: getFileInfoWithToast,
   onCoverExtracted: upsertFileRecord,
   onError: (err) => {
@@ -295,6 +296,12 @@ const onFileUpload = async (event: Event) => {
                 fileRecord.hasValidationIssues = true
               }
               await processEPub({ buffer: fileBytes, file })
+            }
+            else if (fileRecord.fileType === 'application/pdf') {
+              uploadStatus.value = $t('upload_form.extracting_pdf_cover')
+              // Detaches fileBytes; nothing below reads it again.
+              await processPdf({ buffer: fileBytes, file })
+              uploadStatus.value = $t('upload_form.loading')
             }
             else if (fileRecord.fileType?.startsWith('image/')) {
               // Images only: a data URL is ~33% larger than the bytes it

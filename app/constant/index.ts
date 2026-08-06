@@ -33,9 +33,16 @@ export {
 
 export const EBOOK_FILE_TYPES = ['application/epub+zip', 'application/pdf']
 
-// Suffix useEpubProcessing gives a cover it extracted from the EPUB itself,
+// Suffix useEbookProcessing gives a cover it extracted from the ebook itself,
 // which is how the flow tells a generated cover from one the author picked.
 export const GENERATED_COVER_SUFFIX = '_cover.jpeg'
+
+// Rendering settings for the cover extracted from a PDF's first page. It is a
+// paid Arweave upload rather than a screen render, so it targets a width rather
+// than the device pixel ratio, and the cap stops a small page being upscaled.
+export const PDF_COVER_TARGET_WIDTH = 1200
+export const PDF_COVER_MAX_SCALE = 2
+export const PDF_COVER_JPEG_QUALITY = 0.85
 
 // Cover/image types that may take the open (public) storage tier. SVG is
 // deliberately absent: it can carry script, and these objects are served with the
