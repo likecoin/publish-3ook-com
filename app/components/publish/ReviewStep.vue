@@ -63,25 +63,28 @@
 
     <!-- Author-facing, so it gets its own card rather than sitting under the
          reader preview, but it stays next to the price it derives from. -->
-    <UCard
-      v-if="regionRows.length"
-      :ui="{ header: 'flex justify-between items-center gap-4 flex-wrap' }"
-    >
+    <UCard v-if="regionRows.length">
       <template #header>
         <h3
           class="font-bold font-mono"
           v-text="$t('publish_review.revenue_title')"
         />
-        <UTabs
-          v-model="revenueChannel"
-          size="xs"
-          :items="revenueChannelItems"
-          :content="false"
-        />
       </template>
       <div class="flex flex-col gap-2">
         <table class="w-full text-sm">
           <thead>
+            <!-- Both channels sit side by side rather than behind a toggle: the gap
+                 between them is the point, and comparing costs a click otherwise.
+                 The spanning header groups them so they do not read as additive. -->
+            <tr class="text-xs text-muted">
+              <td colspan="2" />
+              <th
+                scope="colgroup"
+                colspan="2"
+                class="text-center font-normal pb-1 border-b border-default"
+                v-text="$t('publish_review.revenue_you_earn')"
+              />
+            </tr>
             <tr class="text-xs text-muted">
               <th
                 scope="col"
@@ -96,7 +99,12 @@
               <th
                 scope="col"
                 class="text-right font-normal pb-1"
-                v-text="$t('publish_review.revenue_you_earn')"
+                v-text="$t('publish_review.revenue_liker_land')"
+              />
+              <th
+                scope="col"
+                class="text-right font-normal pb-1"
+                v-text="$t('publish_review.revenue_direct')"
               />
             </tr>
           </thead>
@@ -116,7 +124,11 @@
               />
               <td
                 class="py-1.5 text-right text-highlighted tabular-nums"
-                v-text="row.youEarn"
+                v-text="row.earnLikerLand"
+              />
+              <td
+                class="py-1.5 text-right text-highlighted tabular-nums"
+                v-text="row.earnDirect"
               />
             </tr>
           </tbody>
@@ -271,7 +283,7 @@ import type { PublishListingDraft, PriceFormItem } from '~/types/publish'
 import { getPriceItemUSDValue } from '~/utils/listing'
 import { isRecordUploaded, needsFileReselect } from '~/utils/arweave'
 import { resolveShortDescription } from '~/utils/description'
-import { estimateAuthorRevenue, type AuthorRevenueByChannel } from '~/utils/book-revenue'
+import { estimateAuthorRevenue } from '~/utils/book-revenue'
 import { buildPriceOverride, getRegionReaderPrices, type PricingCurrency } from '~/utils/pricing'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
@@ -325,13 +337,6 @@ const cheapestPaidOverride = computed<BookPriceInDecimalByCurrency | undefined>(
   return buildPriceOverride({ hkd: price.priceHKDInput, twd: price.priceTWDInput })
 })
 
-const revenueChannel = ref<keyof AuthorRevenueByChannel>('likerLand')
-
-const revenueChannelItems = computed(() => [
-  { label: $t('publish_review.revenue_liker_land'), value: 'likerLand' },
-  { label: $t('publish_review.revenue_direct'), value: 'direct' },
-])
-
 const CURRENCY_SYMBOL: Record<PricingCurrency, string> = { usd: 'US$', hkd: 'HK$', twd: 'NT$' }
 
 // The NT$/HK$ ladders are whole units; only USD is ever quoted with cents.
@@ -350,14 +355,16 @@ const regionRows = computed(() => {
   const usd = lowestPaidPriceUSD.value
   if (usd === null) { return [] }
   return getRegionReaderPrices(Math.round(usd * 100), cheapestPaidOverride.value).map((row) => {
-    const { ratio } = estimateAuthorRevenue(row.grossUSDInDecimal, row.currency)[revenueChannel.value]
+    const revenue = estimateAuthorRevenue(row.grossUSDInDecimal, row.currency)
+    const earned = (ratio: number) => (
+      formatRegionAmount(row.currency, Math.round(row.readerPriceInDecimal * ratio))
+    )
     return {
       currency: row.currency,
       label: $t(`publish_review.region_${row.currency}`),
       readerPays: formatRegionAmount(row.currency, row.readerPriceInDecimal),
-      youEarn: $t('publish_review.revenue_amount', {
-        amount: formatRegionAmount(row.currency, Math.round(row.readerPriceInDecimal * ratio)),
-      }),
+      earnLikerLand: earned(revenue.likerLand.ratio),
+      earnDirect: earned(revenue.direct.ratio),
     }
   })
 })
