@@ -23,6 +23,13 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     return !isExpired
   })
 
+  // Sessions signed before profile editing shipped, and the hand-off token
+  // from 3ook.com, are valid but cannot write the Liker profile.
+  const canEditProfile = computed(() => {
+    if (!isAuthenticated.value) { return false }
+    return checkJwtTokenPermission(token.value, PROFILE_WRITE_PERMISSION)
+  })
+
   function clearSession() {
     token.value = ''
     sessionWallet.value = ''
@@ -173,6 +180,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     moderatedBookList,
     getTotalPendingNFTCount,
     isAuthenticated,
+    canEditProfile,
     isShowLoginPanel,
     clearSession,
     openLoginPanel,

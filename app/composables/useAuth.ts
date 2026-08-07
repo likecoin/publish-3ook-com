@@ -123,10 +123,39 @@ export function useAuth() {
     }
   }
 
+  // Re-signs the current wallet for the full permission set, so a session
+  // created before a permission was added can be upgraded in place instead
+  // of forcing the user to log out and back in.
+  async function upgradeSessionPermissions() {
+    try {
+      isAuthenticating.value = true
+      const signature = await signMessageMemo(
+        'authorize',
+        SIGN_AUTHORIZATION_PERMISSIONS,
+      )
+      if (!signature) {
+        return false
+      }
+      await authenticate(signature.wallet, signature)
+      useLogEvent('session_permissions_upgraded')
+      return true
+    }
+    catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      showErrorToast(err)
+      return false
+    }
+    finally {
+      isAuthenticating.value = false
+    }
+  }
+
   return {
     isAuthenticating,
     authenticateBySignature,
     authenticateByConnectorId,
+    upgradeSessionPermissions,
     loginStatus,
   }
 }
