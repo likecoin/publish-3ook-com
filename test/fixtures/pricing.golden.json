@@ -1,0 +1,1138 @@
+{
+  "version": 1,
+  "source": "likecoin-api-public: constant/pricing.ts, util/pricing.ts",
+  "tablesVerifiedAgainstDeployment": "2026-08-07",
+  "tierLists": {
+    "usd": [
+      0,
+      0.99,
+      1.99,
+      2.99,
+      3.99,
+      4.99,
+      5.99,
+      6.99,
+      7.99,
+      8.99,
+      9.99,
+      10.99,
+      11.99,
+      12.99,
+      13.99,
+      14.99,
+      15.99,
+      16.99,
+      17.99,
+      18.99,
+      19.99,
+      20.99,
+      21.99,
+      22.99,
+      23.99,
+      24.99,
+      25.99,
+      26.99,
+      27.99,
+      28.99,
+      29.99,
+      30.99,
+      31.99,
+      32.99,
+      33.99,
+      34.99,
+      35.99,
+      36.99,
+      37.99,
+      38.99,
+      39.99,
+      40.99,
+      41.99,
+      42.99,
+      43.99,
+      44.99,
+      45.99,
+      46.99,
+      47.99,
+      48.99,
+      49.99,
+      50.99,
+      51.99,
+      52.99,
+      53.99,
+      54.99,
+      55.99,
+      56.99,
+      57.99,
+      58.99,
+      59.99,
+      60.99,
+      61.99,
+      62.99,
+      63.99,
+      64.99,
+      65.99,
+      66.99,
+      67.99,
+      68.99,
+      69.99,
+      70.99,
+      71.99,
+      72.99,
+      73.99,
+      74.99,
+      75.99,
+      76.99,
+      77.99,
+      78.99,
+      79.99,
+      80.99,
+      81.99,
+      82.99,
+      83.99,
+      84.99,
+      85.99,
+      86.99,
+      87.99,
+      88.99,
+      89.99,
+      90.99,
+      91.99,
+      92.99,
+      93.99,
+      94.99,
+      95.99,
+      96.99,
+      97.99,
+      98.99,
+      99.99
+    ],
+    "hkd": [
+      0,
+      8,
+      16,
+      25,
+      32,
+      40,
+      48,
+      55,
+      65,
+      70,
+      78,
+      86,
+      95,
+      102,
+      110,
+      118,
+      125,
+      135,
+      140,
+      150,
+      156,
+      165,
+      172,
+      180,
+      188,
+      195,
+      205,
+      210,
+      220,
+      228,
+      235,
+      242,
+      250,
+      258,
+      266,
+      275,
+      280,
+      290,
+      298,
+      305,
+      312,
+      320,
+      328,
+      336,
+      345,
+      350,
+      360,
+      368,
+      375,
+      385,
+      390,
+      398,
+      406,
+      415,
+      422,
+      430,
+      438,
+      445,
+      455,
+      460,
+      468,
+      476,
+      485,
+      492,
+      500,
+      508,
+      515,
+      525,
+      530,
+      540,
+      546,
+      555,
+      562,
+      570,
+      578,
+      585,
+      595,
+      600,
+      610,
+      618,
+      625,
+      632,
+      640,
+      648,
+      656,
+      665,
+      670,
+      680,
+      688,
+      695,
+      702,
+      710,
+      718,
+      726,
+      735,
+      740,
+      750,
+      758,
+      765,
+      775,
+      780
+    ],
+    "twd": [
+      0,
+      30,
+      60,
+      90,
+      120,
+      150,
+      180,
+      210,
+      240,
+      270,
+      300,
+      330,
+      360,
+      390,
+      420,
+      450,
+      480,
+      510,
+      540,
+      570,
+      600,
+      630,
+      660,
+      690,
+      720,
+      750,
+      780,
+      810,
+      840,
+      870,
+      900,
+      930,
+      960,
+      990,
+      1020,
+      1050,
+      1080,
+      1110,
+      1140,
+      1170,
+      1200,
+      1230,
+      1260,
+      1290,
+      1320,
+      1350,
+      1380,
+      1410,
+      1440,
+      1470,
+      1500,
+      1530,
+      1560,
+      1590,
+      1620,
+      1650,
+      1680,
+      1710,
+      1740,
+      1770,
+      1800,
+      1830,
+      1860,
+      1890,
+      1920,
+      1950,
+      1980,
+      2010,
+      2040,
+      2070,
+      2100,
+      2130,
+      2160,
+      2190,
+      2220,
+      2250,
+      2280,
+      2310,
+      2340,
+      2370,
+      2400,
+      2430,
+      2460,
+      2490,
+      2520,
+      2550,
+      2580,
+      2610,
+      2640,
+      2670,
+      2700,
+      2730,
+      2760,
+      2790,
+      2820,
+      2850,
+      2880,
+      2910,
+      2940,
+      2970,
+      3000
+    ]
+  },
+  "usdToCurrency": [
+    {
+      "name": "zero (usd)",
+      "price": 0,
+      "currency": "usd",
+      "expected": 0
+    },
+    {
+      "name": "zero (hkd)",
+      "price": 0,
+      "currency": "hkd",
+      "expected": 0
+    },
+    {
+      "name": "zero (twd)",
+      "price": 0,
+      "currency": "twd",
+      "expected": 0
+    },
+    {
+      "name": "negative clamps to zero (usd)",
+      "price": -5,
+      "currency": "usd",
+      "expected": 0
+    },
+    {
+      "name": "negative clamps to zero (hkd)",
+      "price": -5,
+      "currency": "hkd",
+      "expected": 0
+    },
+    {
+      "name": "negative clamps to zero (twd)",
+      "price": -5,
+      "currency": "twd",
+      "expected": 0
+    },
+    {
+      "name": "lowest tier (usd)",
+      "price": 0.99,
+      "currency": "usd",
+      "expected": 0.99
+    },
+    {
+      "name": "lowest tier (hkd)",
+      "price": 0.99,
+      "currency": "hkd",
+      "expected": 8
+    },
+    {
+      "name": "lowest tier (twd)",
+      "price": 0.99,
+      "currency": "twd",
+      "expected": 30
+    },
+    {
+      "name": "rounds down below .5 (usd)",
+      "price": 1.49,
+      "currency": "usd",
+      "expected": 1.49
+    },
+    {
+      "name": "rounds down below .5 (hkd)",
+      "price": 1.49,
+      "currency": "hkd",
+      "expected": 8
+    },
+    {
+      "name": "rounds down below .5 (twd)",
+      "price": 1.49,
+      "currency": "twd",
+      "expected": 30
+    },
+    {
+      "name": "rounds up at .5 (usd)",
+      "price": 1.5,
+      "currency": "usd",
+      "expected": 1.5
+    },
+    {
+      "name": "rounds up at .5 (hkd)",
+      "price": 1.5,
+      "currency": "hkd",
+      "expected": 16
+    },
+    {
+      "name": "rounds up at .5 (twd)",
+      "price": 1.5,
+      "currency": "twd",
+      "expected": 60
+    },
+    {
+      "name": "default tier US$4.99 (usd)",
+      "price": 4.99,
+      "currency": "usd",
+      "expected": 4.99
+    },
+    {
+      "name": "default tier US$4.99 (hkd)",
+      "price": 4.99,
+      "currency": "hkd",
+      "expected": 40
+    },
+    {
+      "name": "default tier US$4.99 (twd)",
+      "price": 4.99,
+      "currency": "twd",
+      "expected": 150
+    },
+    {
+      "name": "US$9.99 (usd)",
+      "price": 9.99,
+      "currency": "usd",
+      "expected": 9.99
+    },
+    {
+      "name": "US$9.99 (hkd)",
+      "price": 9.99,
+      "currency": "hkd",
+      "expected": 78
+    },
+    {
+      "name": "US$9.99 (twd)",
+      "price": 9.99,
+      "currency": "twd",
+      "expected": 300
+    },
+    {
+      "name": "highest tier US$99.99 (usd)",
+      "price": 99.99,
+      "currency": "usd",
+      "expected": 99.99
+    },
+    {
+      "name": "highest tier US$99.99 (hkd)",
+      "price": 99.99,
+      "currency": "hkd",
+      "expected": 780
+    },
+    {
+      "name": "highest tier US$99.99 (twd)",
+      "price": 99.99,
+      "currency": "twd",
+      "expected": 3000
+    },
+    {
+      "name": "above the tier list (usd)",
+      "price": 100.99,
+      "currency": "usd",
+      "expected": 100.99
+    },
+    {
+      "name": "above the tier list (hkd)",
+      "price": 100.99,
+      "currency": "hkd",
+      "expected": 787
+    },
+    {
+      "name": "above the tier list (twd)",
+      "price": 100.99,
+      "currency": "twd",
+      "expected": 3030
+    },
+    {
+      "name": "far above the tier list (usd)",
+      "price": 150,
+      "currency": "usd",
+      "expected": 150
+    },
+    {
+      "name": "far above the tier list (hkd)",
+      "price": 150,
+      "currency": "hkd",
+      "expected": 1170
+    },
+    {
+      "name": "far above the tier list (twd)",
+      "price": 150,
+      "currency": "twd",
+      "expected": 4500
+    }
+  ],
+  "currencyToUSD": [
+    {
+      "name": "hkd zero",
+      "price": 0,
+      "currency": "hkd",
+      "expected": 0
+    },
+    {
+      "name": "hkd lowest tier",
+      "price": 8,
+      "currency": "hkd",
+      "expected": 0.99
+    },
+    {
+      "name": "hkd between tiers",
+      "price": 50,
+      "currency": "hkd",
+      "expected": 6.99
+    },
+    {
+      "name": "hkd highest tier",
+      "price": 780,
+      "currency": "hkd",
+      "expected": 99.99
+    },
+    {
+      "name": "hkd above the tier list",
+      "price": 1000,
+      "currency": "hkd",
+      "expected": 128
+    },
+    {
+      "name": "twd zero",
+      "price": 0,
+      "currency": "twd",
+      "expected": 0
+    },
+    {
+      "name": "twd exact tier",
+      "price": 300,
+      "currency": "twd",
+      "expected": 9.99
+    },
+    {
+      "name": "twd between tiers",
+      "price": 305,
+      "currency": "twd",
+      "expected": 10.99
+    },
+    {
+      "name": "twd highest tier",
+      "price": 3000,
+      "currency": "twd",
+      "expected": 99.99
+    },
+    {
+      "name": "twd above the tier list",
+      "price": 5000,
+      "currency": "twd",
+      "expected": 166
+    },
+    {
+      "name": "usd passthrough",
+      "price": 9.99,
+      "currency": "usd",
+      "expected": 9.99
+    }
+  ],
+  "currencyPriceInDecimal": [
+    {
+      "name": "usd ignores overrides",
+      "usdPriceInDecimal": 999,
+      "currency": "usd",
+      "priceInDecimalByCurrency": {
+        "hkd": 5000
+      },
+      "expected": 999
+    },
+    {
+      "name": "twd tier conversion",
+      "usdPriceInDecimal": 999,
+      "currency": "twd",
+      "expected": 30000
+    },
+    {
+      "name": "hkd tier conversion",
+      "usdPriceInDecimal": 999,
+      "currency": "hkd",
+      "expected": 7800
+    },
+    {
+      "name": "hkd override wins",
+      "usdPriceInDecimal": 999,
+      "currency": "hkd",
+      "priceInDecimalByCurrency": {
+        "hkd": 5000
+      },
+      "expected": 5000
+    },
+    {
+      "name": "twd override wins",
+      "usdPriceInDecimal": 999,
+      "currency": "twd",
+      "priceInDecimalByCurrency": {
+        "twd": 25000
+      },
+      "expected": 25000
+    },
+    {
+      "name": "a zero override is still an override",
+      "usdPriceInDecimal": 999,
+      "currency": "twd",
+      "priceInDecimalByCurrency": {
+        "twd": 0
+      },
+      "expected": 0
+    },
+    {
+      "name": "override for the other currency is ignored",
+      "usdPriceInDecimal": 999,
+      "currency": "twd",
+      "priceInDecimalByCurrency": {
+        "hkd": 5000
+      },
+      "expected": 30000
+    },
+    {
+      "name": "free stays free",
+      "usdPriceInDecimal": 0,
+      "currency": "twd",
+      "expected": 0
+    }
+  ],
+  "sweep": [
+    {
+      "usd": 0,
+      "hkd": 0,
+      "twd": 0
+    },
+    {
+      "usd": 0.99,
+      "hkd": 8,
+      "twd": 30
+    },
+    {
+      "usd": 1.99,
+      "hkd": 16,
+      "twd": 60
+    },
+    {
+      "usd": 2.99,
+      "hkd": 25,
+      "twd": 90
+    },
+    {
+      "usd": 3.99,
+      "hkd": 32,
+      "twd": 120
+    },
+    {
+      "usd": 4.99,
+      "hkd": 40,
+      "twd": 150
+    },
+    {
+      "usd": 5.99,
+      "hkd": 48,
+      "twd": 180
+    },
+    {
+      "usd": 6.99,
+      "hkd": 55,
+      "twd": 210
+    },
+    {
+      "usd": 7.99,
+      "hkd": 65,
+      "twd": 240
+    },
+    {
+      "usd": 8.99,
+      "hkd": 70,
+      "twd": 270
+    },
+    {
+      "usd": 9.99,
+      "hkd": 78,
+      "twd": 300
+    },
+    {
+      "usd": 10.99,
+      "hkd": 86,
+      "twd": 330
+    },
+    {
+      "usd": 11.99,
+      "hkd": 95,
+      "twd": 360
+    },
+    {
+      "usd": 12.99,
+      "hkd": 102,
+      "twd": 390
+    },
+    {
+      "usd": 13.99,
+      "hkd": 110,
+      "twd": 420
+    },
+    {
+      "usd": 14.99,
+      "hkd": 118,
+      "twd": 450
+    },
+    {
+      "usd": 15.99,
+      "hkd": 125,
+      "twd": 480
+    },
+    {
+      "usd": 16.99,
+      "hkd": 135,
+      "twd": 510
+    },
+    {
+      "usd": 17.99,
+      "hkd": 140,
+      "twd": 540
+    },
+    {
+      "usd": 18.99,
+      "hkd": 150,
+      "twd": 570
+    },
+    {
+      "usd": 19.99,
+      "hkd": 156,
+      "twd": 600
+    },
+    {
+      "usd": 20.99,
+      "hkd": 165,
+      "twd": 630
+    },
+    {
+      "usd": 21.99,
+      "hkd": 172,
+      "twd": 660
+    },
+    {
+      "usd": 22.99,
+      "hkd": 180,
+      "twd": 690
+    },
+    {
+      "usd": 23.99,
+      "hkd": 188,
+      "twd": 720
+    },
+    {
+      "usd": 24.99,
+      "hkd": 195,
+      "twd": 750
+    },
+    {
+      "usd": 25.99,
+      "hkd": 205,
+      "twd": 780
+    },
+    {
+      "usd": 26.99,
+      "hkd": 210,
+      "twd": 810
+    },
+    {
+      "usd": 27.99,
+      "hkd": 220,
+      "twd": 840
+    },
+    {
+      "usd": 28.99,
+      "hkd": 228,
+      "twd": 870
+    },
+    {
+      "usd": 29.99,
+      "hkd": 235,
+      "twd": 900
+    },
+    {
+      "usd": 30.99,
+      "hkd": 242,
+      "twd": 930
+    },
+    {
+      "usd": 31.99,
+      "hkd": 250,
+      "twd": 960
+    },
+    {
+      "usd": 32.99,
+      "hkd": 258,
+      "twd": 990
+    },
+    {
+      "usd": 33.99,
+      "hkd": 266,
+      "twd": 1020
+    },
+    {
+      "usd": 34.99,
+      "hkd": 275,
+      "twd": 1050
+    },
+    {
+      "usd": 35.99,
+      "hkd": 280,
+      "twd": 1080
+    },
+    {
+      "usd": 36.99,
+      "hkd": 290,
+      "twd": 1110
+    },
+    {
+      "usd": 37.99,
+      "hkd": 298,
+      "twd": 1140
+    },
+    {
+      "usd": 38.99,
+      "hkd": 305,
+      "twd": 1170
+    },
+    {
+      "usd": 39.99,
+      "hkd": 312,
+      "twd": 1200
+    },
+    {
+      "usd": 40.99,
+      "hkd": 320,
+      "twd": 1230
+    },
+    {
+      "usd": 41.99,
+      "hkd": 328,
+      "twd": 1260
+    },
+    {
+      "usd": 42.99,
+      "hkd": 336,
+      "twd": 1290
+    },
+    {
+      "usd": 43.99,
+      "hkd": 345,
+      "twd": 1320
+    },
+    {
+      "usd": 44.99,
+      "hkd": 350,
+      "twd": 1350
+    },
+    {
+      "usd": 45.99,
+      "hkd": 360,
+      "twd": 1380
+    },
+    {
+      "usd": 46.99,
+      "hkd": 368,
+      "twd": 1410
+    },
+    {
+      "usd": 47.99,
+      "hkd": 375,
+      "twd": 1440
+    },
+    {
+      "usd": 48.99,
+      "hkd": 385,
+      "twd": 1470
+    },
+    {
+      "usd": 49.99,
+      "hkd": 390,
+      "twd": 1500
+    },
+    {
+      "usd": 50.99,
+      "hkd": 398,
+      "twd": 1530
+    },
+    {
+      "usd": 51.99,
+      "hkd": 406,
+      "twd": 1560
+    },
+    {
+      "usd": 52.99,
+      "hkd": 415,
+      "twd": 1590
+    },
+    {
+      "usd": 53.99,
+      "hkd": 422,
+      "twd": 1620
+    },
+    {
+      "usd": 54.99,
+      "hkd": 430,
+      "twd": 1650
+    },
+    {
+      "usd": 55.99,
+      "hkd": 438,
+      "twd": 1680
+    },
+    {
+      "usd": 56.99,
+      "hkd": 445,
+      "twd": 1710
+    },
+    {
+      "usd": 57.99,
+      "hkd": 455,
+      "twd": 1740
+    },
+    {
+      "usd": 58.99,
+      "hkd": 460,
+      "twd": 1770
+    },
+    {
+      "usd": 59.99,
+      "hkd": 468,
+      "twd": 1800
+    },
+    {
+      "usd": 60.99,
+      "hkd": 476,
+      "twd": 1830
+    },
+    {
+      "usd": 61.99,
+      "hkd": 485,
+      "twd": 1860
+    },
+    {
+      "usd": 62.99,
+      "hkd": 492,
+      "twd": 1890
+    },
+    {
+      "usd": 63.99,
+      "hkd": 500,
+      "twd": 1920
+    },
+    {
+      "usd": 64.99,
+      "hkd": 508,
+      "twd": 1950
+    },
+    {
+      "usd": 65.99,
+      "hkd": 515,
+      "twd": 1980
+    },
+    {
+      "usd": 66.99,
+      "hkd": 525,
+      "twd": 2010
+    },
+    {
+      "usd": 67.99,
+      "hkd": 530,
+      "twd": 2040
+    },
+    {
+      "usd": 68.99,
+      "hkd": 540,
+      "twd": 2070
+    },
+    {
+      "usd": 69.99,
+      "hkd": 546,
+      "twd": 2100
+    },
+    {
+      "usd": 70.99,
+      "hkd": 555,
+      "twd": 2130
+    },
+    {
+      "usd": 71.99,
+      "hkd": 562,
+      "twd": 2160
+    },
+    {
+      "usd": 72.99,
+      "hkd": 570,
+      "twd": 2190
+    },
+    {
+      "usd": 73.99,
+      "hkd": 578,
+      "twd": 2220
+    },
+    {
+      "usd": 74.99,
+      "hkd": 585,
+      "twd": 2250
+    },
+    {
+      "usd": 75.99,
+      "hkd": 595,
+      "twd": 2280
+    },
+    {
+      "usd": 76.99,
+      "hkd": 600,
+      "twd": 2310
+    },
+    {
+      "usd": 77.99,
+      "hkd": 610,
+      "twd": 2340
+    },
+    {
+      "usd": 78.99,
+      "hkd": 618,
+      "twd": 2370
+    },
+    {
+      "usd": 79.99,
+      "hkd": 625,
+      "twd": 2400
+    },
+    {
+      "usd": 80.99,
+      "hkd": 632,
+      "twd": 2430
+    },
+    {
+      "usd": 81.99,
+      "hkd": 640,
+      "twd": 2460
+    },
+    {
+      "usd": 82.99,
+      "hkd": 648,
+      "twd": 2490
+    },
+    {
+      "usd": 83.99,
+      "hkd": 656,
+      "twd": 2520
+    },
+    {
+      "usd": 84.99,
+      "hkd": 665,
+      "twd": 2550
+    },
+    {
+      "usd": 85.99,
+      "hkd": 670,
+      "twd": 2580
+    },
+    {
+      "usd": 86.99,
+      "hkd": 680,
+      "twd": 2610
+    },
+    {
+      "usd": 87.99,
+      "hkd": 688,
+      "twd": 2640
+    },
+    {
+      "usd": 88.99,
+      "hkd": 695,
+      "twd": 2670
+    },
+    {
+      "usd": 89.99,
+      "hkd": 702,
+      "twd": 2700
+    },
+    {
+      "usd": 90.99,
+      "hkd": 710,
+      "twd": 2730
+    },
+    {
+      "usd": 91.99,
+      "hkd": 718,
+      "twd": 2760
+    },
+    {
+      "usd": 92.99,
+      "hkd": 726,
+      "twd": 2790
+    },
+    {
+      "usd": 93.99,
+      "hkd": 735,
+      "twd": 2820
+    },
+    {
+      "usd": 94.99,
+      "hkd": 740,
+      "twd": 2850
+    },
+    {
+      "usd": 95.99,
+      "hkd": 750,
+      "twd": 2880
+    },
+    {
+      "usd": 96.99,
+      "hkd": 758,
+      "twd": 2910
+    },
+    {
+      "usd": 97.99,
+      "hkd": 765,
+      "twd": 2940
+    },
+    {
+      "usd": 98.99,
+      "hkd": 775,
+      "twd": 2970
+    },
+    {
+      "usd": 99.99,
+      "hkd": 780,
+      "twd": 3000
+    }
+  ]
+}
