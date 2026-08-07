@@ -9,9 +9,18 @@ import {
   PDF_COVER_JPEG_QUALITY,
 } from '~/constant'
 import { getPdfDocument } from '~/utils/pdf'
+import { sanitizePdfTitle, sanitizePdfAuthor } from '~/utils/pdf-metadata'
 
 // Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
 const CONTENT_EXCERPT_MAX_CHARS = 20000
+// Roughly ten text-dense pages fill the cap, so this only bounds the walk over
+// a book whose opening pages carry little text — a picture book, or a scan.
+const PDF_EXCERPT_MAX_PAGES = 30
+// Give up on a scan early: walking its 30 text-less pages costs about a second
+// and can fetch a cmap per page. Counted in characters rather than emptiness,
+// since a scanned body often opens on a born-digital or OCR'd title page.
+const PDF_EXCERPT_PROBE_PAGES = 5
+const PDF_EXCERPT_PROBE_MIN_CHARS = 200
 
 // One pass over the spine, sharing each decompressed document: the ordered
 // size table for the free-preview cut readout (uncompressed byte size per
@@ -70,6 +79,29 @@ async function extractSpineData(
     }
   }
   return { spineItems, contentExcerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim() }
+}
+
+// The PDF counterpart of extractSpineData's excerpt half, feeding the same AI
+// metadata suggestion.
+async function extractPdfExcerpt(pdf: PDFDocumentProxy): Promise<string> {
+  let excerpt = ''
+  const pageCount = Math.min(pdf.numPages, PDF_EXCERPT_MAX_PAGES)
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber)
+    const { items } = await page.getTextContent()
+    // Items are positioned runs, not words, so join with a space and collapse
+    // after: a run boundary mid-word is rarer than two runs running together.
+    const pageText = items
+      .map(item => ('str' in item ? item.str : ''))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (pageText) { excerpt += `${pageText}\n\n` }
+    if (excerpt.length >= CONTENT_EXCERPT_MAX_CHARS) { break }
+    if (pageNumber >= PDF_EXCERPT_PROBE_PAGES
+      && excerpt.length < PDF_EXCERPT_PROBE_MIN_CHARS) { break }
+  }
+  return excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim()
 }
 
 interface UseEbookProcessingOptions {
@@ -273,48 +305,131 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
     }
   }
 
+  // Filtered before reaching the form; see ~/utils/pdf-metadata for why. Left
+  // unset rather than blanked, so seedDetailsFromMetadata only marks a field
+  // prefilled-from-file when the file really supplied it.
+  const applyPdfInfo = async (pdf: PDFDocumentProxy, metadata: EpubMetadata) => {
+    // pdf.js types `info` as bare Object: it mirrors whatever the information
+    // dictionary held, so every entry is optional and untyped. XMP is not
+    // consulted — across the sample its dc:title never differed from Title.
+    const { info } = await pdf.getMetadata() as {
+      info?: { Title?: unknown, Author?: unknown, Language?: unknown }
+    }
+    const rawTitle = typeof info?.Title === 'string' ? info.Title : ''
+    const rawAuthor = typeof info?.Author === 'string' ? info.Author : ''
+
+    const title = sanitizePdfTitle(rawTitle)
+    const author = sanitizePdfAuthor(rawAuthor)
+    const language = formatLanguage(
+      typeof info?.Language === 'string' ? info.Language.trim() : '')
+    if (title) { metadata.title = title }
+    if (author) { metadata.author = author }
+    if (language) { metadata.language = language }
+
+    // Rejections are logged alongside the hits: the filters can only be tuned
+    // against how often real authors' PDFs carry something worth keeping.
+    useLogEvent('book_publish_pdf_metadata_extracted', {
+      has_title: !!title,
+      has_author: !!author,
+      has_language: !!language,
+      title_rejected: !!rawTitle.trim() && !title,
+      author_rejected: !!rawAuthor.trim() && !author,
+    })
+  }
+
+  const applyPdfCover = async (pdf: PDFDocumentProxy, file: File, metadata: EpubMetadata) => {
+    const page = await pdf.getPage(1)
+    const unscaled = page.getViewport({ scale: 1 })
+    const viewport = page.getViewport({
+      scale: Math.min(PDF_COVER_TARGET_WIDTH / unscaled.width, PDF_COVER_MAX_SCALE),
+    })
+
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(viewport.width)
+    canvas.height = Math.round(viewport.height)
+    // Stated rather than left to the default: JPEG has no alpha, so a
+    // transparent page background would otherwise come out black.
+    await page.render({ canvas, viewport, background: '#ffffff' }).promise
+
+    const blob = await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(resolve, 'image/jpeg', PDF_COVER_JPEG_QUALITY))
+    // Rendering is what fills page.objs with the decoded page image — on a
+    // scanned cover the largest allocation here, and attachCover's hashing
+    // would otherwise hold it live.
+    page.cleanup()
+    if (!blob) { return }
+
+    const baseName = file.name.replace(/\.pdf$/i, '') || 'cover'
+    if (await attachCover(blob, baseName, metadata)) {
+      useLogEvent('book_publish_cover_generated_from_pdf')
+    }
+  }
+
   // Best-effort by design: an encrypted or damaged file simply leaves the book
-  // without a cover, and validateFiles then asks the author for their own. That
-  // path is recoverable, so it stays silent rather than raising onError.
+  // without a cover or metadata, and validateFiles then asks the author for a
+  // cover. That path is recoverable, so it stays silent rather than raising
+  // onError.
   const processPdf = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }) => {
-    let pdf: PDFDocumentProxy | undefined
+    let pdf: PDFDocumentProxy
     try {
       pdf = await getPdfDocument(buffer)
-      const page = await pdf.getPage(1)
-      const unscaled = page.getViewport({ scale: 1 })
-      const viewport = page.getViewport({
-        scale: Math.min(PDF_COVER_TARGET_WIDTH / unscaled.width, PDF_COVER_MAX_SCALE),
-      })
-
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(viewport.width)
-      canvas.height = Math.round(viewport.height)
-      // Stated rather than left to the default: JPEG has no alpha, so a
-      // transparent page background would otherwise come out black.
-      await page.render({ canvas, viewport, background: '#ffffff' }).promise
-
-      const blob = await new Promise<Blob | null>(resolve =>
-        canvas.toBlob(resolve, 'image/jpeg', PDF_COVER_JPEG_QUALITY))
-      if (!blob) { return }
-
-      // Named after the PDF so removeMetadataForDeletedFile can find this entry
-      // again; without it a deleted PDF would leave its cover behind.
-      const pdfMetadata: EpubMetadata = { epubFileName: file.name }
-      const baseName = file.name.replace(/\.pdf$/i, '') || 'cover'
-      if (await attachCover(blob, baseName, pdfMetadata)) {
-        epubMetadataList.value.push(pdfMetadata)
-        useLogEvent('book_publish_cover_generated_from_pdf')
-      }
     }
     catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to extract a cover from the PDF:', error)
+      console.error('Failed to open the PDF:', error)
+      return
+    }
+
+    try {
+      // Named after the PDF so removeMetadataForDeletedFile can find this entry
+      // again; without it a deleted PDF would leave its cover behind.
+      const metadata: EpubMetadata = { epubFileName: file.name }
+
+      // Three independent best-effort steps, ordered by how soon the author
+      // sees the result: the Info fields seed the next step's form, the cover
+      // lands in the file list as it renders, and nothing reads the excerpt
+      // until the AI suggestion two steps later.
+      try {
+        await applyPdfInfo(pdf, metadata)
+      }
+      catch (infoError) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to read the PDF information dictionary:', infoError)
+      }
+
+      try {
+        await applyPdfCover(pdf, file, metadata)
+      }
+      catch (coverError) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to extract a cover from the PDF:', coverError)
+      }
+
+      try {
+        // Left unset when the PDF is a scan: handleFilesCollected merges this
+        // entry over the last one, so an empty string would blank an excerpt
+        // an earlier pass had read.
+        const contentExcerpt = await extractPdfExcerpt(pdf)
+        if (contentExcerpt) { metadata.contentExcerpt = contentExcerpt }
+      }
+      catch (excerptError) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to read the PDF text:', excerptError)
+      }
+
+      // A PDF that yielded nothing is not worth an entry: UploadForm hands the
+      // wizard epubMetadataList[0], so an empty one would shadow the metadata
+      // of an EPUB uploaded alongside it. useManualCover creates its own.
+      const { epubFileName, ...extracted } = metadata
+      if (Object.values(extracted).some(Boolean)) {
+        epubMetadataList.value.push(metadata)
+      }
     }
     finally {
       // A book-sized PDF stays resident in the worker until destroyed. Caught
-      // here too: finally runs after the catch above, so a rejection would
+      // because finally runs after the steps above, so a rejection here would
       // escape this otherwise-silent path.
-      await pdf?.destroy().catch(() => {})
+      await pdf.destroy().catch(() => {})
     }
   }
 

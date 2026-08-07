@@ -1001,7 +1001,7 @@
   "upload_form.epub_validation_notice": "您可以繼續使用此檔案，但建議修正問題以獲得更好的相容性。",
   "upload_form.epub_validation_warnings": "警告",
   "upload_form.error_during_upload": "檔案上傳期間發生錯誤",
-  "upload_form.extracting_pdf_cover": "正在從 PDF 擷取封面...",
+  "upload_form.reading_pdf": "正在讀取 PDF...",
   "upload_form.file_already_uploaded": "已上傳",
   "upload_form.file_generated_cover": "自動產生",
   "upload_form.file_needs_reselect": "請重新選擇此檔案",

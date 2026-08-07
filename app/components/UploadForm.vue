@@ -298,7 +298,7 @@ const onFileUpload = async (event: Event) => {
               await processEPub({ buffer: fileBytes, file })
             }
             else if (fileRecord.fileType === 'application/pdf') {
-              uploadStatus.value = $t('upload_form.extracting_pdf_cover')
+              uploadStatus.value = $t('upload_form.reading_pdf')
               // Detaches fileBytes; nothing below reads it again.
               await processPdf({ buffer: fileBytes, file })
               uploadStatus.value = $t('upload_form.loading')
