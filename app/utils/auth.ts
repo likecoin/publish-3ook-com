@@ -72,26 +72,46 @@ export function clearPostAuthRedirect() {
   catch {}
 }
 
-export const SIGN_AUTHORIZATION_PERMISSIONS = [
+// The subset a session must carry to be usable at all. Kept narrower than
+// what we request so older sessions and the signed hand-off from 3ook.com
+// still restore; profile editing is gated separately on `write:profile`.
+export const REQUIRED_SESSION_PERMISSIONS = [
   'read:nftbook',
   'write:nftbook',
   'write:iscn',
   'read:iscn',
 ] as const
 
+export const PROFILE_WRITE_PERMISSION = 'write:profile'
+
+export const SIGN_AUTHORIZATION_PERMISSIONS = [
+  ...REQUIRED_SESSION_PERMISSIONS,
+  'read:profile',
+  PROFILE_WRITE_PERMISSION,
+] as const
+
+function decodeToken(token: string) {
+  try {
+    return jwtDecode(token) as { exp?: number, permissions?: string[] } | null
+  }
+  catch {
+    return null
+  }
+}
+
+export function checkJwtTokenPermission(token: string, permission: string) {
+  return !!decodeToken(token)?.permissions?.includes(permission)
+}
+
 export function checkJwtTokenValidity(token: string) {
-  const decoded = jwtDecode(token)
+  const decoded = decodeToken(token)
   if (!decoded) {
     return false
   }
   const isExpired = decoded.exp && decoded.exp * 1000 < Date.now()
-  const decodedWithPermissions = decoded as { permissions?: string[] }
-  const isMatchPermissions
-    = Array.isArray(decodedWithPermissions.permissions)
-      && decodedWithPermissions.permissions.length === SIGN_AUTHORIZATION_PERMISSIONS.length
-      && decodedWithPermissions.permissions.every((perm: string) =>
-        (SIGN_AUTHORIZATION_PERMISSIONS as readonly string[]).includes(perm),
-      )
+  const { permissions } = decoded
+  const isMatchPermissions = Array.isArray(permissions)
+    && REQUIRED_SESSION_PERMISSIONS.every(perm => permissions.includes(perm))
   return !isExpired && isMatchPermissions
 }
 

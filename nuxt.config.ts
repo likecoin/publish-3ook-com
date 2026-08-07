@@ -97,11 +97,13 @@ export default defineNuxtConfig({
     locales: [
       {
         code: 'en',
+        name: 'English',
         language: 'en-US',
         file: 'en.json',
       },
       {
         code: 'zh',
+        name: '繁體中文',
         language: 'zh-TW',
         file: 'zh-TW.json',
       },

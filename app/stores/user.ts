@@ -1,3 +1,8 @@
+export interface BookUserProfile {
+  notificationEmail?: string | null
+  isEmailVerified?: boolean
+}
+
 export const useUserStore = defineStore('user', () => {
   const apiFetch = useLikeCoApiFetch()
 
@@ -5,7 +10,7 @@ export const useUserStore = defineStore('user', () => {
   const { isAuthenticated, wallet } = storeToRefs(bookstoreApiStore)
   const likerStore = useLikerStore()
 
-  const bookUser = ref<Record<string, unknown> | null>(null)
+  const bookUser = ref<BookUserProfile | null>(null)
   const userLikerInfo = computed(() => {
     if (isAuthenticated.value && wallet.value) {
       return likerStore.getLikerInfoByWallet(wallet.value)
@@ -15,8 +20,8 @@ export const useUserStore = defineStore('user', () => {
   const isFetchingUserLikerInfo = ref(false)
 
   async function fetchBookUserProfile() {
-    const data = await apiFetch('/likernft/book/user/profile')
-    bookUser.value = data as Record<string, unknown>
+    const data = await apiFetch<BookUserProfile>('/likernft/book/user/profile')
+    bookUser.value = data
     return bookUser.value
   }
 
@@ -61,6 +66,27 @@ export const useUserStore = defineStore('user', () => {
     return likerInfo
   }
 
+  // Both writes need `write:profile` in the session token, hence the
+  // `canEditProfile` gate on the UI that calls them.
+  async function updateUserProfile(payload: { displayName: string }) {
+    await apiFetch('/users/update', {
+      method: 'POST',
+      body: payload,
+    })
+    await fetchUserLikerInfo({ nocache: true })
+  }
+
+  async function uploadUserAvatar(file: File) {
+    const formData = new FormData()
+    formData.append('avatarFile', file)
+    const data = await apiFetch<{ avatar: string }>('/users/update/avatar', {
+      method: 'POST',
+      body: formData,
+    })
+    await fetchUserLikerInfo({ nocache: true })
+    return data
+  }
+
   watch(isAuthenticated, () => {
     if (isAuthenticated.value) {
       lazyFetchUserLikerInfo()
@@ -79,5 +105,7 @@ export const useUserStore = defineStore('user', () => {
     lazyFetchBookUserProfile,
     fetchUserLikerInfo,
     lazyFetchUserLikerInfo,
+    updateUserProfile,
+    uploadUserAvatar,
   }
 })
