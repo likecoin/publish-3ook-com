@@ -68,7 +68,8 @@
           class="flex flex-col gap-[24px]"
         >
           <!-- Ahead of pricing: how readers get the file, then what they pay
-               for it. The tier is fixed once the book publishes. -->
+               for it. The tier stays changeable after publishing; what does not
+               is an opened file, which is on Arweave for good. -->
           <UCard>
             <template #header>
               <h3
