@@ -97,6 +97,18 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     sortState.value.direction = direction
   }
 
+  function toggleSort(column: string) {
+    if (sortState.value.column !== column) {
+      setSortState(column, 'asc')
+      return
+    }
+    if (sortState.value.direction === 'asc') {
+      setSortState(column, 'desc')
+      return
+    }
+    setSortState(null, null)
+  }
+
   function setPage(page: number) {
     pagination.value.page = Math.max(1, Math.min(page, totalPages.value))
   }
@@ -123,6 +135,7 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     paginatedRows,
     totalPages,
     setSortState,
+    toggleSort,
     setPage,
     setPageSize,
     getSortIcon,
