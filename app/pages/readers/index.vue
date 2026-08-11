@@ -77,7 +77,7 @@
             variant="ghost"
             :label="column.label"
             :trailing-icon="getSortIcon(column.key)"
-            @click="() => sortByColumn(column.key)"
+            @click="() => toggleSort(column.key)"
           />
           <UTooltip
             v-else
@@ -88,7 +88,7 @@
               variant="ghost"
               :label="column.label"
               :trailing-icon="getSortIcon(column.key)"
-              @click="() => sortByColumn(column.key)"
+              @click="() => toggleSort(column.key)"
             />
           </UTooltip>
         </template>
@@ -106,7 +106,7 @@
               variant="ghost"
               :label="book.name?.slice(0, 1) || book.classId.slice(0, 1)"
               :trailing-icon="getSortIcon(`book_${book.classId}`)"
-              @click="() => sortByColumn(`book_${book.classId}`)"
+              @click="() => toggleSort(`book_${book.classId}`)"
             />
           </UTooltip>
         </template>
@@ -209,11 +209,10 @@ const {
   paginatedReaders,
   columns,
   pagination,
-  sortState,
   selectedRows,
   hasSelection,
   selectionCount,
-  setSortState,
+  toggleSort,
   setPage,
   setPageSize,
   onSelect,
@@ -253,25 +252,6 @@ async function refreshData() {
 function onPageSizeChange(newSize: number) {
   setPageSize(newSize)
   currentPage.value = 1
-}
-
-function sortByColumn(columnKey: string) {
-  const currentSort = sortState.value
-
-  if (currentSort.column === columnKey) {
-    if (currentSort.direction === 'asc') {
-      setSortState(columnKey, 'desc')
-    }
-    else if (currentSort.direction === 'desc') {
-      setSortState(null, null)
-    }
-    else {
-      setSortState(columnKey, 'asc')
-    }
-  }
-  else {
-    setSortState(columnKey, 'asc')
-  }
 }
 
 function exportSelectedToCSV() {

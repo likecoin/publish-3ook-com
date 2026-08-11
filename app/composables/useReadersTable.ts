@@ -12,7 +12,7 @@ export function useReadersTable() {
     sortedRows: sortedReaders,
     paginatedRows: paginatedReaders,
     totalPages,
-    setSortState,
+    toggleSort,
     setPage,
     setPageSize,
     getSortIcon,
@@ -169,7 +169,7 @@ export function useReadersTable() {
     selectionCount,
     baseColumnsConfig,
 
-    setSortState,
+    toggleSort,
     setPage,
     setPageSize,
     onSelect,
