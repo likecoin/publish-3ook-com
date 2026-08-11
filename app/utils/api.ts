@@ -1,3 +1,5 @@
+import type { ClassListingPrice } from '~/types/book'
+
 export interface FetchLikerInfoResult {
   user: string
   displayName: string
@@ -121,9 +123,16 @@ export interface AuthResponse {
 export interface BookListingItem {
   classId: string
   name?: string
-  pendingNFTCount?: number
-  prices?: { price: number }[]
+  thumbnailUrl?: string
+  minPrice?: number
+  prices?: ClassListingPrice[]
+  timestamp?: number
+  isHidden?: boolean
+  isPendingReview?: boolean
+  // Owner-only fields, like the per-price `sold`; absent for a viewer who
+  // neither owns nor moderates the book.
   sold?: number
+  pendingNFTCount?: number
 }
 
 export interface BookListingResponse {

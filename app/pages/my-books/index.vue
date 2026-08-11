@@ -73,17 +73,9 @@
                 </ul>
               </template>
               <template #className-cell="{ row }">
-                <NFTClassMetadataLoader :class-id="row.original.classId">
-                  <template #default="{ isLoading: isLoadingMetadata }">
-                    <UProgress v-if="isLoadingMetadata || !row.original.className" />
-                    <div
-                      v-else
-                      class="max-w-xs truncate"
-                    >
-                      {{ row.original.className }}
-                    </div>
-                  </template>
-                </NFTClassMetadataLoader>
+                <div class="max-w-xs truncate">
+                  {{ row.original.className || row.original.classId }}
+                </div>
               </template>
             </UTable>
           </UCard>
@@ -116,7 +108,8 @@ const likerStore = useLikerStore()
 const { getLikerInfoByWallet } = storeToRefs(likerStore)
 const stripeStore = useStripeStore()
 const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
-const { lazyFetchClassMetadataById } = nftStore
+const { getClassNameById } = storeToRefs(nftStore)
+const { lazyFetchClassNameById } = nftStore
 const { fetchBookListing, fetchModeratedBookList } = bookstoreApiStore
 
 const error = ref('')
@@ -163,8 +156,10 @@ const searchInput = ref('')
 // Rows
 const tableRows = computed(() => (selectedTabItemIndex.value === 'viewable' ? moderatedBookList : bookList).value.map(b => ({
   classId: b.classId,
-  className: nftStore.getClassMetadataById(b.classId)?.name,
-  priceInUSD: b.prices?.[0]?.price,
+  // The listing carries its own name; on-chain metadata is only a fallback for
+  // legacy classes whose listing doc never recorded one.
+  className: b.name || getClassNameById.value(b.classId),
+  priceInUSD: b.minPrice ?? b.prices?.[0]?.price,
   prices: b.prices?.map(p => p.price),
   pendingAction: b.pendingNFTCount,
   sold: b.sold,
@@ -242,8 +237,12 @@ onMounted(async () => {
   }
   await Promise.all(promises)
 
-  const classIds: Set<string> = new Set(bookList.value.map(b => b.classId).concat(moderatedBookList.value.map(m => m.classId)))
-  classIds.forEach(classId => lazyFetchClassMetadataById(classId))
+  // Only legacy listings arrive without a name; the rest render from the list
+  // payload alone, with no per-book on-chain read.
+  const namelessClassIds = new Set(bookList.value.concat(moderatedBookList.value)
+    .filter(b => !b.name)
+    .map(b => b.classId))
+  namelessClassIds.forEach(classId => lazyFetchClassNameById(classId))
 })
 
 async function selectTableRow(_e: Event, row: { original: { classId: string } }) {
