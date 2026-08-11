@@ -52,6 +52,7 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
   })
 
   const pageSizeOptions = [
+    { label: '10', value: 10 },
     { label: '25', value: 25 },
     { label: '50', value: 50 },
     { label: '100', value: 100 },
@@ -62,9 +63,10 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     const rows = [...options.rows.value]
     const { column, direction } = sortState.value
 
-    if (!column || !direction) {
-      return options.defaultCompare ? rows.sort(options.defaultCompare) : rows
-    }
+    // Sort by the default first so that ties in the active column keep the
+    // table's own ordering rather than whatever order the API returned.
+    if (options.defaultCompare) { rows.sort(options.defaultCompare) }
+    if (!column || !direction) { return rows }
 
     const compare = options.compare ?? compareTableValues
     return rows.sort((a, b) => {

@@ -3,6 +3,8 @@ export interface BookPriceInDecimalByCurrency {
   twd?: number
 }
 
+export type BookListingStatus = 'listed' | 'unlisted' | 'pending_review'
+
 export interface ClassListingPrice {
   index: number
   name: { en?: string, zh?: string } | string
