@@ -13,6 +13,9 @@ export interface ClassListingPrice {
   isAutoDeliver: boolean
   isAllowCustomPrice: boolean
   isUnlisted?: boolean
+  isSoldOut?: boolean
+  // Owner-only; the API omits it for anyone else.
+  sold?: number
   order?: number
   autoMemo?: string
 }
