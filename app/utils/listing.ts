@@ -2,6 +2,18 @@ import type { FormError } from '#ui/types'
 import { MINIMAL_PRICE, DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import { escapeHtml } from '~/utils/newClass'
 import type { PriceFormItem, MappedPrice } from '~/types/publish'
+import type { BookListingItem } from '~/utils/api'
+import type { BookListingStatus } from '~/types/book'
+
+// A book's shelf state as the author sees it. A book still awaiting moderation
+// isn't for sale yet whatever its editions say, and one whose every edition is
+// unlisted is as invisible to readers as an explicitly hidden one.
+export function getBookListingStatus(book: BookListingItem): BookListingStatus {
+  if (book.isPendingReview) { return 'pending_review' }
+  const prices = book.prices || []
+  if (book.isHidden || !prices.length || prices.every(p => p.isUnlisted)) { return 'unlisted' }
+  return 'listed'
+}
 
 type TranslateFn = (key: string, params?: Record<string, unknown>) => string
 

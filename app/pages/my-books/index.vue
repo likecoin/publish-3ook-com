@@ -5,82 +5,137 @@
       class="mt-4"
     />
 
-    <UProgress
-      v-if="isLoading"
-      animation="carousel"
-    >
-      <template #indicator>
-        Loading...
-      </template>
-    </UProgress>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <template #header>
+        <div class="flex flex-wrap justify-between items-center gap-3">
+          <div class="flex items-center gap-3">
+            <span
+              class="text-sm font-medium whitespace-nowrap"
+              v-text="$t('my_books.total_books', { count: tableRows.length })"
+            />
+            <UButton
+              v-if="moderatedBookList.length || isShowingModeratedList"
+              size="xs"
+              :color="isShowingModeratedList ? 'primary' : 'neutral'"
+              :variant="isShowingModeratedList ? 'soft' : 'outline'"
+              :label="$t('bookstore.viewable_listing')"
+              :aria-pressed="isShowingModeratedList"
+              @click="toggleModeratedList"
+            />
+          </div>
 
-    <UCard
-      :ui="{ header: 'flex justify-between items-center gap-4' }"
-    >
-      <UTabs
-        v-model="selectedTabItemIndex"
-        class="w-full"
-        :items="tabItems"
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput
+              v-model="searchInput"
+              class="w-44"
+              size="sm"
+              icon="i-heroicons-magnifying-glass-20-solid"
+              :placeholder="$t('table.search_placeholder')"
+            />
+            <span
+              class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap"
+              v-text="$t('table.rows_per_page')"
+            />
+            <USelect
+              v-model="pageSize"
+              class="w-20"
+              size="sm"
+              :items="pageSizeOptions"
+              :aria-label="$t('table.rows_per_page')"
+            />
+            <span
+              class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap"
+              v-text="$t('table.page_range', { from: tablePageRowFrom, to: tablePageRowTo, total: tableRows.length })"
+            />
+            <UPagination
+              v-model:page="tablePage"
+              size="sm"
+              :items-per-page="pagination.limit"
+              :total="tableRows.length"
+              show-first
+              show-last
+            />
+          </div>
+        </div>
+      </template>
+
+      <UTable
+        :columns="tableColumns"
+        :data="paginatedTableRows"
+        :loading="isLoading"
+        :progress="{ color: 'primary', animation: 'carousel' }"
+        :ui="{
+          th: 'whitespace-nowrap',
+          tr: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors duration-200',
+        }"
+        @select="selectTableRow"
       >
-        <template #content="{ item }">
-          <UCard
-            :key="item.value"
-            :ui="{
-              header: 'flex justify-between items-center gap-4',
-              body: 'divide-y divide-gray-200 dark:divide-gray-700 p-0 sm:p-0',
-            }"
-          >
-            <template #header>
-              <div class="flex justify-between items-center w-full">
-                <div class="flex gap-2 items-center">
-                  <UPagination
-                    v-model:page="tablePage"
-                    :items-per-page="pagination.limit"
-                    :total="tableRows.length"
-                  />
-                  <span class="text-sm leading-5 whitespace-nowrap">
-                    {{ $t('table.showing_rows', { from: tablePageRowFrom, to: tablePageRowTo, total: tableRows.length }) }}
-                  </span>
-                </div>
-                <UInput
-                  v-model="searchInput"
-                  class="max-w-xs"
-                  icon="i-heroicons-magnifying-glass-20-solid"
-                  :placeholder="$t('table.search_placeholder')"
-                />
-              </div>
-            </template>
-            <!-- Table -->
-            <UTable
-              :columns="tableColumns"
-              :data="paginatedTableRows"
-              @select="selectTableRow"
-            >
-              <template #priceInUSD-cell="{ row }">
-                <ul class="flex gap-1">
-                  <li
-                    v-for="price in row.original.prices"
-                    :key="price"
-                  >
-                    <UBadge
-                      :label="`${price}`"
-                      variant="subtle"
-                      size="md"
-                      color="neutral"
-                      class="rounded-full"
-                    />
-                  </li>
-                </ul>
-              </template>
-              <template #className-cell="{ row }">
-                <div class="max-w-xs truncate">
-                  {{ row.original.className || row.original.classId }}
-                </div>
-              </template>
-            </UTable>
-          </UCard>
+        <template
+          v-for="column in sortableColumns"
+          :key="`header-${column.accessorKey}`"
+          #[`${column.accessorKey}-header`]
+        >
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :label="column.header"
+            :trailing-icon="getSortIcon(column.accessorKey)"
+            :aria-label="getSortAriaLabel(column)"
+            @click="() => toggleSort(column.accessorKey)"
+          />
         </template>
-      </UTabs>
+
+        <template #className-cell="{ row }">
+          <div class="flex items-center gap-3">
+            <BookCoverThumbnail
+              :src="row.original.coverSrc"
+              :alt="row.original.className"
+            />
+            <div class="min-w-0 max-w-md">
+              <div
+                class="font-medium truncate"
+                v-text="row.original.className"
+              />
+              <div
+                v-if="row.original.hasClassName"
+                class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate"
+                v-text="row.original.classId"
+              />
+              <div
+                v-if="row.original.unlistedEditionCount"
+                class="text-xs text-gray-500 dark:text-gray-400"
+                v-text="$t('my_books.unlisted_editions', {
+                  count: row.original.unlistedEditionCount,
+                  total: row.original.editionCount,
+                })"
+              />
+            </div>
+          </div>
+        </template>
+
+        <template #priceInUSD-cell="{ row }">
+          <span v-text="row.original.priceInUSD == null ? '-' : `$${row.original.priceInUSD}`" />
+        </template>
+
+        <template #status-cell="{ row }">
+          <BookListingStatusBadge :status="row.original.status" />
+        </template>
+
+        <template #empty>
+          <span v-text="searchInput ? $t('my_books.no_search_result') : $t('my_books.no_books')" />
+        </template>
+
+        <template #actions-cell="{ row }">
+          <UButton
+            icon="i-heroicons-arrow-top-right-on-square"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            :aria-label="$t('my_books.view_store_page')"
+            @click.stop="openStorePage(row.original.classId)"
+          />
+        </template>
+      </UTable>
     </UCard>
 
     <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -96,11 +151,14 @@
 </template>
 
 <script setup lang="ts">
-import { whenever } from '@vueuse/core'
+import type { BookListingStatus } from '~/types'
+import { getBookListingStatus } from '~/utils/listing'
+import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const { t: $t } = useI18n()
+const { BOOK3_URL } = useRuntimeConfig().public
 const bookstoreApiStore = useBookstoreApiStore()
 const nftStore = useNftStore()
 const { listingList: bookList, moderatedBookList, token, wallet } = storeToRefs(bookstoreApiStore)
@@ -111,6 +169,14 @@ const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
 const { getClassNameById } = storeToRefs(nftStore)
 const { lazyFetchClassNameById } = nftStore
 const { fetchBookListing, fetchModeratedBookList } = bookstoreApiStore
+
+// Books awaiting the author's action come first; a book that never sells still
+// needs looking at before one that is quietly selling.
+const STATUS_SORT_ORDER: Record<BookListingStatus, number> = {
+  pending_review: 0,
+  listed: 1,
+  unlisted: 2,
+}
 
 const error = ref('')
 const isLoading = ref(false)
@@ -136,34 +202,44 @@ useSeoMeta({
   ogTitle: () => $t('seo_titles.book_listing_management'),
 })
 
-// Tabs
-const tabItems = computed(() => [
-  { label: $t('bookstore.current_listing'), value: 'current' },
-  { label: $t('bookstore.viewable_listing'), value: 'viewable' },
-])
+// Books a moderator can see but doesn't own live behind a filter rather than
+// their own tab. The query key stays `tab` so existing links keep working.
+const isShowingModeratedList = ref(route.query.tab === 'viewable')
 
-const selectedTabItemIndex = ref(route.query.tab as string || 'current')
-
-watch(selectedTabItemIndex, (value) => {
-  if (value) {
-    navigateTo(localeRoute({ query: { tab: value } }), { replace: true })
-  }
-})
+function toggleModeratedList() {
+  const isShowing = !isShowingModeratedList.value
+  isShowingModeratedList.value = isShowing
+  searchInput.value = ''
+  setPage(1)
+  navigateTo(localeRoute({ query: isShowing ? { tab: 'viewable' } : {} }), { replace: true })
+}
 
 // Search
 const searchInput = ref('')
 
 // Rows
-const tableRows = computed(() => (selectedTabItemIndex.value === 'viewable' ? moderatedBookList : bookList).value.map(b => ({
-  classId: b.classId,
+const tableRows = computed(() => (isShowingModeratedList.value ? moderatedBookList : bookList).value.map((b) => {
+  const prices = b.prices || []
   // The listing carries its own name; on-chain metadata is only a fallback for
   // legacy classes whose listing doc never recorded one.
-  className: b.name || getClassNameById.value(b.classId),
-  priceInUSD: b.minPrice ?? b.prices?.[0]?.price,
-  prices: b.prices?.map(p => p.price),
-  pendingAction: b.pendingNFTCount,
-  sold: b.sold,
-})).filter((b) => {
+  const className = b.name || getClassNameById.value(b.classId)
+  return {
+    classId: b.classId,
+    // Fall back to the ID so nameless rows still sort by their visible text.
+    className: className || b.classId,
+    hasClassName: Boolean(className),
+    // Covers are stored as `ar://`/`ipfs://` URLs a browser can't fetch, and at
+    // full size for a 40px-wide box.
+    coverSrc: b.thumbnailUrl ? getImageResizeURL(parseImageURLFromMetadata(b.thumbnailUrl), { width: 100 }) : undefined,
+    priceInUSD: b.minPrice ?? prices[0]?.price,
+    status: getBookListingStatus(b),
+    editionCount: prices.length,
+    unlistedEditionCount: prices.filter(p => p.isUnlisted).length,
+    pendingAction: b.pendingNFTCount,
+    sold: b.sold,
+    timestamp: b.timestamp,
+  }
+}).filter((b) => {
   if (!searchInput.value) { return true }
   const normalizedSearchInput = searchInput.value.toLowerCase()
   return b.classId.toLowerCase().includes(normalizedSearchInput) || b.className?.toLowerCase().includes(normalizedSearchInput)
@@ -172,34 +248,41 @@ const tableRows = computed(() => (selectedTabItemIndex.value === 'viewable' ? mo
 // Pagination & sort
 const {
   pagination,
+  pageSizeOptions,
   paginatedRows: paginatedTableRows,
+  sortState,
+  toggleSort,
   setPage,
+  setPageSize,
+  getSortIcon,
 } = usePaginatedTable({
   rows: tableRows,
-  pageSize: 50,
+  pageSize: 10,
   initialSort: { column: 'pendingAction', direction: 'desc' },
-  compare: (aValue, bValue) => {
-    const aVal = (aValue ?? '') as string | number
-    const bVal = (bValue ?? '') as string | number
-    if (aVal < bVal) { return -1 }
-    if (aVal > bVal) { return 1 }
-    return 0
+  compare: (aValue, bValue, column) => {
+    if (column === 'status') {
+      return STATUS_SORT_ORDER[aValue as BookListingStatus] - STATUS_SORT_ORDER[bValue as BookListingStatus]
+    }
+    return compareTableValues(aValue, bValue)
   },
+  defaultCompare: (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
 })
 
 const tablePage = computed({
   get: () => pagination.value.page,
   set: setPage,
 })
-const tablePageRowFrom = computed(() => (tablePage.value - 1) * pagination.value.limit + 1)
+const pageSize = computed({
+  get: () => pagination.value.limit,
+  set: setPageSize,
+})
+const tablePageRowFrom = computed(() => (tableRows.value.length ? (tablePage.value - 1) * pagination.value.limit + 1 : 0))
 const tablePageRowTo = computed(() => Math.min(tablePage.value * pagination.value.limit, tableRows.value.length))
 
 // Columns
-const tableColumns = computed(() => [
-  {
-    accessorKey: 'pendingAction',
-    header: $t('table.pending_action'),
-  },
+const numericColumnMeta = { class: { th: 'text-right', td: 'text-right' } }
+
+const sortableColumns = computed(() => [
   {
     accessorKey: 'className',
     header: $t('table.class_name'),
@@ -207,42 +290,68 @@ const tableColumns = computed(() => [
   {
     accessorKey: 'priceInUSD',
     header: $t('table.price_in_usd'),
+    meta: numericColumnMeta,
   },
   {
     accessorKey: 'sold',
     header: $t('table.sold'),
+    meta: numericColumnMeta,
   },
   {
-    accessorKey: 'classId',
-    header: $t('bookstore.class_id'),
-    meta: { class: { td: 'font-mono' } },
+    accessorKey: 'status',
+    header: $t('table.status'),
+  },
+  {
+    accessorKey: 'pendingAction',
+    header: $t('table.pending_action'),
+    meta: numericColumnMeta,
   },
 ])
 
-whenever(isLoading, () => { error.value = '' })
+// aria-sort can't reach UTable's <th> from the header slot, so the sort state
+// joins the header button's accessible name instead.
+function getSortAriaLabel(column: { accessorKey: string, header: string }) {
+  if (sortState.value.column !== column.accessorKey || !sortState.value.direction) {
+    return column.header
+  }
+  const key = sortState.value.direction === 'asc' ? 'table.sorted_ascending' : 'table.sorted_descending'
+  return $t(key, { label: column.header })
+}
 
-watch(selectedTabItemIndex, () => {
-  searchInput.value = ''
-  setPage(1)
-})
+const tableColumns = computed(() => [
+  ...sortableColumns.value,
+  { id: 'actions', header: '', meta: { class: { td: 'w-px' } } },
+])
 
 onMounted(async () => {
-  const promises: Promise<unknown>[] = [fetchBookListing()]
-  if (token.value) {
-    promises.push(fetchModeratedBookList())
-  }
   if (wallet.value) {
-    promises.push(likerStore.lazyFetchLikerInfoByWallet(wallet.value))
-    promises.push(stripeStore.fetchStripeConnectStatusByWallet(wallet.value))
+    // Only the promo form link needs these, so the table doesn't wait on them.
+    likerStore.lazyFetchLikerInfoByWallet(wallet.value).catch(() => {})
+    stripeStore.fetchStripeConnectStatusByWallet(wallet.value).catch(() => {})
   }
-  await Promise.all(promises)
 
-  // Only legacy listings arrive without a name; the rest render from the list
-  // payload alone, with no per-book on-chain read.
-  const namelessClassIds = new Set(bookList.value.concat(moderatedBookList.value)
-    .filter(b => !b.name)
-    .map(b => b.classId))
-  namelessClassIds.forEach(classId => lazyFetchClassNameById(classId))
+  try {
+    isLoading.value = true
+    error.value = ''
+    const promises: Promise<unknown>[] = [fetchBookListing()]
+    if (token.value) {
+      promises.push(fetchModeratedBookList())
+    }
+    await Promise.all(promises)
+
+    // Only legacy listings arrive without a name; the rest render from the list
+    // payload alone, with no per-book on-chain read.
+    const namelessClassIds = new Set(bookList.value.concat(moderatedBookList.value)
+      .filter(b => !b.name)
+      .map(b => b.classId))
+    namelessClassIds.forEach(classId => lazyFetchClassNameById(classId))
+  }
+  catch (err) {
+    error.value = (err as Error).message
+  }
+  finally {
+    isLoading.value = false
+  }
 })
 
 async function selectTableRow(_e: Event, row: { original: { classId: string } }) {
@@ -251,5 +360,10 @@ async function selectTableRow(_e: Event, row: { original: { classId: string } })
     name: 'my-books-status-classId',
     params: { classId: row.original.classId },
   }))
+}
+
+function openStorePage(classId: string) {
+  useLogEvent('my_books_view_store_page', { class_id: classId })
+  window.open(`${BOOK3_URL}/store/${classId}`, '_blank', 'noopener')
 }
 </script>
