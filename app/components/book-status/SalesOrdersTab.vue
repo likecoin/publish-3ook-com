@@ -187,6 +187,7 @@ const bookstoreApiStore = useBookstoreApiStore()
 const ordersStore = useOrdersStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { ordersByClassIdMap } = storeToRefs(ordersStore)
+const { setOrderStatus } = ordersStore
 const { reduceListingPendingNFTCountById } = bookstoreApiStore
 
 const route = useRoute()
@@ -563,14 +564,8 @@ async function hardSetStatusToCompleted(purchase: PurchaseItem) {
     return
   }
 
-  const orderData = ordersData.value?.find(p => p.id === purchase.id)
-  if (!orderData) {
-    throw new Error('ORDER_NOT_FOUND')
-  }
-
-  const mutableOrder = orderData as { status: string }
-  const previousStatus = mutableOrder.status
-  mutableOrder.status = 'completed'
+  const previousStatus = purchase.status
+  setOrderStatus(classId, purchase.id, 'completed')
 
   try {
     await apiFetch(`/likernft/book/purchase/${classId}/sent/${purchase.id}`,
@@ -583,7 +578,7 @@ async function hardSetStatusToCompleted(purchase: PurchaseItem) {
       })
   }
   catch (err) {
-    mutableOrder.status = previousStatus
+    setOrderStatus(classId, purchase.id, previousStatus)
     throw err
   }
 
