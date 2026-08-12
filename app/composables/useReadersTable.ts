@@ -7,7 +7,6 @@ export function useReadersTable() {
 
   const {
     pagination,
-    sortState,
     pageSizeOptions,
     sortedRows: sortedReaders,
     paginatedRows: paginatedReaders,
@@ -163,7 +162,6 @@ export function useReadersTable() {
     totalPages,
 
     pagination,
-    sortState,
     selectedRows,
     hasSelection,
     selectionCount,

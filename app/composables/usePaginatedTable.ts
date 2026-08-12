@@ -62,20 +62,23 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
   const sortedRows = computed(() => {
     const rows = [...options.rows.value]
     const { column, direction } = sortState.value
+    const { defaultCompare } = options
 
-    // Sort by the default first so that ties in the active column keep the
-    // table's own ordering rather than whatever order the API returned.
-    if (options.defaultCompare) { rows.sort(options.defaultCompare) }
-    if (!column || !direction) { return rows }
+    if (!column || !direction) {
+      return defaultCompare ? rows.sort(defaultCompare) : rows
+    }
 
     const compare = options.compare ?? compareTableValues
+    // The default ordering breaks ties, so equal cells keep the table's own
+    // ordering rather than whatever order the API returned.
     return rows.sort((a, b) => {
       const comparison = compare(
         (a as Record<string, unknown>)[column],
         (b as Record<string, unknown>)[column],
         column,
       )
-      return direction === 'desc' ? -comparison : comparison
+      if (comparison !== 0) { return direction === 'desc' ? -comparison : comparison }
+      return defaultCompare ? defaultCompare(a, b) : 0
     })
   })
 

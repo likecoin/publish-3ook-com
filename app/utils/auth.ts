@@ -90,7 +90,9 @@ export const SIGN_AUTHORIZATION_PERMISSIONS = [
   PROFILE_WRITE_PERMISSION,
 ] as const
 
-function decodeToken(token: string) {
+// A malformed or truncated token decodes to null rather than throwing, so
+// callers can treat it as "not signed in" instead of crashing a computed.
+export function decodeToken(token: string) {
   try {
     return jwtDecode(token) as { exp?: number, permissions?: string[] } | null
   }
