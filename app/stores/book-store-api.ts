@@ -1,4 +1,3 @@
-import { jwtDecode } from 'jwt-decode'
 import type { AuthResponse, BookListingItem, BookListingResponse } from '~/utils/api'
 
 export const useBookstoreApiStore = defineStore('book-api', () => {
@@ -15,7 +14,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
   const isAuthenticated = computed(() => {
     const tokenExists = !!token.value
     if (!sessionWallet.value || !tokenExists) { return false }
-    const decoded = jwtDecode(token.value)
+    const decoded = decodeToken(token.value)
     if (!decoded) {
       return false
     }

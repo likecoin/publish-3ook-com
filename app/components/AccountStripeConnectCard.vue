@@ -78,25 +78,19 @@ onMounted(refreshStripeConnectStatus)
 const currentStripeAccount = computed(() => getStripeConnectStatusByWallet.value(wallet.value))
 const isStripeConnectReady = computed(() => currentStripeAccount.value?.isReady)
 
-const statusLabel = computed(() => {
-  if (isStripeConnectReady.value) {
-    return $t('user_settings.setup_completed')
-  }
-  if (currentStripeAccount.value?.hasAccount) {
-    return $t('user_settings.setup_initiated')
-  }
-  return $t('user_settings.stripe_not_setup')
+const STRIPE_CONNECT_STATE_I18N_KEYS = {
+  ready: { status: 'user_settings.setup_completed', button: 'user_settings.login_to_stripe' },
+  initiated: { status: 'user_settings.setup_initiated', button: 'user_settings.resume_stripe_connect_setup' },
+  none: { status: 'user_settings.stripe_not_setup', button: 'user_settings.setup_stripe_connect' },
+} as const
+
+const stripeConnectState = computed(() => {
+  if (isStripeConnectReady.value) { return 'ready' }
+  return currentStripeAccount.value?.hasAccount ? 'initiated' : 'none'
 })
 
-const buttonText = computed(() => {
-  if (isStripeConnectReady.value) {
-    return $t('user_settings.login_to_stripe')
-  }
-  if (currentStripeAccount.value?.hasAccount) {
-    return $t('user_settings.resume_stripe_connect_setup')
-  }
-  return $t('user_settings.setup_stripe_connect')
-})
+const statusLabel = computed(() => $t(STRIPE_CONNECT_STATE_I18N_KEYS[stripeConnectState.value].status))
+const buttonText = computed(() => $t(STRIPE_CONNECT_STATE_I18N_KEYS[stripeConnectState.value].button))
 
 async function refreshStripeConnectStatus() {
   try {
