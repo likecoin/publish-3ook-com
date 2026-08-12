@@ -38,8 +38,9 @@
         </div>
       </UCard>
 
-      <!-- Labels only: the panes below stay mounted (v-show) so edits made on
-           one tab survive visiting another while they wait in the bar. -->
+      <!-- Labels only: each pane below mounts on its first visit and then stays
+           mounted (v-show), so edits survive visiting another tab while they
+           wait in the bar and an unopened tab fetches nothing. -->
       <UTabs
         v-model="selectedTabItemIndex"
         class="w-full"
@@ -48,6 +49,7 @@
       />
 
       <div
+        v-if="visitedTabs.has('files')"
         v-show="selectedTabItemIndex === 'files'"
         class="mt-4"
       >
@@ -55,6 +57,7 @@
       </div>
 
       <div
+        v-if="visitedTabs.has('details')"
         v-show="selectedTabItemIndex === 'details'"
         class="space-y-10 mt-4"
       >
@@ -67,16 +70,26 @@
       </div>
 
       <div
+        v-if="visitedTabs.has('pricing')"
         v-show="selectedTabItemIndex === 'pricing'"
         class="space-y-10 mt-4"
       >
         <BookStatusEditionsCard
           v-model:prices="prices"
           :class-id="classId"
-          :user-is-owner="userIsOwner"
           :stock-balance="stockBalance"
+          :locked="changeCount > 0"
           @restocked="calculateStock"
           @error="(message: string) => (error = message)"
+        />
+        <PublishPricingForm
+          v-if="userIsOwner && editedPrices.length"
+          ref="managePricingFormRef"
+          v-model:prices="editedPrices"
+          v-model:settings="managePricingSettings"
+          v-model:signature-image="signatureImage"
+          mode="manage"
+          :has-existing-signature-image="hasExistingSignatureImage"
         />
         <BookStatusBookListingSettingsCard
           v-if="userIsOwner"
@@ -86,6 +99,7 @@
       </div>
 
       <div
+        v-if="visitedTabs.has('summary')"
         v-show="selectedTabItemIndex === 'summary'"
         class="mt-4"
       >
@@ -94,11 +108,12 @@
           :class-id="classId"
           :class-listing-info="classListingInfo"
           :pending-changes="changes"
-          @go-to-tab="(tab: string) => (selectedTabItemIndex = tab)"
+          @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
         />
       </div>
 
       <div
+        v-if="visitedTabs.has('sales')"
         v-show="selectedTabItemIndex === 'sales'"
         class="space-y-10 mt-4"
       >
@@ -129,7 +144,7 @@
         :is-saving="isSavingChanges"
         @save="saveAllChanges"
         @discard="discardAllChanges"
-        @jump="(tab: string) => (selectedTabItemIndex = tab)"
+        @jump="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
       />
     </template>
 
@@ -141,6 +156,11 @@
 import { useEventListener } from '@vueuse/core'
 import { copyToClipboard } from '~/utils'
 import type { ClassListingData, ClassListingPrice } from '~/types'
+import { BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
+import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
+import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
+import { mapListingPriceToFormItem, mapPriceFormItemsToPayload } from '~/utils/listing'
+import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
 
@@ -149,7 +169,7 @@ const AUTHOR_RESERVED_NFT_COUNT = 1
 const { BOOK3_URL } = useRuntimeConfig().public
 const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
-const { updateBookListingSetting } = bookstoreApiStore
+const { updateBookListingSetting, updateEditionPrice, uploadSignImages } = bookstoreApiStore
 const nftStore = useNftStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
@@ -188,12 +208,51 @@ interface BookDetailsSectionApi {
 }
 const detailsSectionRef = ref<BookDetailsSectionApi | null>(null)
 
+// Editable copy of the editions, diffed per edition against a baseline taken
+// at load; the manage-mode pricing form writes into it and the bar saves the
+// dirty ones through the per-edition PUT.
+const editedPrices = ref<PriceFormItem[]>([])
+const editionBaselines = ref<string[]>([])
+const signatureImage = ref<File | null>(null)
+const managePricingFormRef = ref<{ validate: () => Promise<boolean> } | null>(null)
+// Required by PricingForm's model; every field it drives is hidden in manage
+// mode, so this never reaches a payload.
+const managePricingSettings = ref<PricingFormSettings>({
+  isAllowCustomPrice: true,
+  isAdultOnly: false,
+  hideAudio: false,
+  isPlusReadingEnabled: false,
+  isPreviewEnabled: false,
+  previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
+  tableOfContents: '',
+  connectedWallets: null,
+})
+const hasExistingSignatureImage = computed(() => !!classListingInfo.value.enableSignatureImage)
+
+function rebuildEditionDraft() {
+  editedPrices.value = prices.value.map(mapListingPriceToFormItem)
+  editionBaselines.value = editedPrices.value.map(item => JSON.stringify(item))
+}
+
+function getEditionChanges(): BookEditEditionChange[] {
+  return editedPrices.value
+    .map((item, index) => ({
+      index,
+      name: item.name,
+      changedFields: getChangedKeysFromSnapshot(
+        editionBaselines.value[index] ?? '',
+        item as unknown as Record<string, unknown>,
+      ),
+    }))
+    .filter(change => change.changedFields.length > 0)
+}
+
 // The pending-changes ledger the bar, the tab badge and the summary tab share.
 const { changes, changeCount, needsWalletSignature } = useBookEditChanges({
   chainChangedFields: () => detailsSectionRef.value?.changedFields ?? [],
   settingsChangedKeys: () => listingSettings.changedSettingKeys(),
-  editionChanges: () => [],
-  signatureChanged: () => false,
+  editionChanges: getEditionChanges,
+  signatureChanged: () => !!signatureImage.value,
 })
 
 const isSavingChanges = ref(false)
@@ -214,10 +273,19 @@ const tabItems = computed(() => [
   { label: $t('status_page.tab_sales_orders'), value: 'sales' },
 ])
 
-const selectedTabItemIndex = ref(route.query.tab as string || 'details')
+// An unrecognised ?tab= would leave every pane unmounted, so fall back.
+const queryTab = route.query.tab as BookStatusTab
+const selectedTabItemIndex = ref<BookStatusTab>(
+  BOOK_STATUS_TABS.includes(queryTab) ? queryTab : 'details',
+)
+
+// A pane mounts on its first visit and stays mounted from then on, so an
+// unopened tab costs no fetches while edits still survive tab switches.
+const visitedTabs = reactive(new Set<BookStatusTab>([selectedTabItemIndex.value]))
 
 watch(selectedTabItemIndex, (value) => {
   if (value) {
+    visitedTabs.add(value)
     navigateTo(localeRoute({ query: { ...route.query, tab: value } }), { replace: true })
   }
 })
@@ -243,9 +311,12 @@ watch(sessionWallet, async (newWallet) => {
   }
 })
 
-// Keep the cached listing copy of prices in sync after reorders.
+// Keep the cached listing copy of prices in sync after reorders, and rebuild
+// the edit draft from the fresh order. Reorders are locked while edits pend,
+// so this never wipes anything the bar is still counting.
 watch(prices, (value) => {
   classListingInfo.value.prices = value
+  rebuildEditionDraft()
 })
 
 onMounted(async () => {
@@ -312,6 +383,38 @@ async function saveAllChanges() {
       }
     }
 
+    const editionChanges = getEditionChanges()
+    if (editionChanges.length || signatureImage.value) {
+      try {
+        if (!(await managePricingFormRef.value?.validate())) {
+          selectedTabItemIndex.value = 'pricing'
+          return
+        }
+        const mapped = mapPriceFormItemsToPayload(editedPrices.value)
+        for (const change of editionChanges) {
+          const listingIndex = prices.value[change.index]?.index
+          const payload = mapped[change.index]
+          if (listingIndex === undefined || !payload) { continue }
+          await updateEditionPrice(classId.value, listingIndex, { price: payload })
+          // Committed one by one so a mid-loop failure keeps only the
+          // unsaved editions counted.
+          const item = editedPrices.value[change.index]
+          if (item) { editionBaselines.value[change.index] = JSON.stringify(item) }
+        }
+        if (signatureImage.value) {
+          const form = new FormData()
+          form.append('signImage', signatureImage.value)
+          await uploadSignImages(form, classId.value)
+          signatureImage.value = null
+        }
+        savedSomething = true
+      }
+      catch (err) {
+        handleGroupSaveError($t('pages.editions'), err)
+        return
+      }
+    }
+
     if (details?.isChainDirty) {
       try {
         if (!(await details.saveChain())) {
@@ -345,15 +448,17 @@ async function saveAllChanges() {
 }
 
 function handleGroupSaveError(group: string, err: unknown) {
-  const errorData = (err as { data?: string }).data || err
   // eslint-disable-next-line no-console
-  console.error(errorData)
-  showErrorToast($t('status_page.save_group_failed', { group, error: String(errorData) }), { duration: 5000 })
+  console.error(err)
+  const error = getApiErrorMessage(err, $t)
+  showErrorToast($t('status_page.save_group_failed', { group, error }), { duration: 5000 })
 }
 
 async function discardAllChanges() {
   if (!window.confirm($t('status_page.discard_confirm'))) { return }
   listingSettings.restoreListingFromSnapshot()
+  rebuildEditionDraft()
+  signatureImage.value = null
   await detailsSectionRef.value?.discardChain()
 }
 

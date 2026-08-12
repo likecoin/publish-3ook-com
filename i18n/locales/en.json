@@ -915,6 +915,7 @@
   "status_page.search_placeholder": "Search...",
   "status_page.send_reminder_email": "Send Reminder Email",
   "status_page.settings_saved": "Changes saved",
+  "status_page.structural_locked_hint": "Save or discard your changes first",
   "status_page.summary_pending_send": "Waiting to send",
   "status_page.summary_status_title": "Listing Status",
   "status_page.tab_book_details": "Book Details",
