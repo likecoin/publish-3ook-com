@@ -304,23 +304,16 @@ const hasSuggested = ref(false)
 
 const initialFormDataSnapshot = ref<string>('')
 
-const hasContentFingerprintChanged = computed(() => {
-  if (!initialFormDataSnapshot.value) { return false }
-  try {
-    const initial = JSON.parse(initialFormDataSnapshot.value)
-    const currentFingerprints = JSON.stringify(formData.value.contentFingerprints)
-    const initialFingerprints = JSON.stringify(initial.contentFingerprints)
-    return currentFingerprints !== initialFingerprints
-  }
-  catch {
-    return false
-  }
-})
+// Top-level ISCNFormData keys that differ from the snapshot, for hosts that
+// list pending changes individually rather than as one boolean.
+const changedFields = computed<string[]>(() => getChangedKeysFromSnapshot(
+  initialFormDataSnapshot.value,
+  formData.value as unknown as Record<string, unknown>,
+))
 
-const hasUnsavedChanges = computed(() => {
-  if (!initialFormDataSnapshot.value) { return false }
-  return JSON.stringify(formData.value) !== initialFormDataSnapshot.value
-})
+const hasContentFingerprintChanged = computed(() => changedFields.value.includes('contentFingerprints'))
+
+const hasUnsavedChanges = computed(() => changedFields.value.length > 0)
 
 useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
   if (props.guardUnsavedChanges && hasUnsavedChanges.value) {
@@ -349,6 +342,7 @@ nextTick(() => {
 defineExpose({
   resetSnapshot,
   hasUnsavedChanges,
+  changedFields,
   validate,
 })
 
