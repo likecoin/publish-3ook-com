@@ -12,11 +12,21 @@
           v-text="$t('pages.orders')"
         />
 
-        <UInput
-          v-model="searchInput"
-          icon="i-heroicons-magnifying-glass-20-solid"
-          :placeholder="$t('status_page.search_placeholder')"
-        />
+        <div class="flex items-center gap-2">
+          <UInput
+            v-model="searchInput"
+            icon="i-heroicons-magnifying-glass-20-solid"
+            :placeholder="$t('status_page.search_placeholder')"
+          />
+          <UDropdownMenu :items="columnToggleItems">
+            <UButton
+              icon="i-heroicons-view-columns"
+              color="neutral"
+              variant="ghost"
+              :aria-label="$t('status_page.toggle_columns')"
+            />
+          </UDropdownMenu>
+        </div>
       </template>
 
       <UTable
@@ -284,22 +294,44 @@ const salesChannelTableRows = computed(() => Object.entries(salesChannelMap.valu
   totalUSD: (value.totalUSD || 0).toFixed(2),
 })))
 
-const orderTableColumns = computed(() => {
-  return [
-    { accessorKey: 'actions', header: $t('table.actions') },
-    { accessorKey: 'orderDate', header: $t('table.order_date') },
-    { accessorKey: 'status', header: $t('table.status') },
-    { accessorKey: 'from', header: $t('table.sales_channel') },
-    { accessorKey: 'price', header: $t('form.price'), class: 'w-[120px]' },
-    { accessorKey: 'priceName', header: $t('table.price_name') },
-    { accessorKey: 'quantity', header: $t('table.quantity') },
-    { accessorKey: 'coupon', header: $t('table.coupon_applied') },
-    { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
-    { accessorKey: 'readerEmail', header: $t('table.reader_email') },
-    { accessorKey: 'wallet', header: $t('table.reader_wallet') },
-    { accessorKey: 'message', header: $t('table.reader_message') },
-  ]
-})
+// The default set matches what the author scans for (date, status, channel,
+// price, edition, reader message); the support-workflow columns stay one
+// toggle away rather than widening the table for everyone.
+const orderColumnDefs = computed(() => [
+  { accessorKey: 'actions', header: $t('table.actions') },
+  { accessorKey: 'orderDate', header: $t('table.order_date') },
+  { accessorKey: 'status', header: $t('table.status') },
+  { accessorKey: 'from', header: $t('table.sales_channel') },
+  { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
+  { accessorKey: 'priceName', header: $t('table.price_name') },
+  { accessorKey: 'quantity', header: $t('table.quantity'), optional: true },
+  { accessorKey: 'coupon', header: $t('table.coupon_applied'), optional: true },
+  { accessorKey: 'buyerEmail', header: $t('table.buyer_email'), optional: true },
+  { accessorKey: 'readerEmail', header: $t('table.reader_email'), optional: true },
+  { accessorKey: 'wallet', header: $t('table.reader_wallet'), optional: true },
+  { accessorKey: 'message', header: $t('table.reader_message') },
+])
+
+const shownOptionalColumnKeys = ref<string[]>([])
+
+const orderTableColumns = computed(() => orderColumnDefs.value
+  .filter(column => !column.optional || shownOptionalColumnKeys.value.includes(column.accessorKey))
+  .map(({ optional: _optional, ...column }) => column))
+
+const columnToggleItems = computed(() => orderColumnDefs.value
+  .filter(column => column.optional)
+  .map(column => ({
+    label: column.header,
+    type: 'checkbox' as const,
+    checked: shownOptionalColumnKeys.value.includes(column.accessorKey),
+    onUpdateChecked: (checked: boolean) => {
+      shownOptionalColumnKeys.value = checked
+        ? [...shownOptionalColumnKeys.value, column.accessorKey]
+        : shownOptionalColumnKeys.value.filter(key => key !== column.accessorKey)
+    },
+    // Keep the menu open so several columns can be toggled in one visit.
+    onSelect: (event: Event) => { event.preventDefault() },
+  })))
 
 function getOrdersTableActionItems(purchaseListItem: PurchaseItem) {
   const actionItems = []

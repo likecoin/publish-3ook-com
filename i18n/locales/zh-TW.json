@@ -923,6 +923,7 @@
   "status_page.tab_pricing": "訂價與銷售",
   "status_page.tab_sales_orders": "銷售與訂單",
   "status_page.tab_summary": "狀態與摘要",
+  "status_page.toggle_columns": "顯示欄位",
   "status_page.wallet_signature_hint": "含書籍資料變更，儲存時需要錢包簽署",
   "status_page.view_transaction": "檢視交易",
   "status_page.wallet_placeholder": "0x...",
