@@ -923,6 +923,7 @@
   "status_page.tab_pricing": "Pricing & Sales",
   "status_page.tab_sales_orders": "Sales & Orders",
   "status_page.tab_summary": "Status & Summary",
+  "status_page.toggle_columns": "Show columns",
   "status_page.wallet_signature_hint": "Includes book-detail changes — saving will ask for a wallet signature",
   "status_page.view_transaction": "View Transaction",
   "status_page.wallet_placeholder": "0x...",
