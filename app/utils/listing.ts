@@ -1,6 +1,7 @@
 import type { FormError } from '#ui/types'
 import { MINIMAL_PRICE, DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import { escapeHtml } from '~/utils/newClass'
+import type { ClassListingPrice } from '~/types'
 import type { PriceFormItem, MappedPrice } from '~/types/publish'
 import type { BookListingItem } from '~/utils/api'
 import type { BookListingStatus } from '~/types/book'
@@ -74,6 +75,33 @@ export function mapPriceFormItemsToPayload(prices: PriceFormItem[]): MappedPrice
     }
     return mapped
   })
+}
+
+// Inverse of mapPriceFormItemsToPayload for one listing price: feeds the edit
+// forms from the shape `/likernft/book/store/{classId}` returns. An HKD/TWD
+// override on the doc means custom pricing was chosen, so the USD input echoes
+// the tier price rather than starting blank.
+export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormItem {
+  const overrideHKD = price.priceInDecimalByCurrency?.hkd
+  const overrideTWD = price.priceInDecimalByCurrency?.twd
+  const hasCustomPricing = typeof overrideHKD === 'number' || typeof overrideTWD === 'number'
+  const tierPriceStr = price.price?.toString() || ''
+  return {
+    price: tierPriceStr,
+    deliveryMethod: price.isAutoDeliver ? 'auto' : 'manual',
+    autoMemo: price.autoMemo || '',
+    stock: price.stock,
+    name: typeof price.name === 'object' ? price.name.zh || '' : price.name || '',
+    description: typeof price.description === 'object' ? price.description.zh || '' : price.description || '',
+    isAllowCustomPrice: price.isAllowCustomPrice,
+    isListed: !price.isUnlisted,
+    oldIsAutoDeliver: price.isAutoDeliver,
+    oldStock: price.stock,
+    isCustomPricing: hasCustomPricing,
+    priceUSDInput: hasCustomPricing ? tierPriceStr : '',
+    priceHKDInput: typeof overrideHKD === 'number' ? (overrideHKD / 100).toString() : '',
+    priceTWDInput: typeof overrideTWD === 'number' ? (overrideTWD / 100).toString() : '',
+  }
 }
 
 // Validates the raw price form items. Error names use the `prices.{i}.{field}`
