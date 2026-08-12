@@ -38,79 +38,99 @@
         </div>
       </UCard>
 
+      <!-- Labels only: the panes below stay mounted (v-show) so edits made on
+           one tab survive visiting another while they wait in the bar. -->
       <UTabs
         v-model="selectedTabItemIndex"
         class="w-full"
         :items="tabItems"
+        :content="false"
+      />
+
+      <div
+        v-show="selectedTabItemIndex === 'files'"
+        class="mt-4"
       >
-        <template #content="{ item }">
-          <BookStatusBookFilesCard
-            v-if="item.value === 'files'"
-            class="mt-4"
-            :class-id="classId"
-          />
-          <div
-            v-else-if="item.value === 'details'"
-            class="space-y-10 mt-4"
-          >
-            <BookStatusBookDetailsSection
-              :class-id="classId"
-              :class-listing-info="classListingInfo"
-              :settings="listingSettings"
-              @saved="refreshListingInfo"
-            />
-          </div>
-          <div
-            v-else-if="item.value === 'pricing'"
-            class="space-y-10 mt-4"
-          >
-            <BookStatusEditionsCard
-              v-model:prices="prices"
-              :class-id="classId"
-              :user-is-owner="userIsOwner"
-              :stock-balance="stockBalance"
-              @restocked="calculateStock"
-              @error="(message: string) => (error = message)"
-            />
-            <BookStatusBookListingSettingsCard
-              :class-id="classId"
-              :settings="listingSettings"
-              :is-free-book="isFreeBook"
-              @saved="refreshListingInfo"
-            />
-          </div>
-          <BookStatusBookSummaryTab
-            v-else-if="item.value === 'summary'"
-            class="mt-4"
-            :class-id="classId"
-            :class-listing-info="classListingInfo"
-            @go-to-tab="(tab: string) => (selectedTabItemIndex = tab)"
-          />
-          <div
-            v-else
-            class="space-y-10 mt-4"
-          >
-            <UAlert
-              v-if="pendingNFTCount > 0"
-              color="warning"
-              variant="subtle"
-              icon="i-heroicons-exclamation-circle"
-              :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
-              :description="$t('status_page.pending_send_banner_description')"
-            />
-            <BookStatusSalesOrdersTab
-              :class-id="classId"
-              :owner-wallet="ownerWallet"
-              @reduce-pending-nft="handleReducePendingNft"
-            />
-            <BookStatusPurchaseLinksCard
-              :class-id="classId"
-              :prices="prices"
-              :book-name="nftClassName"
-            />
-          </div>
-        </template>
-      </UTabs>
+        <BookStatusBookFilesCard :class-id="classId" />
+      </div>
+
+      <div
+        v-show="selectedTabItemIndex === 'details'"
+        class="space-y-10 mt-4"
+      >
+        <BookStatusBookDetailsSection
+          ref="detailsSectionRef"
+          :class-id="classId"
+          :class-listing-info="classListingInfo"
+          :settings="listingSettings"
+        />
+      </div>
+
+      <div
+        v-show="selectedTabItemIndex === 'pricing'"
+        class="space-y-10 mt-4"
+      >
+        <BookStatusEditionsCard
+          v-model:prices="prices"
+          :class-id="classId"
+          :user-is-owner="userIsOwner"
+          :stock-balance="stockBalance"
+          @restocked="calculateStock"
+          @error="(message: string) => (error = message)"
+        />
+        <BookStatusBookListingSettingsCard
+          v-if="userIsOwner"
+          :settings="listingSettings"
+          :is-free-book="isFreeBook"
+        />
+      </div>
+
+      <div
+        v-show="selectedTabItemIndex === 'summary'"
+        class="mt-4"
+      >
+        <BookStatusBookSummaryTab
+          :key="summaryRefreshCounter"
+          :class-id="classId"
+          :class-listing-info="classListingInfo"
+          :pending-changes="changes"
+          @go-to-tab="(tab: string) => (selectedTabItemIndex = tab)"
+        />
+      </div>
+
+      <div
+        v-show="selectedTabItemIndex === 'sales'"
+        class="space-y-10 mt-4"
+      >
+        <UAlert
+          v-if="pendingNFTCount > 0"
+          color="warning"
+          variant="subtle"
+          icon="i-heroicons-exclamation-circle"
+          :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
+          :description="$t('status_page.pending_send_banner_description')"
+        />
+        <BookStatusSalesOrdersTab
+          :class-id="classId"
+          :owner-wallet="ownerWallet"
+          @reduce-pending-nft="handleReducePendingNft"
+        />
+        <BookStatusPurchaseLinksCard
+          :class-id="classId"
+          :prices="prices"
+          :book-name="nftClassName"
+        />
+      </div>
+
+      <BookStatusPendingChangesBar
+        v-if="userIsOwner"
+        :changes="changes"
+        :needs-wallet-signature="needsWalletSignature"
+        :is-saving="isSavingChanges"
+        @save="saveAllChanges"
+        @discard="discardAllChanges"
+        @jump="(tab: string) => (selectedTabItemIndex = tab)"
+      />
     </template>
 
     <NuxtPage :transition="false" />
@@ -118,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import { copyToClipboard } from '~/utils'
 import type { ClassListingData, ClassListingPrice } from '~/types'
 
@@ -128,10 +149,12 @@ const AUTHOR_RESERVED_NFT_COUNT = 1
 const { BOOK3_URL } = useRuntimeConfig().public
 const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
+const { updateBookListingSetting } = bookstoreApiStore
 const nftStore = useNftStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
 const { getBalanceOf } = useNFTContractReader()
+const { showSuccessToast, showErrorToast } = useToastComposable()
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
@@ -155,12 +178,39 @@ const listingSettings = useBookListingSettings({
   isFreeBook,
 })
 
+// What BookDetailsSection exposes to the save orchestration.
+interface BookDetailsSectionApi {
+  isChainDirty: boolean
+  changedFields: string[]
+  pendingModeratorInput: boolean
+  saveChain: () => Promise<boolean>
+  discardChain: () => Promise<void>
+}
+const detailsSectionRef = ref<BookDetailsSectionApi | null>(null)
+
+// The pending-changes ledger the bar, the tab badge and the summary tab share.
+const { changes, changeCount, needsWalletSignature } = useBookEditChanges({
+  chainChangedFields: () => detailsSectionRef.value?.changedFields ?? [],
+  settingsChangedKeys: () => listingSettings.changedSettingKeys(),
+  editionChanges: () => [],
+  signatureChanged: () => false,
+})
+
+const isSavingChanges = ref(false)
+// Remounts the summary tab after a save so its chain-metadata copy refetches.
+const summaryRefreshCounter = ref(0)
+
 // Tabs
 const tabItems = computed(() => [
   { label: $t('status_page.tab_files'), value: 'files' },
   { label: $t('status_page.tab_book_details'), value: 'details' },
   { label: $t('status_page.tab_pricing'), value: 'pricing' },
-  { label: $t('status_page.tab_summary'), value: 'summary' },
+  {
+    label: $t('status_page.tab_summary'),
+    value: 'summary',
+    // The unsaved-changes count, as the mock shows it: on the summary tab.
+    badge: changeCount.value || undefined,
+  },
   { label: $t('status_page.tab_sales_orders'), value: 'sales' },
 ])
 
@@ -234,4 +284,94 @@ async function calculateStock() {
 function handleReducePendingNft() {
   classListingInfo.value.pendingNFTCount = (classListingInfo.value.pendingNFTCount || 0) - 1
 }
+
+// Two-phase save: REST first, the wallet-signed chain tx last, per-group
+// failure handling. A failed group keeps its changes counted in the bar; a
+// wallet reject therefore never rolls back the settings that already saved.
+async function saveAllChanges() {
+  if (isSavingChanges.value) { return }
+  const details = detailsSectionRef.value
+  if (details?.pendingModeratorInput) {
+    showErrorToast($t('errors.add_moderator_wallet'))
+    selectedTabItemIndex.value = 'details'
+    return
+  }
+  isSavingChanges.value = true
+  try {
+    let savedSomething = false
+
+    if (listingSettings.isListingSettingsDirty()) {
+      try {
+        await updateBookListingSetting(classId.value, listingSettings.buildSettingsPayload())
+        listingSettings.commitListingSnapshot()
+        savedSomething = true
+      }
+      catch (err) {
+        handleGroupSaveError($t('nft_book_form.sale_settings'), err)
+        return
+      }
+    }
+
+    if (details?.isChainDirty) {
+      try {
+        if (!(await details.saveChain())) {
+          // Validation failed; the form already shows the field errors.
+          selectedTabItemIndex.value = 'details'
+          return
+        }
+        savedSomething = true
+        // The saved fingerprints can flip hideDownload, re-dirtying the
+        // settings; sync that within the same save.
+        if (listingSettings.isListingSettingsDirty()) {
+          await updateBookListingSetting(classId.value, listingSettings.buildSettingsPayload())
+          listingSettings.commitListingSnapshot()
+        }
+      }
+      catch (err) {
+        handleGroupSaveError($t('status_page.tab_book_details'), err)
+        return
+      }
+    }
+
+    if (savedSomething) {
+      showSuccessToast($t('status_page.settings_saved'))
+      await refreshListingInfo()
+      summaryRefreshCounter.value += 1
+    }
+  }
+  finally {
+    isSavingChanges.value = false
+  }
+}
+
+function handleGroupSaveError(group: string, err: unknown) {
+  const errorData = (err as { data?: string }).data || err
+  // eslint-disable-next-line no-console
+  console.error(errorData)
+  showErrorToast($t('status_page.save_group_failed', { group, error: String(errorData) }), { duration: 5000 })
+}
+
+async function discardAllChanges() {
+  if (!window.confirm($t('status_page.discard_confirm'))) { return }
+  listingSettings.restoreListingFromSnapshot()
+  await detailsSectionRef.value?.discardChain()
+}
+
+// Unsaved edits guard the page as a whole; the forms' own guards are off.
+useEventListener('beforeunload', (event: BeforeUnloadEvent) => {
+  if (changeCount.value > 0) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+})
+
+onBeforeRouteLeave((to) => {
+  // Navigating into this page's own child routes (edition modals) is not
+  // leaving the page.
+  if (to.path.startsWith(route.path)) { return true }
+  if (changeCount.value > 0) {
+    return window.confirm($t('unsaved_changes_warning'))
+  }
+  return true
+})
 </script>
