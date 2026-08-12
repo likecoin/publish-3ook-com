@@ -2,6 +2,7 @@
   <URadioGroup
     v-model="drmOption"
     :items="drmOptions"
+    :disabled="disabled"
     orientation="vertical"
     :ui="{ label: 'text-left' }"
   >
@@ -31,6 +32,10 @@
 
 <script setup lang="ts">
 const { t: $t } = useI18n()
+
+// Disabled hosts show the stored tier without offering the choice (a published
+// book's protection follows its uploaded files).
+const { disabled = false } = defineProps<{ disabled?: boolean }>()
 
 const encryptEbook = defineModel<boolean>({ required: true })
 
