@@ -44,22 +44,26 @@
         :items="tabItems"
       >
         <template #content="{ item }">
-          <BookStatusSalesOrdersTab
-            v-if="item.value === 'sales'"
+          <BookStatusBookFilesCard
+            v-if="item.value === 'files'"
             class="mt-4"
             :class-id="classId"
-            :owner-wallet="ownerWallet"
-            @reduce-pending-nft="handleReducePendingNft"
           />
           <div
-            v-else
+            v-else-if="item.value === 'details'"
             class="space-y-10 mt-4"
           >
             <BookStatusBookDetailsSection
               :class-id="classId"
               :class-listing-info="classListingInfo"
+              :settings="listingSettings"
               @saved="refreshListingInfo"
             />
+          </div>
+          <div
+            v-else-if="item.value === 'pricing'"
+            class="space-y-10 mt-4"
+          >
             <BookStatusEditionsCard
               v-model:prices="prices"
               :class-id="classId"
@@ -67,6 +71,37 @@
               :stock-balance="stockBalance"
               @restocked="calculateStock"
               @error="(message: string) => (error = message)"
+            />
+            <BookStatusBookListingSettingsCard
+              :class-id="classId"
+              :settings="listingSettings"
+              :is-free-book="isFreeBook"
+              @saved="refreshListingInfo"
+            />
+          </div>
+          <BookStatusBookSummaryTab
+            v-else-if="item.value === 'summary'"
+            class="mt-4"
+            :class-id="classId"
+            :class-listing-info="classListingInfo"
+            @go-to-tab="(tab: string) => (selectedTabItemIndex = tab)"
+          />
+          <div
+            v-else
+            class="space-y-10 mt-4"
+          >
+            <UAlert
+              v-if="pendingNFTCount > 0"
+              color="warning"
+              variant="subtle"
+              icon="i-heroicons-exclamation-circle"
+              :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
+              :description="$t('status_page.pending_send_banner_description')"
+            />
+            <BookStatusSalesOrdersTab
+              :class-id="classId"
+              :owner-wallet="ownerWallet"
+              @reduce-pending-nft="handleReducePendingNft"
             />
             <BookStatusPurchaseLinksCard
               :class-id="classId"
@@ -110,13 +145,26 @@ const classListingInfo = ref<ClassListingData>({} as ClassListingData)
 const prices = ref<ClassListingPrice[]>([])
 const stockBalance = ref(-99)
 
+const isFreeBook = computed(() =>
+  (classListingInfo.value.prices || []).some(p => Number(p.price) === 0))
+
+// One settings instance for the whole page: the /settings POST echoes every
+// field back, so the tabs that edit different fields must share state.
+const listingSettings = useBookListingSettings({
+  classListingInfo: () => classListingInfo.value,
+  isFreeBook,
+})
+
 // Tabs
 const tabItems = computed(() => [
-  { label: $t('status_page.tab_sales_orders'), value: 'sales' },
+  { label: $t('status_page.tab_files'), value: 'files' },
   { label: $t('status_page.tab_book_details'), value: 'details' },
+  { label: $t('status_page.tab_pricing'), value: 'pricing' },
+  { label: $t('status_page.tab_summary'), value: 'summary' },
+  { label: $t('status_page.tab_sales_orders'), value: 'sales' },
 ])
 
-const selectedTabItemIndex = ref(route.query.tab as string || 'sales')
+const selectedTabItemIndex = ref(route.query.tab as string || 'details')
 
 watch(selectedTabItemIndex, (value) => {
   if (value) {
@@ -134,6 +182,7 @@ const affiliationLink = computed(() => {
 })
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
 const userIsOwner = computed(() => !!sessionWallet.value && ownerWallet.value === sessionWallet.value)
+const pendingNFTCount = computed(() => classListingInfo.value.pendingNFTCount || 0)
 
 watch(sessionWallet, async (newWallet) => {
   if (newWallet) {

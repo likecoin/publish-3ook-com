@@ -81,20 +81,6 @@
 
       <BookTableOfContentsField v-model="tableOfContents" />
 
-      <h4
-        class="font-bold font-mono"
-        v-text="$t('nft_book_form.sale_settings')"
-      />
-
-      <BookSettingsFields
-        v-model:is-adult-only="isAdultOnly"
-        v-model:hide-audio="hideAudio"
-        v-model:is-plus-reading-enabled="isPlusReadingEnabled"
-        v-model:is-preview-enabled="isPreviewEnabled"
-        v-model:preview-percentage="previewPercentage"
-        :is-free-book="isFreeBook"
-      />
-
       <!-- Share sales data (moderator wallets) -->
       <UCard
         :ui="{
@@ -159,6 +145,7 @@ import { getPortfolioURL } from '~/utils'
 import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
+import type { BookListingSettingsContext } from '~/composables/useBookListingSettings'
 import { shouldHideDownload, createEmptyISCNFormData } from '~/utils/iscn'
 import { resolveShortDescription } from '~/utils/description'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
@@ -174,9 +161,12 @@ const { wallet } = storeToRefs(useWalletStore())
 const { updateBookListingSetting } = bookstoreApiStore
 const { loadClassMetadataIntoForm, saveClassMetadata } = useNFTClassUpdater()
 
-const { classId, classListingInfo } = defineProps<{
+const { classId, classListingInfo, settings } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
+  // Page-owned: the settings POST echoes every field back, so all tabs must
+  // edit the same instance.
+  settings: BookListingSettingsContext
 }>()
 
 const emit = defineEmits<{ saved: [] }>()
@@ -194,16 +184,9 @@ const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData({
 const iscnChainData = ref({} as ClassMetadata)
 const { payload } = useISCN({ iscnFormData, iscnChainData })
 
-const isFreeBook = computed(() => (classListingInfo.prices || []).some(p => Number(p.price) === 0))
-
-// Listing-owned fields (REST /settings)
+// Listing-owned fields (REST /settings), shared with the other tabs.
 const {
-  isAdultOnly,
-  hideAudio,
   hideDownload,
-  isPlusReadingEnabled,
-  isPreviewEnabled,
-  previewPercentage,
   descriptionFull,
   tableOfContents,
   moderatorWallets,
@@ -211,10 +194,7 @@ const {
   commitListingSnapshot,
   restoreListingFromSnapshot,
   buildSettingsPayload,
-} = useBookListingSettings({
-  classListingInfo: () => classListingInfo,
-  isFreeBook,
-})
+} = settings
 const moderatorWalletInput = ref('')
 
 const userIsOwner = computed(() => sessionWallet.value && classListingInfo.ownerWallet === sessionWallet.value)
@@ -254,24 +234,6 @@ const readOnlyRows = computed(() => [
   { label: $t('iscn_form.license'), value: iscnFormData.value.license },
   { label: $t('form.cover_image'), value: iscnFormData.value.coverUrl, mono: true },
   { label: $t('form.table_of_content'), value: tableOfContents.value },
-  {
-    label: $t('nft_book_form.is_adult_only'),
-    value: isAdultOnly.value ? $t('status_page.value_yes') : $t('status_page.value_no'),
-  },
-  {
-    label: $t('nft_book_form.ai_audio'),
-    value: hideAudio.value ? $t('nft_book_form.ai_audio_forbid') : $t('nft_book_form.ai_audio_allow'),
-  },
-  {
-    label: $t('nft_book_form.plus_reading'),
-    value: isPlusReadingEnabled.value ? $t('nft_book_form.plus_reading_join') : $t('nft_book_form.plus_reading_skip'),
-  },
-  {
-    label: $t('nft_book_form.free_preview'),
-    value: isPreviewEnabled.value
-      ? `${previewPercentage.value}%`
-      : $t('nft_book_form.free_preview_disable'),
-  },
   {
     label: $t('form.share_sales_data'),
     value: moderatorWallets.value.map(shortenWalletAddress).join('\n'),

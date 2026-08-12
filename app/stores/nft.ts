@@ -24,9 +24,19 @@ export const useNftStore = defineStore('nft', () => {
     return classData
   }
 
+  // Only resolved values are cached above, so without this several components
+  // mounting at once each fire the same on-chain read before the first returns.
+  const classMetadataPromiseByIdMap = new Map<string, ReturnType<typeof fetchClassMetadataById>>()
+
   function lazyFetchClassMetadataById(classId: string) {
-    if (getClassMetadataById.value(classId)) { return getClassMetadataById.value(classId) }
-    return fetchClassMetadataById(classId)
+    const cached = getClassMetadataById.value(classId)
+    if (cached) { return cached }
+    const pending = classMetadataPromiseByIdMap.get(classId)
+    if (pending) { return pending }
+    const request = fetchClassMetadataById(classId)
+      .finally(() => classMetadataPromiseByIdMap.delete(classId))
+    classMetadataPromiseByIdMap.set(classId, request)
+    return request
   }
 
   async function fetchClassListingInfoById(classId: string) {

@@ -1,6 +1,11 @@
 import type { ClassListingData } from '~/types'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
+// The page-level instance shared by every tab that edits listing fields. One
+// instance per class: the settings POST echoes every field back, so two
+// instances would overwrite each other's edits.
+export type BookListingSettingsContext = ReturnType<typeof useBookListingSettings>
+
 // Owns the listing-owned (REST /settings) fields of a book class: init from
 // the fetched listing info, snapshot-based dirty tracking, cancel-restore,
 // and the settings POST payload.

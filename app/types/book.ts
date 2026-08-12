@@ -5,6 +5,11 @@ export interface BookPriceInDecimalByCurrency {
 
 export type BookListingStatus = 'listed' | 'unlisted' | 'pending_review'
 
+// The status page's tabs, in display order. Also the values accepted in its
+// `?tab=` query, so an unknown value can fall back instead of hiding every pane.
+export const BOOK_STATUS_TABS = ['files', 'details', 'pricing', 'summary', 'sales'] as const
+export type BookStatusTab = typeof BOOK_STATUS_TABS[number]
+
 export interface ClassListingPrice {
   index: number
   name: { en?: string, zh?: string } | string
@@ -45,6 +50,8 @@ export interface ClassListingData {
   previewPercentage?: number
   pendingNFTCount?: number
   enableSignatureImage?: boolean | 'signed'
+  isHidden?: boolean
+  isPendingReview?: boolean
 }
 
 export interface BookRecord {
