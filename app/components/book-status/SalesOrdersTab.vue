@@ -2,7 +2,7 @@
   <div class="space-y-10">
     <UCard
       :ui="{
-        header: 'flex justify-between items-center gap-4',
+        header: 'flex flex-wrap justify-between items-center gap-3',
         body: 'p-0 sm:p-0',
       }"
     >
@@ -12,9 +12,11 @@
           v-text="$t('pages.orders')"
         />
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <UInput
             v-model="searchInput"
+            class="w-44"
+            size="sm"
             icon="i-heroicons-magnifying-glass-20-solid"
             :placeholder="$t('status_page.search_placeholder')"
           />
@@ -23,17 +25,49 @@
               icon="i-heroicons-view-columns"
               color="neutral"
               variant="ghost"
+              size="sm"
               :aria-label="$t('status_page.toggle_columns')"
             />
           </UDropdownMenu>
+          <TablePaginationBar
+            v-model:page="tablePage"
+            v-model:page-size="pageSize"
+            :total="pagination.total"
+            :row-from="tablePageRowFrom"
+            :row-to="tablePageRowTo"
+            :page-size-options="pageSizeOptions"
+          />
         </div>
       </template>
 
       <UTable
         :ui="{ th: 'whitespace-nowrap' }"
         :columns="orderTableColumns"
-        :data="ordersTableRows"
+        :data="paginatedOrderRows"
+        :loading="isLoading"
+        :progress="{ color: 'primary', animation: 'carousel' }"
       >
+        <template
+          v-for="column in visibleOrderColumns"
+          :key="`header-${column.accessorKey}`"
+          #[`${column.accessorKey}-header`]
+        >
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :label="column.header"
+            :trailing-icon="getSortIcon(column.accessorKey)"
+            :aria-label="getSortAriaLabel(column)"
+            @click="() => toggleSort(column.accessorKey)"
+          />
+        </template>
+
+        <template #timestamp-cell="{ row }">
+          {{ row.original.orderDate }}
+        </template>
+        <template #price-cell="{ row }">
+          {{ formatPriceUSDLabel(row.original.price, $t) }}
+        </template>
         <template #buyerEmail-cell="{ row }">
           <UButton
             :label="row.original.buyerEmail"
@@ -78,6 +112,10 @@
               variant="ghost"
             />
           </UDropdownMenu>
+        </template>
+
+        <template #empty>
+          <span v-text="searchInput ? $t('status_page.no_search_result') : $t('status_page.no_orders')" />
         </template>
       </UTable>
     </UCard>
@@ -138,9 +176,10 @@
 
 <script setup lang="ts">
 import { getPortfolioURL, convertMsToMinutes } from '~/utils'
+import { formatPriceUSDLabel } from '~/utils/listing'
 import type { PurchaseItem, PlusReadingStats } from '~/types'
 
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 
 const { CHAIN_EXPLORER_URL } = useRuntimeConfig().public
 const apiFetch = useLikeCoApiFetch()
@@ -161,6 +200,14 @@ const { classId, ownerWallet } = defineProps<{
 }>()
 
 const emit = defineEmits<{ reducePendingNft: [] }>()
+
+// Sorting 狀態 by its raw key would scatter the one status the author can act
+// on, so the column sorts by urgency instead.
+const ORDER_STATUS_SORT_ORDER: Record<string, number> = {
+  pendingNFT: 0,
+  paid: 1,
+  completed: 2,
+}
 
 // Search
 const searchInput = ref('')
@@ -225,15 +272,24 @@ async function fetchPlusReadingStats() {
   }
 }
 
-onMounted(() => {
-  // Independent fetches — run concurrently to keep them off each other's critical path.
-  Promise.all([
-    ordersStore.fetchOrdersByClassId([classId]),
-    fetchPlusReadingStats(),
-  ]).catch((err) => {
+// Starts true so the table shows its spinner rather than "no orders yet" in
+// the gap between first paint and the fetch below.
+const isLoading = ref(true)
+
+onMounted(async () => {
+  // The stats card is independent of the table, so it neither delays the
+  // spinner nor blocks the orders fetch.
+  fetchPlusReadingStats()
+  try {
+    await ordersStore.fetchOrdersByClassId([classId])
+  }
+  catch (err) {
     // eslint-disable-next-line no-console
     console.error(err)
-  })
+  }
+  finally {
+    isLoading.value = false
+  }
 })
 
 const ordersData = computed(() => {
@@ -241,20 +297,8 @@ const ordersData = computed(() => {
   return orders
 })
 
-const purchaseList = computed(() => {
-  if (ordersData.value?.length) {
-    return ordersData.value.map((purchase: PurchaseItem) => {
-      const timestamp = purchase.timestamp
-      const date = new Date(timestamp)
-      const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`
-      return { ...purchase, formattedDate }
-    }).sort((a, b) => b.timestamp - a.timestamp)
-  }
-  return []
-})
-
 const salesChannelMap = computed(() => {
-  if (!purchaseList.value.length) {
+  if (!ordersData.value.length) {
     return {}
   }
   const map: {
@@ -262,7 +306,7 @@ const salesChannelMap = computed(() => {
       count: number
       totalUSD: number
     };
-  } = purchaseList.value.reduce((acc: Record<string, { count: number, totalUSD: number }>, cur: PurchaseItem) => {
+  } = ordersData.value.reduce((acc: Record<string, { count: number, totalUSD: number }>, cur: PurchaseItem) => {
     const from = cur.from || 'empty'
     if (!acc[from]) {
       acc[from] = {
@@ -298,13 +342,13 @@ const salesChannelTableRows = computed(() => Object.entries(salesChannelMap.valu
 // price, edition, reader message); the support-workflow columns stay one
 // toggle away rather than widening the table for everyone.
 const orderColumnDefs = computed(() => [
-  { accessorKey: 'actions', header: $t('table.actions') },
-  { accessorKey: 'orderDate', header: $t('table.order_date') },
+  // Sorts on the raw timestamp, so the cell renders the date from `orderDate`.
+  { accessorKey: 'timestamp', header: $t('table.order_date') },
   { accessorKey: 'status', header: $t('table.status') },
   { accessorKey: 'from', header: $t('table.sales_channel') },
-  { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
+  { accessorKey: 'price', header: $t('table.price_usd'), meta: NUMERIC_COLUMN_META },
   { accessorKey: 'priceName', header: $t('table.price_name') },
-  { accessorKey: 'quantity', header: $t('table.quantity'), optional: true },
+  { accessorKey: 'quantity', header: $t('table.quantity'), meta: NUMERIC_COLUMN_META, optional: true },
   { accessorKey: 'coupon', header: $t('table.coupon_applied'), optional: true },
   { accessorKey: 'buyerEmail', header: $t('table.buyer_email'), optional: true },
   { accessorKey: 'readerEmail', header: $t('table.reader_email'), optional: true },
@@ -314,9 +358,11 @@ const orderColumnDefs = computed(() => [
 
 const shownOptionalColumnKeys = ref<string[]>([])
 
-const orderTableColumns = computed(() => orderColumnDefs.value
+const visibleOrderColumns = computed(() => orderColumnDefs.value
   .filter(column => !column.optional || shownOptionalColumnKeys.value.includes(column.accessorKey))
   .map(({ optional: _optional, ...column }) => column))
+
+const orderTableColumns = computed(() => [...visibleOrderColumns.value, ACTIONS_COLUMN])
 
 const columnToggleItems = computed(() => orderColumnDefs.value
   .filter(column => column.optional)
@@ -416,15 +462,32 @@ function getStatusLabelColor(purchaseListItem: PurchaseItem): 'info' | 'warning'
   }
 }
 
-const ordersTableRows = computed(() => purchaseList.value?.map((p, index) => ({
-  index,
+// Held rather than called through `toLocaleDateString`, which rebuilds the
+// formatter on every call — the dominant cost of building a few thousand rows.
+const orderDateFormatter = computed(() => new Intl.DateTimeFormat(locale.value, {
+  year: 'numeric',
+  // Padded so the column stays aligned.
+  month: '2-digit',
+  day: '2-digit',
+}))
+
+function formatOrderDate(timestamp: number) {
+  const date = new Date(timestamp)
+  if (!timestamp || Number.isNaN(date.getTime())) { return '-' }
+  return orderDateFormatter.value.format(date)
+}
+
+// Mapping and filtering are separate so typing in the search box only re-runs
+// the filter instead of rebuilding every row's action menu and wallet links.
+const orderRows = computed(() => ordersData.value.map((p: PurchaseItem) => ({
   readerEmail: p.giftInfo?.toEmail || p.email,
   buyerEmail: p.email,
   buyerPhone: p.phone || '',
   status: p.status,
   statusLabel: getStatusLabel(p),
   statusLabelColor: getStatusLabelColor(p),
-  orderDate: p.formattedDate,
+  timestamp: p.timestamp,
+  orderDate: formatOrderDate(p.timestamp),
   wallet: p.wallet || '',
   walletLink: getPortfolioURL(p.wallet),
   shortenWallet: shortenWalletAddress(p.wallet),
@@ -435,20 +498,50 @@ const ordersTableRows = computed(() => purchaseList.value?.map((p, index) => ({
   from: p.from || '',
   quantity: p.quantity || 1,
   actions: getOrdersTableActionItems(p),
-})).filter((p) => {
-  if (!searchInput.value) { return true }
+})))
+
+const filteredOrderRows = computed(() => {
+  if (!searchInput.value) { return orderRows.value }
   const normalizedSearchInput = searchInput.value.toLowerCase()
-  return (
-    p.readerEmail.toLowerCase().includes(normalizedSearchInput)
-    || p.buyerEmail.toLowerCase().includes(normalizedSearchInput)
-    || p.buyerPhone.toLowerCase().includes(normalizedSearchInput)
-    || p.wallet?.toLowerCase().includes(normalizedSearchInput)
-    || p.priceName?.toLowerCase().includes(normalizedSearchInput)
-    || p.statusLabel?.toLowerCase().includes(normalizedSearchInput)
-    || p.orderDate?.toLowerCase().includes(normalizedSearchInput)
-    || p.from?.toLowerCase().includes(normalizedSearchInput)
-  )
-}))
+  return orderRows.value.filter(p => [
+    p.readerEmail,
+    p.buyerEmail,
+    p.buyerPhone,
+    p.wallet,
+    p.priceName,
+    p.statusLabel,
+    p.orderDate,
+    p.from,
+    p.coupon,
+    p.message,
+  ].some(field => field?.toLowerCase().includes(normalizedSearchInput)))
+})
+
+const {
+  pagination,
+  pageSizeOptions,
+  paginatedRows: paginatedOrderRows,
+  page: tablePage,
+  pageSize,
+  pageRowFrom: tablePageRowFrom,
+  pageRowTo: tablePageRowTo,
+  toggleSort,
+  getSortIcon,
+  getSortAriaLabel,
+} = usePaginatedTable({
+  rows: filteredOrderRows,
+  pageSize: 25,
+  resetKey: () => searchInput.value,
+  compare: (aValue, bValue, column) => {
+    if (column === 'status') {
+      return (ORDER_STATUS_SORT_ORDER[aValue as string] ?? Number.MAX_SAFE_INTEGER)
+        - (ORDER_STATUS_SORT_ORDER[bValue as string] ?? Number.MAX_SAFE_INTEGER)
+    }
+    return compareTableValues(aValue, bValue)
+  },
+  // Newest first until the author sorts, and as the tie-break afterwards.
+  defaultCompare: (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
+})
 
 async function sendReminderEmail(purchase: PurchaseItem) {
   const orderData = ordersData.value?.find(p => p.id === purchase.id)

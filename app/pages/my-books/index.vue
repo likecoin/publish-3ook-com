@@ -32,28 +32,13 @@
               icon="i-heroicons-magnifying-glass-20-solid"
               :placeholder="$t('table.search_placeholder')"
             />
-            <span
-              class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap"
-              v-text="$t('table.rows_per_page')"
-            />
-            <USelect
-              v-model="pageSize"
-              class="w-20"
-              size="sm"
-              :items="pageSizeOptions"
-              :aria-label="$t('table.rows_per_page')"
-            />
-            <span
-              class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap"
-              v-text="$t('table.page_range', { from: tablePageRowFrom, to: tablePageRowTo, total: tableRows.length })"
-            />
-            <UPagination
+            <TablePaginationBar
               v-model:page="tablePage"
-              size="sm"
-              :items-per-page="pagination.limit"
-              :total="tableRows.length"
-              show-first
-              show-last
+              v-model:page-size="pageSize"
+              :total="pagination.total"
+              :row-from="tablePageRowFrom"
+              :row-to="tablePageRowTo"
+              :page-size-options="pageSizeOptions"
             />
           </div>
         </div>
@@ -255,14 +240,18 @@ const {
   pagination,
   pageSizeOptions,
   paginatedRows: paginatedTableRows,
-  sortState,
+  page: tablePage,
+  pageSize,
+  pageRowFrom: tablePageRowFrom,
+  pageRowTo: tablePageRowTo,
   toggleSort,
   setPage,
-  setPageSize,
   getSortIcon,
+  getSortAriaLabel,
 } = usePaginatedTable({
   rows: tableRows,
   pageSize: 10,
+  resetKey: () => searchInput.value,
   initialSort: { column: 'pendingAction', direction: 'desc' },
   compare: (aValue, bValue, column) => {
     if (column === 'status') {
@@ -273,20 +262,7 @@ const {
   defaultCompare: (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
 })
 
-const tablePage = computed({
-  get: () => pagination.value.page,
-  set: setPage,
-})
-const pageSize = computed({
-  get: () => pagination.value.limit,
-  set: setPageSize,
-})
-const tablePageRowFrom = computed(() => (tableRows.value.length ? (tablePage.value - 1) * pagination.value.limit + 1 : 0))
-const tablePageRowTo = computed(() => Math.min(tablePage.value * pagination.value.limit, tableRows.value.length))
-
 // Columns
-const numericColumnMeta = { class: { th: 'text-right', td: 'text-right' } }
-
 const sortableColumns = computed(() => [
   {
     accessorKey: 'className',
@@ -295,12 +271,12 @@ const sortableColumns = computed(() => [
   {
     accessorKey: 'priceInUSD',
     header: $t('table.price_in_usd'),
-    meta: numericColumnMeta,
+    meta: NUMERIC_COLUMN_META,
   },
   {
     accessorKey: 'sold',
     header: $t('table.sold'),
-    meta: numericColumnMeta,
+    meta: NUMERIC_COLUMN_META,
   },
   {
     accessorKey: 'status',
@@ -309,23 +285,13 @@ const sortableColumns = computed(() => [
   {
     accessorKey: 'pendingAction',
     header: $t('table.pending_action'),
-    meta: numericColumnMeta,
+    meta: NUMERIC_COLUMN_META,
   },
 ])
 
-// aria-sort can't reach UTable's <th> from the header slot, so the sort state
-// joins the header button's accessible name instead.
-function getSortAriaLabel(column: { accessorKey: string, header: string }) {
-  if (sortState.value.column !== column.accessorKey || !sortState.value.direction) {
-    return column.header
-  }
-  const key = sortState.value.direction === 'asc' ? 'table.sorted_ascending' : 'table.sorted_descending'
-  return $t(key, { label: column.header })
-}
-
 const tableColumns = computed(() => [
   ...sortableColumns.value,
-  { id: 'actions', header: '', meta: { class: { td: 'w-px' } } },
+  ACTIONS_COLUMN,
 ])
 
 onMounted(async () => {
