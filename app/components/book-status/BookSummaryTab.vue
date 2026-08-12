@@ -1,6 +1,30 @@
 <template>
   <div class="flex flex-col gap-[16px] text-left">
-    <!-- Listing status at a glance -->
+    <!-- Unsaved changes: the same ledger the bar counts, spelled out with
+         jump links, since this tab's badge is what carries the number. -->
+    <UCard v-if="pendingChanges.length">
+      <template #header>
+        <h3
+          class="font-bold font-mono"
+          v-text="$t('status_page.pending_changes_title')"
+        />
+      </template>
+      <ul class="space-y-1">
+        <li
+          v-for="entry in pendingChanges"
+          :key="entry.key"
+        >
+          <UButton
+            variant="link"
+            color="neutral"
+            :icon="entry.needsWallet ? 'i-heroicons-wallet' : 'i-heroicons-pencil-square'"
+            :label="entry.label"
+            @click="emit('goToTab', entry.tab)"
+          />
+        </li>
+      </ul>
+    </UCard>
+
     <UCard>
       <template #header>
         <h3
@@ -64,7 +88,9 @@
 
 <script setup lang="ts">
 import type { ClassListingData } from '~/types'
+import type { BookStatusTab } from '~/types/book'
 import type { ISCNFormData } from '~/types/iscn'
+import type { BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import { getBookListingStatus, mapListingPriceToFormItem } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
@@ -72,12 +98,13 @@ import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId, classListingInfo } = defineProps<{
+const { classId, classListingInfo, pendingChanges = [] } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
+  pendingChanges?: BookEditChangeEntry[]
 }>()
 
-const emit = defineEmits<{ goToTab: [tab: string] }>()
+const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 
@@ -86,12 +113,7 @@ const priceFormItems = computed(() =>
 
 const pendingNFTCount = computed(() => classListingInfo.pendingNFTCount || 0)
 
-const listingStatus = computed(() => getBookListingStatus({
-  classId,
-  prices: classListingInfo.prices,
-  isHidden: classListingInfo.isHidden,
-  isPendingReview: classListingInfo.isPendingReview,
-}))
+const listingStatus = computed(() => getBookListingStatus(classListingInfo))
 
 // Cached after any other tab loaded it; the summary reads, never writes.
 watch(() => classId, async () => {

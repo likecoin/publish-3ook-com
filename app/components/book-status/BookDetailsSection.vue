@@ -10,32 +10,6 @@
         class="font-bold font-mono"
         v-text="$t('status_page.book_details_title')"
       />
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        variant="outline"
-        :label="$t('common.edit')"
-        :disabled="isISCNLoading"
-        @click="isEditing = true"
-      />
-      <div
-        v-else
-        class="flex gap-2"
-      >
-        <UButton
-          variant="outline"
-          color="neutral"
-          :label="$t('status_page.cancel_edit')"
-          :disabled="isSaving"
-          @click="handleCancel"
-        />
-        <UButton
-          :label="$t('common.save')"
-          :loading="isSaving"
-          :disabled="isSaving"
-          @click="handleSave"
-        />
-      </div>
     </template>
 
     <UProgress
@@ -45,9 +19,10 @@
       class="w-full"
     />
 
-    <!-- Read-only combined view: on-chain metadata + listing settings -->
+    <!-- Read-only combined view for moderators: they can see the book they
+         moderate but only the owner can sign the class update tx. -->
     <div
-      v-else-if="!isEditing"
+      v-else-if="!userIsOwner"
       class="flex flex-col gap-6 text-left"
     >
       <dl class="grid grid-cols-[minmax(120px,auto)_1fr] gap-x-6 gap-y-2 text-sm">
@@ -68,7 +43,8 @@
       </dl>
     </div>
 
-    <!-- Edit mode: one form, smart save (chain tx and/or settings POST) -->
+    <!-- Owner: fields are always live; the page's pending-changes bar owns
+         saving and discarding. -->
     <div
       v-else
       class="flex flex-col gap-6 text-left"
@@ -77,6 +53,7 @@
         ref="iscnFormRef"
         v-model="iscnFormData"
         v-model:description-full="descriptionFull"
+        :guard-unsaved-changes="false"
       />
 
       <BookTableOfContentsField v-model="tableOfContents" />
@@ -151,14 +128,12 @@ import { resolveShortDescription } from '~/utils/description'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
 const { t: $t } = useI18n()
-const { showSuccessToast, showInfoToast, showErrorToast } = useToastComposable()
 
 const bookstoreApiStore = useBookstoreApiStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 // The connected wallet, which is what the recent-genre list is keyed on — not
 // sessionWallet above, whose address the chips in ISCNForm never read.
 const { wallet } = storeToRefs(useWalletStore())
-const { updateBookListingSetting } = bookstoreApiStore
 const { loadClassMetadataIntoForm, saveClassMetadata } = useNFTClassUpdater()
 
 const { classId, classListingInfo, settings } = defineProps<{
@@ -169,11 +144,7 @@ const { classId, classListingInfo, settings } = defineProps<{
   settings: BookListingSettingsContext
 }>()
 
-const emit = defineEmits<{ saved: [] }>()
-
-const isEditing = ref(false)
 const isISCNLoading = ref(false)
-const isSaving = ref(false)
 const iscnFormRef = ref<InstanceType<typeof ISCNForm> | null>(null)
 
 // On-chain metadata form state; seed one empty URL row for the edit form.
@@ -190,10 +161,6 @@ const {
   descriptionFull,
   tableOfContents,
   moderatorWallets,
-  isListingSettingsDirty,
-  commitListingSnapshot,
-  restoreListingFromSnapshot,
-  buildSettingsPayload,
 } = settings
 const moderatorWalletInput = ref('')
 
@@ -249,6 +216,10 @@ async function loadChainMetadata() {
       iscnFormData.value = loaded.formData
       iscnChainData.value = loaded.chainData
     }
+    // The form is mounted before the async load lands, so its own mount-time
+    // snapshot would be of the empty seed and count everything as changed.
+    await nextTick()
+    iscnFormRef.value?.resetSnapshot()
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -265,88 +236,71 @@ watch(() => classId, () => {
   }
 }, { immediate: true })
 
+// The owner branch (and with it the form ref) can mount after the metadata
+// already loaded; retake the baseline then too.
+watch(iscnFormRef, (form) => {
+  if (form && !isISCNLoading.value) {
+    nextTick(() => form.resetSnapshot())
+  }
+})
+
 function addModeratorWallet() {
   if (!moderatorWalletInput.value) { return }
   moderatorWallets.value.push(moderatorWalletInput.value)
   moderatorWalletInput.value = ''
 }
 
-async function handleCancel() {
-  // Discard edits: reload chain form from (cached) metadata and restore the
-  // listing fields from the last saved snapshot.
+const isChainDirty = computed(() => !!iscnFormRef.value?.hasUnsavedChanges)
+const changedFields = computed<string[]>(() => iscnFormRef.value?.changedFields ?? [])
+const pendingModeratorInput = computed(() => !!moderatorWalletInput.value)
+
+// The chain half of a save: validates, signs the class update tx, and keeps
+// hideDownload in sync with the saved fingerprints (which can re-dirty the
+// listing settings — the caller re-checks them after this). Returns false when
+// validation failed (the form already showed the errors); throws on tx errors.
+async function saveChain(): Promise<boolean> {
+  // Same resolution the wizard does at publish: 短簡介 is optional for the
+  // author, never optional on chain.
+  iscnFormData.value.description = resolveShortDescription(
+    iscnFormData.value.description,
+    descriptionFull.value,
+    MAX_DESCRIPTION_LENGTH,
+  )
+  if (!(await iscnFormRef.value?.validate())) {
+    return false
+  }
+  const { metadata } = await saveClassMetadata(classId, payload.value)
+  useLogEvent('iscn_metadata_updated', { class_id: classId })
+  // Same point the wizard records it: a genre written on chain, not one
+  // browsed past. A settings-only save never reaches here.
+  rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
+  iscnFormRef.value?.resetSnapshot()
+  // Fingerprints may have switched between encrypted and open; keep the
+  // listing's hideDownload in sync.
+  const contentFingerprints = metadata.contentFingerprints as string[] | undefined
+  if (contentFingerprints) {
+    // No encryptEbook here: the radio is inert without a replacement upload,
+    // so the saved fingerprints are the only trustworthy signal.
+    const nextHideDownload = shouldHideDownload({ contentFingerprints })
+    if (nextHideDownload !== hideDownload.value) {
+      hideDownload.value = nextHideDownload
+    }
+  }
+  return true
+}
+
+// Discard the chain half: reload from (cached) metadata and retake the
+// baseline. The listing half is restored by the page from its own snapshot.
+async function discardChain() {
   await loadChainMetadata()
-  restoreListingFromSnapshot()
   moderatorWalletInput.value = ''
-  isEditing.value = false
 }
 
-async function handleSave() {
-  try {
-    if (moderatorWalletInput.value) {
-      throw new Error($t('errors.add_moderator_wallet'))
-    }
-    isSaving.value = true
-
-    // Decide both dirty states up-front: chain tx only if on-chain fields
-    // changed, settings POST only if listing fields changed.
-    const isChainDirty = !!iscnFormRef.value?.hasUnsavedChanges
-    let isListingDirty = isListingSettingsDirty()
-
-    if (!isChainDirty && !isListingDirty) {
-      showInfoToast($t('status_page.no_changes'))
-      isEditing.value = false
-      return
-    }
-
-    if (isChainDirty) {
-      // Same resolution the wizard does at publish: 短簡介 is optional for the
-      // author, never optional on chain.
-      iscnFormData.value.description = resolveShortDescription(
-        iscnFormData.value.description,
-        descriptionFull.value,
-        MAX_DESCRIPTION_LENGTH,
-      )
-      // Inline errors + toast + scroll are handled by the form itself.
-      if (!(await iscnFormRef.value?.validate())) {
-        return
-      }
-      const { metadata } = await saveClassMetadata(classId, payload.value)
-      useLogEvent('iscn_metadata_updated', { class_id: classId })
-      // Same point the wizard records it: a genre written on chain, not one
-      // browsed past. A settings-only save never reaches here.
-      rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
-      iscnFormRef.value?.resetSnapshot()
-      // Fingerprints may have switched between encrypted and open; keep the
-      // listing's hideDownload in sync within the same settings POST.
-      const contentFingerprints = metadata.contentFingerprints as string[] | undefined
-      if (contentFingerprints) {
-        // No encryptEbook here: the radio is inert without a replacement
-        // upload, so the saved fingerprints are the only trustworthy signal.
-        const nextHideDownload = shouldHideDownload({ contentFingerprints })
-        if (nextHideDownload !== hideDownload.value) {
-          hideDownload.value = nextHideDownload
-          isListingDirty = true
-        }
-      }
-    }
-
-    if (isListingDirty) {
-      await updateBookListingSetting(classId, buildSettingsPayload())
-      commitListingSnapshot()
-    }
-
-    showSuccessToast($t('status_page.settings_saved'))
-    isEditing.value = false
-    emit('saved')
-  }
-  catch (err) {
-    const errorData = (err as { data?: string }).data || err
-    // eslint-disable-next-line no-console
-    console.error(errorData)
-    showErrorToast(String(errorData), { duration: 5000 })
-  }
-  finally {
-    isSaving.value = false
-  }
-}
+defineExpose({
+  isChainDirty,
+  changedFields,
+  pendingModeratorInput,
+  saveChain,
+  discardChain,
+})
 </script>
