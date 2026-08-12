@@ -55,7 +55,7 @@
 import type { ClassListingData, ClassListingPrice } from '~/types'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
-import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
+import { mapPriceFormItemsToPayload, mapListingPriceToFormItem, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const apiFetch = useLikeCoApiFetch()
@@ -118,26 +118,7 @@ onMounted(async () => {
       if (!currentEdition) {
         throw new Error('Edition not found')
       }
-      const overrideHKD = currentEdition.priceInDecimalByCurrency?.hkd
-      const overrideTWD = currentEdition.priceInDecimalByCurrency?.twd
-      const hasExistingCustomPricing = typeof overrideHKD === 'number' || typeof overrideTWD === 'number'
-      const tierPriceStr = currentEdition.price?.toString() || ''
-      prices.value = [{
-        price: tierPriceStr,
-        deliveryMethod: currentEdition.isAutoDeliver ? 'auto' : 'manual',
-        autoMemo: currentEdition.autoMemo || '',
-        stock: currentEdition.stock,
-        name: typeof currentEdition.name === 'object' ? currentEdition.name.zh || '' : currentEdition.name || '',
-        description: typeof currentEdition.description === 'object' ? currentEdition.description.zh || '' : currentEdition.description || '',
-        isAllowCustomPrice: currentEdition.isAllowCustomPrice,
-        isListed: !currentEdition.isUnlisted,
-        oldIsAutoDeliver: currentEdition.isAutoDeliver,
-        oldStock: currentEdition.stock,
-        isCustomPricing: hasExistingCustomPricing,
-        priceUSDInput: hasExistingCustomPricing ? tierPriceStr : '',
-        priceHKDInput: typeof overrideHKD === 'number' ? (overrideHKD / 100).toString() : '',
-        priceTWDInput: typeof overrideTWD === 'number' ? (overrideTWD / 100).toString() : '',
-      }]
+      prices.value = [mapListingPriceToFormItem(currentEdition)]
       settings.value.isAllowCustomPrice = currentEdition.isAllowCustomPrice
     }
   }
