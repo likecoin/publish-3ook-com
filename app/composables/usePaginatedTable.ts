@@ -35,10 +35,21 @@ interface UsePaginatedTableOptions<T> {
   compare?: (aValue: unknown, bValue: unknown, column: string) => number
   // Ordering applied when no sort column is active.
   defaultCompare?: (a: T, b: T) => number
+  // The host's filter input. Changing it returns to page 1, so a search lands
+  // on its best matches instead of wherever the old result set was paged to.
+  resetKey?: () => unknown
 }
+
+// Right-aligned so digits line up down the column.
+export const NUMERIC_COLUMN_META = { class: { th: 'text-right', td: 'text-right' } }
+
+// Trailing row-action menu: no header, and no wider than its button.
+export const ACTIONS_COLUMN = { id: 'actions', header: '', meta: { class: { td: 'w-px' } } }
 
 // Client-side sort + pagination state shared by row-table pages.
 export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
+  const { t } = useI18n()
+
   const pagination = ref({
     page: 1,
     limit: options.pageSize ?? 50,
@@ -123,6 +134,19 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     pagination.value.page = 1 // Reset to first page
   }
 
+  if (options.resetKey) {
+    watch(options.resetKey, () => setPage(1))
+  }
+
+  // Bindable directly by the toolbar, so each host stops rewriting the same
+  // four wrappers around the setters below.
+  const page = computed({ get: () => pagination.value.page, set: setPage })
+  const pageSize = computed({ get: () => pagination.value.limit, set: setPageSize })
+  const pageRowFrom = computed(() =>
+    (pagination.value.total ? (pagination.value.page - 1) * pagination.value.limit + 1 : 0))
+  const pageRowTo = computed(() =>
+    Math.min(pagination.value.page * pagination.value.limit, pagination.value.total))
+
   function getSortIcon(columnKey: string) {
     if (sortState.value.column === columnKey) {
       return sortState.value.direction === 'asc'
@@ -132,6 +156,17 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     return 'i-heroicons-arrows-up-down-20-solid'
   }
 
+  // aria-sort can't reach UTable's <th> from the header slot, so the sort state
+  // joins the header button's accessible name instead.
+  function getSortAriaLabel(column: { accessorKey: string, header: string }) {
+    if (sortState.value.column !== column.accessorKey || !sortState.value.direction) {
+      return column.header
+    }
+    return sortState.value.direction === 'asc'
+      ? t('table.sorted_ascending', { label: column.header })
+      : t('table.sorted_descending', { label: column.header })
+  }
+
   return {
     pagination: readonly(pagination),
     sortState: readonly(sortState),
@@ -139,10 +174,15 @@ export function usePaginatedTable<T>(options: UsePaginatedTableOptions<T>) {
     sortedRows,
     paginatedRows,
     totalPages,
+    page,
+    pageSize,
+    pageRowFrom,
+    pageRowTo,
     setSortState,
     toggleSort,
     setPage,
     setPageSize,
     getSortIcon,
+    getSortAriaLabel,
   }
 }

@@ -28,5 +28,4 @@ export interface PurchaseItem {
   txHash?: string
   coupon?: string
   giftInfo?: { toEmail?: string }
-  formattedDate?: string
 }
