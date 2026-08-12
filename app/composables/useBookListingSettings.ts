@@ -29,8 +29,8 @@ export function useBookListingSettings(options: {
   // current values diverge from it.
   const listingSnapshot = ref('')
 
-  function currentListingSnapshot(): string {
-    return JSON.stringify({
+  function currentListingFields(): Record<string, unknown> {
+    return {
       isAdultOnly: isAdultOnly.value,
       hideAudio: hideAudio.value,
       hideDownload: hideDownload.value,
@@ -40,7 +40,11 @@ export function useBookListingSettings(options: {
       descriptionFull: descriptionFull.value ?? '',
       tableOfContents: tableOfContents.value,
       moderatorWallets: moderatorWallets.value,
-    })
+    }
+  }
+
+  function currentListingSnapshot(): string {
+    return JSON.stringify(currentListingFields())
   }
 
   function initListingFieldsFromInfo() {
@@ -67,8 +71,16 @@ export function useBookListingSettings(options: {
     initListingFieldsFromInfo()
   }, { immediate: true })
 
+  // Derived from the key list so what the pending-changes bar counts and what
+  // save decides to POST can never disagree.
   function isListingSettingsDirty(): boolean {
-    return listingSnapshot.value !== currentListingSnapshot()
+    return changedSettingKeys().length > 0
+  }
+
+  // The snapshotted keys that currently differ, for hosts that list pending
+  // changes individually rather than as one boolean.
+  function changedSettingKeys(): string[] {
+    return getChangedKeysFromSnapshot(listingSnapshot.value, currentListingFields())
   }
 
   function commitListingSnapshot() {
@@ -125,6 +137,7 @@ export function useBookListingSettings(options: {
     tableOfContents,
     moderatorWallets,
     isListingSettingsDirty,
+    changedSettingKeys,
     commitListingSnapshot,
     restoreListingFromSnapshot,
     buildSettingsPayload,
