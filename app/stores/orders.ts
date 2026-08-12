@@ -242,6 +242,16 @@ export const useOrdersStore = defineStore('orders', () => {
     booksInfo.value = {}
   }
 
+  // Orders are exposed behind `readonly()`, so optimistic status flips have to
+  // go through the store rather than the caller's own copy.
+  function setOrderStatus(classId: string, orderId: string, status: OrderData['status']) {
+    const order = allOrders.value.find(o => o.classId === classId && o.id === orderId)
+    if (!order) {
+      return
+    }
+    order.status = status
+  }
+
   return {
     readers,
     booksInfo: readonly(booksInfo),
@@ -256,5 +266,6 @@ export const useOrdersStore = defineStore('orders', () => {
     lazyFetchOrdersByClassId,
     clearError,
     clearCache,
+    setOrderStatus,
   }
 })
