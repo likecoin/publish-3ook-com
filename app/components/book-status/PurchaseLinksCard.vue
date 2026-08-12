@@ -5,7 +5,7 @@
     <template #header>
       <h3
         class="font-bold font-mono"
-        v-text="$t('form.copy_purchase_link')"
+        v-text="$t('purchase_link.sharing_mode_title')"
       />
     </template>
 
@@ -19,7 +19,7 @@
     <UFormField :label="$t('form.sales_channel_for_links')">
       <UInput
         v-model="fromChannelInput"
-        :placeholder="$t('status_page.channel_ids_placeholder')"
+        :placeholder="$t('purchase_link.channel_ids_placeholder')"
       />
     </UFormField>
 
