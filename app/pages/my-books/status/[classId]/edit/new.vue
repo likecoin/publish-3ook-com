@@ -15,8 +15,7 @@
     </template>
 
     <template #body>
-      <BookStatusEditionEditForm
-        is-new-edition
+      <BookStatusEditionCreateForm
         :class-id="classId"
         :edition-index="newEditionIndex"
         @submit="handleNewBookSubmit"

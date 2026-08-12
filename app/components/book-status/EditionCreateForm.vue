@@ -52,22 +52,21 @@
 </template>
 
 <script setup lang="ts">
-import type { ClassListingData, ClassListingPrice } from '~/types'
+import type { ClassListingData } from '~/types'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
-import { mapPriceFormItemsToPayload, mapListingPriceToFormItem, createDefaultPriceFormItem } from '~/utils/listing'
+import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
-const { updateEditionPrice, addEditionPrice, uploadSignImages } = bookstoreApiStore
+const { addEditionPrice, uploadSignImages } = bookstoreApiStore
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { showErrorToast } = useToastComposable()
 
-const { classId, editionIndex, isNewEdition = false } = defineProps<{
+const { classId, editionIndex } = defineProps<{
   classId: string
   editionIndex: string | number
-  isNewEdition?: boolean
 }>()
 
 const emit = defineEmits(['submit'])
@@ -97,6 +96,8 @@ const settings = ref<PricingFormSettings>({
   connectedWallets: null,
 })
 
+// The new edition starts from the blank defaults; this only guards ownership
+// and learns whether a signature image already exists for the class.
 onMounted(async () => {
   try {
     isLoading.value = true
@@ -109,17 +110,6 @@ onMounted(async () => {
     }
     if (classResData.enableSignatureImage) {
       hasExistingSignatureImage.value = true
-    }
-
-    if (!isNewEdition) {
-      const currentEdition = classResData.prices.find(
-        (e: ClassListingPrice) => e.index.toString() === editionIndex.toString(),
-      )
-      if (!currentEdition) {
-        throw new Error('Edition not found')
-      }
-      prices.value = [mapListingPriceToFormItem(currentEdition)]
-      settings.value.isAllowCustomPrice = currentEdition.isAllowCustomPrice
     }
   }
   catch (e) {
@@ -142,12 +132,7 @@ async function onSubmit() {
     const price = mapped[0]
 
     isLoading.value = true
-    if (isNewEdition) {
-      await addEditionPrice(classId, editionIndex.toString(), { price })
-    }
-    else {
-      await updateEditionPrice(classId, editionIndex, { price })
-    }
+    await addEditionPrice(classId, editionIndex.toString(), { price })
 
     if (signatureImage.value) {
       const form = new FormData()
@@ -158,11 +143,10 @@ async function onSubmit() {
     emit('submit')
   }
   catch (err) {
-    const errorData = (err as { data?: string }).data || err
     // eslint-disable-next-line no-console
-    console.error(errorData)
-    error.value = String(errorData)
-    showErrorToast(String(errorData))
+    console.error(err)
+    error.value = getApiErrorMessage(err, $t)
+    showErrorToast(err)
   }
   finally {
     isLoading.value = false

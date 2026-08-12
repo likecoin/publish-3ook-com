@@ -915,6 +915,7 @@
   "status_page.search_placeholder": "搜尋...",
   "status_page.send_reminder_email": "發送提醒電子郵件",
   "status_page.settings_saved": "已儲存變更",
+  "status_page.structural_locked_hint": "先儲存或放棄變更",
   "status_page.summary_pending_send": "待發書",
   "status_page.summary_status_title": "上架狀態",
   "status_page.tab_book_details": "書籍資料",

@@ -7,19 +7,24 @@
           v-text="$t('pages.editions')"
         />
         <div class="flex justify-between items-center gap-4">
-          <UButton
-            icon="i-heroicons-plus"
-            class="mb-[12px]"
-            variant="outline"
-            :color="prices.length >= MAX_EDITION_COUNT ? 'neutral' : 'primary'"
-            :disabled="prices.length >= MAX_EDITION_COUNT"
-            :label="$t('form.add_edition')"
-            :to="localeRoute({
-              name: 'my-books-status-classId-edit-new',
-              params: { classId },
-              query: { price_index: prices.length },
-            })"
-          />
+          <UTooltip
+            :text="$t('status_page.structural_locked_hint')"
+            :disabled="!locked"
+          >
+            <UButton
+              icon="i-heroicons-plus"
+              class="mb-[12px]"
+              variant="outline"
+              :color="prices.length >= MAX_EDITION_COUNT ? 'neutral' : 'primary'"
+              :disabled="locked || prices.length >= MAX_EDITION_COUNT"
+              :label="$t('form.add_edition')"
+              :to="locked ? undefined : localeRoute({
+                name: 'my-books-status-classId-edit-new',
+                params: { classId },
+                query: { price_index: prices.length },
+              })"
+            />
+          </UTooltip>
         </div>
       </div>
     </template>
@@ -39,7 +44,7 @@
             color="neutral"
             size="xs"
             :label="String(row.original.originalIndex + 1)"
-            :disabled="isUpdatingPricesOrder || (row.original.originalIndex <= 0 && row.original.originalIndex >= prices.length - 1)"
+            :disabled="locked || isUpdatingPricesOrder || (row.original.originalIndex <= 0 && row.original.originalIndex >= prices.length - 1)"
             :loading="isUpdatingPricesOrder"
             trailing
             @click="row.original.originalIndex === 0 ? movePriceDown(row.original.originalIndex) : movePriceUp(row.original.originalIndex)"
@@ -73,26 +78,20 @@
           {{ row.original.price }}
         </span>
       </template>
-      <template #details-cell="{ row }">
-        <UButton
-          v-if="!row.original.isStockBalancePlaceholderRow"
-          icon="i-heroicons-document"
-          :to="localeRoute({
-            name: 'my-books-status-classId-edit-editionIndex',
-            params: { classId, editionIndex: String(row.original.index) },
-          })"
-          variant="soft"
-          color="neutral"
-        />
-      </template>
     </UTable>
     <template #footer>
       <div class="flex justify-end items-center ">
-        <UButton
-          icon="i-heroicons-plus"
-          :label="$t('buttons.mint_new_stock')"
-          @click="showRestockModal = true"
-        />
+        <UTooltip
+          :text="$t('status_page.structural_locked_hint')"
+          :disabled="!locked"
+        >
+          <UButton
+            icon="i-heroicons-plus"
+            :label="$t('buttons.mint_new_stock')"
+            :disabled="locked"
+            @click="showRestockModal = true"
+          />
+        </UTooltip>
       </div>
     </template>
 
@@ -119,10 +118,12 @@ const apiFetch = useLikeCoApiFetch()
 const localeRoute = useLocaleRoute()
 const { showSuccessToast } = useToastComposable()
 
-const { classId, userIsOwner = false, stockBalance = 0 } = defineProps<{
+const { classId, stockBalance = 0, locked = false } = defineProps<{
   classId: string
-  userIsOwner?: boolean
   stockBalance?: number
+  // Reorder/add/restock shift the indexes the pending-changes ledger is keyed
+  // on, so they wait while edits are pending.
+  locked?: boolean
 }>()
 
 const prices = defineModel<ClassListingPrice[]>('prices', { required: true })
@@ -135,27 +136,17 @@ const emit = defineEmits<{
 const isUpdatingPricesOrder = ref(false)
 const showRestockModal = ref(false)
 
-const editionsTableColumns = computed(() => {
-  const columns = []
-
-  columns.push(
-    { accessorKey: 'sort', header: $t('table.sort'), class: 'w-[60px]' },
-    { accessorKey: 'name', header: $t('table.name') },
-    {
-      accessorKey: 'delivery',
-      header: $t('table.delivery'),
-      class: 'w-[120px]',
-    },
-    { accessorKey: 'stock', header: $t('table.stock'), class: 'w-[120px]' },
-    { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
-  )
-
-  if (userIsOwner) {
-    columns.push({ accessorKey: 'details', header: $t('table.details'), class: 'w-[80px]' })
-  }
-
-  return columns
-})
+const editionsTableColumns = computed(() => [
+  { accessorKey: 'sort', header: $t('table.sort'), class: 'w-[60px]' },
+  { accessorKey: 'name', header: $t('table.name') },
+  {
+    accessorKey: 'delivery',
+    header: $t('table.delivery'),
+    class: 'w-[120px]',
+  },
+  { accessorKey: 'stock', header: $t('table.stock'), class: 'w-[120px]' },
+  { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
+])
 
 const editionsTableRows = computed(() => {
   const rows: EditionTableRow[] = prices.value.map((element, index) => ({

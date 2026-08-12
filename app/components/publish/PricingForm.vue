@@ -234,7 +234,7 @@
 
           <div class="flex justify-center items-center mt-2">
             <UButton
-              v-if="hasMultiplePrices"
+              v-if="mode === 'new' && hasMultiplePrices"
               :label="$t('common.delete')"
               color="neutral"
               leading-icon="i-heroicons-trash"
@@ -255,8 +255,11 @@
       />
     </div>
 
-    <!-- Advanced settings -->
+    <!-- Advanced settings. Hidden in manage mode: the class-level settings
+         live in their own card there, and the tipping checkbox would silently
+         rewrite every edition's stored per-edition value. -->
     <UCard
+      v-if="mode !== 'manage'"
       :ui="{
         header: 'flex justify-between items-center',
         body: 'p-3 space-y-4',
@@ -426,8 +429,11 @@ const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 
+// 'new' collects a full draft in the wizard; 'edit' hosts one edition in the
+// add-edition modal; 'manage' hosts every live edition of a published book,
+// where structure (add/delete) and class settings are owned elsewhere.
 const { mode = 'new', maxEditions = MAX_EDITION_COUNT, displayEditIndex = undefined, hasExistingSignatureImage = false, epubSpineItems = undefined } = defineProps<{
-  mode?: 'new' | 'edit'
+  mode?: 'new' | 'edit' | 'manage'
   maxEditions?: number
   displayEditIndex?: number
   hasExistingSignatureImage?: boolean

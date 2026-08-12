@@ -89,6 +89,7 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
   const hasCustomPricing = typeof overrideHKD === 'number' || typeof overrideTWD === 'number'
   const tierPriceStr = price.price?.toString() || ''
   return {
+    index: price.index?.toString(),
     price: tierPriceStr,
     deliveryMethod: price.isAutoDeliver ? 'auto' : 'manual',
     autoMemo: price.autoMemo || '',
