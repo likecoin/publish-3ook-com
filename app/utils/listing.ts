@@ -41,6 +41,11 @@ export function getPriceItemUSDValue(p: PriceFormItem): number {
   return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
 }
 
+// Zero is a real price the storefront labels, not a number to render.
+export function formatPriceUSDLabel(usd: number, t: TranslateFn): string {
+  return usd === 0 ? t('publish_review.free') : `US$${usd}`
+}
+
 export function mapPriceFormItemsToPayload(prices: PriceFormItem[]): MappedPrice[] {
   return prices.map((p: PriceFormItem) => {
     const usdValue = getPriceItemUSDValue(p)
