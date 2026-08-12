@@ -114,7 +114,7 @@
         </template>
 
         <template #priceInUSD-cell="{ row }">
-          <span v-text="row.original.priceInUSD == null ? '-' : `$${row.original.priceInUSD}`" />
+          <span v-text="row.original.priceInUSD == null ? '-' : formatPriceUSDLabel(Number(row.original.priceInUSD), $t)" />
         </template>
 
         <template #status-cell="{ row }">
@@ -152,7 +152,7 @@
 
 <script setup lang="ts">
 import type { BookListingStatus } from '~/types'
-import { getBookListingStatus } from '~/utils/listing'
+import { formatPriceUSDLabel, getBookListingStatus } from '~/utils/listing'
 import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 
 const route = useRoute()
@@ -217,8 +217,9 @@ function toggleModeratedList() {
 // Search
 const searchInput = ref('')
 
-// Rows
-const tableRows = computed(() => (isShowingModeratedList.value ? moderatedBookList : bookList).value.map((b) => {
+// Rows. Mapping and filtering are separate so typing in the search box only
+// re-runs the filter instead of rebuilding every row's cover URL and status.
+const bookRows = computed(() => (isShowingModeratedList.value ? moderatedBookList : bookList).value.map((b) => {
   const prices = b.prices || []
   // The listing carries its own name; on-chain metadata is only a fallback for
   // legacy classes whose listing doc never recorded one.
@@ -239,11 +240,15 @@ const tableRows = computed(() => (isShowingModeratedList.value ? moderatedBookLi
     sold: b.sold,
     timestamp: b.timestamp,
   }
-}).filter((b) => {
-  if (!searchInput.value) { return true }
-  const normalizedSearchInput = searchInput.value.toLowerCase()
-  return b.classId.toLowerCase().includes(normalizedSearchInput) || b.className?.toLowerCase().includes(normalizedSearchInput)
 }))
+
+const tableRows = computed(() => {
+  if (!searchInput.value) { return bookRows.value }
+  const normalizedSearchInput = searchInput.value.toLowerCase()
+  return bookRows.value.filter(b =>
+    b.classId.toLowerCase().includes(normalizedSearchInput)
+    || b.className?.toLowerCase().includes(normalizedSearchInput))
+})
 
 // Pagination & sort
 const {
