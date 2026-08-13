@@ -3,6 +3,17 @@
        page root: it makes this element a scrollport that never scrolls (the
        real one is <main>), which would pin the sticky bar below in place. -->
   <PageBody class="space-y-10 pb-10 overflow-y-visible!">
+    <BookStatusPendingChangesBar
+      v-if="bookstoreApiStore.isAuthenticated && userIsOwner"
+      :changes="changes"
+      :needs-wallet-signature="needsWalletSignature"
+      :is-saving="isSavingChanges"
+      :last-saved-at="lastSavedAt"
+      @save="saveAllChanges"
+      @discard="discardAllChanges"
+      @jump="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
+    />
+
     <AppErrorAlert v-model="error" />
 
     <UProgress
@@ -139,16 +150,6 @@
           :book-name="nftClassName"
         />
       </div>
-
-      <BookStatusPendingChangesBar
-        v-if="userIsOwner"
-        :changes="changes"
-        :needs-wallet-signature="needsWalletSignature"
-        :is-saving="isSavingChanges"
-        @save="saveAllChanges"
-        @discard="discardAllChanges"
-        @jump="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
-      />
     </template>
 
     <NuxtPage :transition="false" />
@@ -263,6 +264,7 @@ const { changes, changeCount, needsWalletSignature } = useBookEditChanges({
 })
 
 const isSavingChanges = ref(false)
+const lastSavedAt = ref<number | null>(null)
 // Remounts the summary tab after a save so its chain-metadata copy refetches.
 const summaryRefreshCounter = ref(0)
 
@@ -444,6 +446,7 @@ async function saveAllChanges() {
     }
 
     if (savedSomething) {
+      lastSavedAt.value = Date.now()
       showSuccessToast($t('status_page.settings_saved'))
       await refreshListingInfo()
       summaryRefreshCounter.value += 1
