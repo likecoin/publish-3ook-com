@@ -120,6 +120,27 @@
               </div>
             </UFormField>
 
+            <!-- Tipping is stored per edition. The other modes set it for
+                 every edition at once from the sale-settings card below, which
+                 does not exist in manage mode, so edit it in place there. -->
+            <UFormField
+              v-if="mode === 'manage'"
+              class="flex items-center"
+            >
+              <UTooltip
+                class="flex items-center gap-2"
+                :text="$t('nft_book_form.accept_tipping_tooltip')"
+              >
+                <UCheckbox
+                  v-model="p.isAllowCustomPrice"
+                  :name="`prices.${index}.isAllowCustomPrice`"
+                  :label="$t('nft_book_form.accept_tipping')"
+                />
+
+                <UIcon name="i-heroicons-question-mark-circle" />
+              </UTooltip>
+            </UFormField>
+
             <!-- Collapsed by default so the rarely-used editor does not push
                  the price down the card. -->
             <PublishEditionDescriptionField
@@ -256,8 +277,9 @@
     </div>
 
     <!-- Advanced settings. Hidden in manage mode: the class-level settings
-         live in their own card there, and the tipping checkbox would silently
-         rewrite every edition's stored per-edition value. -->
+         live in their own card there, and this tipping checkbox would silently
+         rewrite every edition's stored value — each edition card carries its
+         own instead. -->
     <UCard
       v-if="mode !== 'manage'"
       :ui="{

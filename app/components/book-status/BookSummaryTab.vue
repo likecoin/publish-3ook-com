@@ -78,7 +78,6 @@
       :prices="priceFormItems"
       :is-plus-reading-enabled="classListingInfo.isPlusReadingEnabled ?? false"
       :hide-audio="classListingInfo.hideAudio ?? false"
-      :is-allow-custom-price="priceFormItems[0]?.isAllowCustomPrice ?? true"
       :is-adult-only="classListingInfo.isAdultOnly ?? false"
       editable
       @edit="emit('goToTab', 'pricing')"

@@ -63,19 +63,26 @@ const {
   prices,
   isPlusReadingEnabled,
   hideAudio,
-  isAllowCustomPrice,
   isAdultOnly,
   editable = false,
 } = defineProps<{
   prices: PriceFormItem[]
   isPlusReadingEnabled: boolean
   hideAudio: boolean
-  isAllowCustomPrice: boolean
   isAdultOnly: boolean
   editable?: boolean
 }>()
 
 const emit = defineEmits<{ edit: [] }>()
+
+// Tipping is stored per edition, so a plain yes/no would misreport a listing
+// whose editions disagree; count them instead.
+const tippingValue = computed(() => {
+  const enabled = prices.filter(p => p.isAllowCustomPrice).length
+  if (!enabled) { return $t('common.no') }
+  if (enabled === prices.length) { return $t('common.yes') }
+  return $t('publish_review.tipping_partial', { count: enabled, total: prices.length })
+})
 
 const settingsRows = computed(() => [
   {
@@ -92,7 +99,7 @@ const settingsRows = computed(() => [
   },
   {
     label: $t('nft_book_form.accept_tipping'),
-    value: isAllowCustomPrice ? $t('common.yes') : $t('common.no'),
+    value: tippingValue.value,
   },
   {
     label: $t('nft_book_form.is_adult_only'),

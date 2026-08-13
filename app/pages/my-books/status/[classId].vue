@@ -1,5 +1,8 @@
 <template>
-  <PageBody class="space-y-10 pb-10">
+  <!-- overflow-y-visible! undoes the `overflow-y-auto` <NuxtPage> puts on every
+       page root: it makes this element a scrollport that never scrolls (the
+       real one is <main>), which would pin the sticky bar below in place. -->
+  <PageBody class="space-y-10 pb-10 overflow-y-visible!">
     <AppErrorAlert v-model="error" />
 
     <UProgress
@@ -159,7 +162,7 @@ import type { ClassListingData, ClassListingPrice } from '~/types'
 import { BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
-import { mapListingPriceToFormItem, mapPriceFormItemsToPayload } from '~/utils/listing'
+import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue } from '~/utils/listing'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -187,16 +190,6 @@ const classId = ref<string>(route.params.classId as string)
 const classListingInfo = ref<ClassListingData>({} as ClassListingData)
 const prices = ref<ClassListingPrice[]>([])
 const stockBalance = ref(-99)
-
-const isFreeBook = computed(() =>
-  (classListingInfo.value.prices || []).some(p => Number(p.price) === 0))
-
-// One settings instance for the whole page: the /settings POST echoes every
-// field back, so the tabs that edit different fields must share state.
-const listingSettings = useBookListingSettings({
-  classListingInfo: () => classListingInfo.value,
-  isFreeBook,
-})
 
 // What BookDetailsSection exposes to the save orchestration.
 interface BookDetailsSectionApi {
@@ -228,6 +221,20 @@ const managePricingSettings = ref<PricingFormSettings>({
   connectedWallets: null,
 })
 const hasExistingSignatureImage = computed(() => !!classListingInfo.value.enableSignatureImage)
+
+// Read from the draft so pricing an edition down to free forces Plus reading
+// on in the same save, rather than only after the post-save refetch. The draft
+// is empty until the listing loads, so the persisted prices seed it.
+const isFreeBook = computed(() => (editedPrices.value.length
+  ? editedPrices.value.some(p => getPriceItemUSDValue(p) === 0)
+  : (classListingInfo.value.prices || []).some(p => Number(p.price) === 0)))
+
+// One settings instance for the whole page: the /settings POST echoes every
+// field back, so the tabs that edit different fields must share state.
+const listingSettings = useBookListingSettings({
+  classListingInfo: () => classListingInfo.value,
+  isFreeBook,
+})
 
 function rebuildEditionDraft() {
   editedPrices.value = prices.value.map(mapListingPriceToFormItem)
