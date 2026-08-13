@@ -7,10 +7,7 @@
     class="flex flex-col gap-[24px]"
     @submit.prevent
   >
-    <ul
-      ref="editionListRef"
-      class="flex flex-col gap-[12px]"
-    >
+    <ul class="flex flex-col gap-[12px]">
       <UCard
         :ui="{
           root: 'overflow-visible border-none border-transparent!',
@@ -20,8 +17,6 @@
         <li
           v-for="(p, index) in prices"
           :key="p.index"
-          data-edition-item
-          tabindex="-1"
         >
           <UCard
             :ui="{
@@ -214,29 +209,9 @@
               </UFormField>
             </PublishEditionAdvancedPanel>
           </UCard>
-
-          <div class="flex justify-center items-center mt-2">
-            <UButton
-              v-if="mode === 'new' && hasMultiplePrices"
-              :label="$t('common.delete')"
-              color="neutral"
-              leading-icon="i-heroicons-trash"
-              @click="deletePrice(index)"
-            />
-          </div>
         </li>
       </UCard>
     </ul>
-    <div class="flex justify-center items-center">
-      <UButton
-        v-if="mode === 'new' && prices.length < maxEditions"
-        class="rounded-full"
-        color="neutral"
-        icon="i-heroicons-plus-solid"
-        :label="$t('nft_book_form.add_edition')"
-        @click="addMorePrice"
-      />
-    </div>
 
     <!-- Advanced settings. Hidden in manage mode: the class-level settings
          live in their own card there, and this tipping checkbox would silently
@@ -390,16 +365,12 @@
 
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
-import { v4 as uuidv4 } from 'uuid'
 
 import type { FormError } from '#ui/types'
-import {
-  DEFAULT_MAX_SUPPLY,
-  MAX_EDITION_COUNT,
-} from '~/constant'
+import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import type { EpubSpineItem } from '~/types'
-import { getPriceItemUSDValue, validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
+import { getPriceItemUSDValue, validatePriceFormItems } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()
@@ -417,7 +388,6 @@ const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 // where structure (add/delete) and class settings are owned elsewhere.
 const {
   mode = 'new',
-  maxEditions = MAX_EDITION_COUNT,
   displayEditIndex = undefined,
   hasExistingSignatureImage = false,
   epubSpineItems = undefined,
@@ -425,7 +395,6 @@ const {
   reservedNames = undefined,
 } = defineProps<{
   mode?: 'new' | 'edit' | 'manage'
-  maxEditions?: number
   displayEditIndex?: number
   hasExistingSignatureImage?: boolean
   // Spine table of the uploaded EPUB, for the free-preview cut readout.
@@ -440,11 +409,9 @@ const prices = defineModel<PriceFormItem[]>('prices', { required: true })
 const settings = defineModel<PricingFormSettings>('settings', { required: true })
 const signatureImage = defineModel<File | null>('signatureImage', { default: null })
 
-const editionListRef = ref<HTMLElement | null>(null)
 const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
-const hasMultiplePrices = computed(() => prices.value.length > 1)
 
 // A published book with one edition has no edition to choose between, so the
 // price leads and the per-edition machinery collapses. Two or more keep the
@@ -528,20 +495,6 @@ onMounted(async () => {
     }
   }
 })
-
-async function addMorePrice() {
-  prices.value.push(createDefaultPriceFormItem({ index: uuidv4(), name: '增訂版' }))
-  // The new card renders above the button that was just clicked, so it lands
-  // off screen.
-  await revealElement(() => {
-    const items = editionListRef.value?.querySelectorAll<HTMLElement>('[data-edition-item]')
-    return items?.[items.length - 1]
-  })
-}
-
-function deletePrice(index: number) {
-  prices.value.splice(index, 1)
-}
 
 function onImgUpload(event: Event) {
   const input = event.target as HTMLInputElement
