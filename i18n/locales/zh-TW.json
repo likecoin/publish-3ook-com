@@ -1072,6 +1072,8 @@
   "upload_form.missing_cover_for_pdf": "PDF 封面擷取失敗，請上傳封面圖片（JPG/PNG）。",
   "upload_form.missing_ebook_file": "請上傳 EPUB 或 PDF 檔案。",
   "upload_form.only_one_cover_image": "僅允許一張封面圖片。",
+  "upload_form.pdf_no_text_layer": "此 PDF 沒有可搜尋的文字",
+  "upload_form.pdf_no_text_layer_notice": "這通常代表檔案是掃描影本。讀者仍可正常閱讀，但無法搜尋、選取或朗讀內容，AI 也無法從內文自動填寫書籍資料。若你有原始檔或已做過 OCR 的版本，建議改用該檔案。",
   "upload_form.preparing_cover": "準備封面圖片中...",
   "upload_form.proceed_anyway": "仍要繼續",
   "upload_form.processing_file": "處理檔案 {index} / {total}...",

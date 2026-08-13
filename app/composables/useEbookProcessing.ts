@@ -10,6 +10,7 @@ import {
 } from '~/constant'
 import { getPdfDocument } from '~/utils/pdf'
 import { sanitizePdfTitle, sanitizePdfAuthor } from '~/utils/pdf-metadata'
+import { samplePdfPageNumbers, hasSearchableText, countPagesWithText } from '~/utils/pdf-text'
 
 // Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
 const CONTENT_EXCERPT_MAX_CHARS = 20000
@@ -81,27 +82,83 @@ async function extractSpineData(
   return { spineItems, contentExcerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim() }
 }
 
+async function readPdfPageText(pdf: PDFDocumentProxy, pageNumber: number): Promise<string> {
+  const page = await pdf.getPage(pageNumber)
+  const { items } = await page.getTextContent()
+  // Items are positioned runs, not words, so join with a space and collapse
+  // after: a run boundary mid-word is rarer than two runs running together.
+  return items
+    .map(item => ('str' in item ? item.str : ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 // The PDF counterpart of extractSpineData's excerpt half, feeding the same AI
-// metadata suggestion.
-async function extractPdfExcerpt(pdf: PDFDocumentProxy): Promise<string> {
+// metadata suggestion. The per-page character counts are the same walk's answer
+// to whether the file carries a text layer at all — see processPdf.
+async function extractPdfExcerpt(
+  pdf: PDFDocumentProxy,
+): Promise<{ excerpt: string, charCountsPerPage: number[] }> {
   let excerpt = ''
+  const charCountsPerPage: number[] = []
   const pageCount = Math.min(pdf.numPages, PDF_EXCERPT_MAX_PAGES)
   for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber)
-    const { items } = await page.getTextContent()
-    // Items are positioned runs, not words, so join with a space and collapse
-    // after: a run boundary mid-word is rarer than two runs running together.
-    const pageText = items
-      .map(item => ('str' in item ? item.str : ''))
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    const pageText = await readPdfPageText(pdf, pageNumber)
+    charCountsPerPage.push(pageText.length)
     if (pageText) { excerpt += `${pageText}\n\n` }
     if (excerpt.length >= CONTENT_EXCERPT_MAX_CHARS) { break }
     if (pageNumber >= PDF_EXCERPT_PROBE_PAGES
       && excerpt.length < PDF_EXCERPT_PROBE_MIN_CHARS) { break }
   }
-  return excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim()
+  return {
+    excerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim(),
+    charCountsPerPage,
+  }
+}
+
+// Second opinion for a file whose opening pages read as a scan, sampling across
+// the whole book: the excerpt walk gives up near the front, so on its own it
+// would call a book that opens on full-page plates a scan. Cheap where it runs
+// — an image-only page has no embedded font, so getTextContent fetches no cmap.
+async function probePdfTextLayer(
+  pdf: PDFDocumentProxy,
+  excerptCharCounts: number[],
+): Promise<number[]> {
+  const charCountsPerPage: number[] = []
+  for (const pageNumber of samplePdfPageNumbers(pdf.numPages)) {
+    // The walk read pages 1..n of this same document with this same function,
+    // so a sampled page it already covered costs nothing to reuse — on a book
+    // short enough that the sample falls inside the walk, all of them do.
+    // `??` and not `||`: a count of 0 is an answer, not a missing one.
+    charCountsPerPage.push(
+      excerptCharCounts[pageNumber - 1] ?? (await readPdfPageText(pdf, pageNumber)).length,
+    )
+  }
+  return charCountsPerPage
+}
+
+// The per-page counts the text-layer verdict is taken over, and which of the two
+// samplers produced them. A book whose opening pages read as text is answered by
+// the excerpt walk for free, and only a suspect file pays for the probe.
+//
+// The probe's counts replace the walk's rather than joining them. It skips page
+// one and spreads across the body, so it is the better judge of both cases the
+// walk gets wrong — a scan opening on a born-digital title page, and a text book
+// opening on plates. Joining the two would let a long stretch of plates outvote
+// a body the probe found to be all text. The walk is the fallback only for a
+// document too short to have anything to probe.
+async function samplePdfTextLayer(
+  pdf: PDFDocumentProxy,
+  excerptCharCounts: number[],
+): Promise<{ counts: number[], source: 'excerpt' | 'probe' }> {
+  if (hasSearchableText(excerptCharCounts)) {
+    return { counts: excerptCharCounts, source: 'excerpt' }
+  }
+  const counts = await probePdfTextLayer(pdf, excerptCharCounts)
+  return counts.length
+    ? { counts, source: 'probe' }
+    : { counts: excerptCharCounts, source: 'excerpt' }
 }
 
 interface UseEbookProcessingOptions {
@@ -365,11 +422,42 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
     }
   }
 
+  const judgePdfTextLayer = async (
+    pdf: PDFDocumentProxy,
+    excerptCharCounts: number[],
+  ): Promise<boolean | undefined> => {
+    try {
+      const { counts, source } = await samplePdfTextLayer(pdf, excerptCharCounts)
+      // No sample at all means no verdict, which is not the same as "scan".
+      if (!counts.length) { return undefined }
+      const searchable = hasSearchableText(counts)
+      // The ratio ships so the one-third rule can be re-tuned against real
+      // uploads instead of argued about, and `sample_source` is what keeps it
+      // tunable: the two samplers read a different number of pages from
+      // different parts of the book, so a pooled sampled_pages means nothing.
+      useLogEvent('book_publish_pdf_text_detected', {
+        has_searchable_text: searchable,
+        sample_source: source,
+        page_count: pdf.numPages,
+        sampled_pages: counts.length,
+        pages_with_text: countPagesWithText(counts),
+      })
+      return searchable
+    }
+    catch (textLayerError) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to judge the PDF text layer:', textLayerError)
+      return undefined
+    }
+  }
+
   // Best-effort by design: an encrypted or damaged file simply leaves the book
   // without a cover or metadata, and validateFiles then asks the author for a
   // cover. That path is recoverable, so it stays silent rather than raising
   // onError.
-  const processPdf = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }) => {
+  const processPdf = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }): Promise<{
+    hasSearchableText?: boolean
+  }> => {
     let pdf: PDFDocumentProxy
     try {
       pdf = await getPdfDocument(buffer)
@@ -377,7 +465,7 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
     catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to open the PDF:', error)
-      return
+      return {}
     }
 
     try {
@@ -405,12 +493,14 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
         console.warn('Failed to extract a cover from the PDF:', coverError)
       }
 
+      let excerptCharCounts: number[] = []
       try {
         // Left unset when the PDF is a scan: handleFilesCollected merges this
         // entry over the last one, so an empty string would blank an excerpt
         // an earlier pass had read.
-        const contentExcerpt = await extractPdfExcerpt(pdf)
-        if (contentExcerpt) { metadata.contentExcerpt = contentExcerpt }
+        const { excerpt, charCountsPerPage } = await extractPdfExcerpt(pdf)
+        excerptCharCounts = charCountsPerPage
+        if (excerpt) { metadata.contentExcerpt = excerpt }
       }
       catch (excerptError) {
         // eslint-disable-next-line no-console
@@ -420,10 +510,16 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
       // A PDF that yielded nothing is not worth an entry: UploadForm hands the
       // wizard epubMetadataList[0], so an empty one would shadow the metadata
       // of an EPUB uploaded alongside it. useManualCover creates its own.
+      //
+      // The verdict deliberately does not live here. A false would fail the
+      // some(Boolean) below, so the entry carrying it would be dropped for
+      // exactly the files it describes; it rides on the FileRecord instead.
       const { epubFileName, ...extracted } = metadata
       if (Object.values(extracted).some(Boolean)) {
         epubMetadataList.value.push(metadata)
       }
+
+      return { hasSearchableText: await judgePdfTextLayer(pdf, excerptCharCounts) }
     }
     finally {
       // A book-sized PDF stays resident in the worker until destroyed. Caught

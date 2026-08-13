@@ -15,6 +15,9 @@ export interface FileRecord {
   validationErrors?: string
   validationWarnings?: string
   hasValidationIssues?: boolean
+  // PDFs only, and undefined means undetermined — the file would not open, or
+  // reading it threw. Only an explicit false is a scan the author is told about.
+  hasSearchableText?: boolean
 }
 
 // One spine content document of an EPUB, in spine order; sizeBytes is the
