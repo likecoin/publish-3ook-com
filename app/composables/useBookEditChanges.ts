@@ -4,12 +4,17 @@
 
 export type BookEditChangeGroup = 'chain' | 'settings' | 'signature' | `price:${number}`
 
+// Who a saved change reaches. Authors ask this before every save, so the bar
+// answers it rather than leaving them to guess whether existing buyers see it.
+export type BookEditChangeAudience = 'readers' | 'future_purchases' | 'storefront'
+
 export interface BookEditChangeEntry {
   key: string
   label: string
   // The tab that owns the field, so the bar can jump to it.
   tab: 'details' | 'pricing'
   group: BookEditChangeGroup
+  audience: BookEditChangeAudience
   // Saving this entry signs an on-chain transaction; the bar announces it so
   // the wallet prompt on save is expected, not a surprise.
   needsWallet?: boolean
@@ -56,6 +61,19 @@ const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
 // they save through the settings POST.
 const DETAILS_TAB_SETTING_KEYS = new Set(['descriptionFull', 'tableOfContents', 'moderatorWallets'])
 
+// The file itself and what may be done with it are the only edits that reach
+// someone who already paid; everything else is either the next sale's terms or
+// the storefront page.
+const READER_FACING_CHAIN_KEYS = new Set(['contentFingerprints', 'downloadableUrls'])
+const READER_FACING_SETTING_KEYS = new Set(['hideDownload'])
+const FUTURE_PURCHASE_SETTING_KEYS = new Set(['isPreviewEnabled', 'previewPercentage'])
+
+const AUDIENCE_RANK: Record<BookEditChangeAudience, number> = {
+  storefront: 0,
+  future_purchases: 1,
+  readers: 2,
+}
+
 const EDITION_FIELD_LABEL_KEYS: Record<string, string> = {
   name: 'nft_book_form.product_name',
   price: 'nft_book_form.unit_price_label',
@@ -99,6 +117,7 @@ export function useBookEditChanges(options: {
         label: labelKey ? t(labelKey) : field,
         tab: 'details',
         group: 'chain',
+        audience: READER_FACING_CHAIN_KEYS.has(field) ? 'readers' : 'storefront',
         needsWallet: true,
       })
     })
@@ -110,6 +129,7 @@ export function useBookEditChanges(options: {
         label: labelKey ? t(labelKey) : field,
         tab: DETAILS_TAB_SETTING_KEYS.has(field) ? 'details' : 'pricing',
         group: 'settings',
+        audience: getSettingAudience(field),
       })
     })
 
@@ -125,6 +145,7 @@ export function useBookEditChanges(options: {
           }),
           tab: 'pricing',
           group: `price:${index}`,
+          audience: 'future_purchases',
         })
       })
     })
@@ -135,6 +156,7 @@ export function useBookEditChanges(options: {
         label: t('nft_book_form.autograph_image'),
         tab: 'pricing',
         group: 'signature',
+        audience: 'future_purchases',
       })
     }
 
@@ -144,9 +166,23 @@ export function useBookEditChanges(options: {
   const changeCount = computed(() => changes.value.length)
   const needsWalletSignature = computed(() => changes.value.some(entry => entry.needsWallet))
 
+  // The widest audience any pending change reaches: one save commits them all,
+  // so the narrower ones are already covered by naming the widest.
+  const changeAudience = computed<BookEditChangeAudience | null>(() => changes.value.reduce<BookEditChangeAudience | null>(
+    (widest, entry) => (!widest || AUDIENCE_RANK[entry.audience] > AUDIENCE_RANK[widest] ? entry.audience : widest),
+    null,
+  ))
+
   return {
     changes,
     changeCount,
+    changeAudience,
     needsWalletSignature,
   }
+}
+
+function getSettingAudience(field: string): BookEditChangeAudience {
+  if (READER_FACING_SETTING_KEYS.has(field)) { return 'readers' }
+  if (FUTURE_PURCHASE_SETTING_KEYS.has(field)) { return 'future_purchases' }
+  return 'storefront'
 }
