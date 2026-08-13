@@ -61,7 +61,6 @@
             ref="detailsFormRef"
             v-model="iscnFormData"
             v-model:description-full="listingDraft.descriptionFull"
-            :show-file-fields="false"
             :guard-unsaved-changes="false"
             :prefilled-fields="prefilledFields"
             :content-excerpt="epubMetadata?.contentExcerpt"

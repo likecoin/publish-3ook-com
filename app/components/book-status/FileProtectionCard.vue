@@ -1,8 +1,8 @@
 <template>
-  <!-- Protection tier: read-only — it follows the files that were uploaded, so
-       without a replacement upload there is nothing to choose here. It sits
-       with 訂價與銷售 because what a buyer may do with the file is a term of
-       the sale, not a property of the file list. -->
+  <!-- Protection tier: read-only here because it is not a separate choice —
+       it follows whatever the book file was uploaded as, so 書檔's replacement
+       flow is where it changes. It sits with 訂價與銷售 because what a buyer
+       may do with the file is a term of the sale, not a property of the list. -->
   <UCard>
     <template #header>
       <div class="flex items-center gap-2">
@@ -14,8 +14,8 @@
           color="neutral"
           variant="subtle"
           size="sm"
-          icon="i-heroicons-lock-closed"
-          :label="$t('status_page.locked_after_upload')"
+          icon="i-heroicons-arrow-path"
+          :label="$t('status_page.follows_the_file')"
         />
       </div>
     </template>
@@ -25,7 +25,7 @@
     />
     <p
       class="mt-3 text-xs text-muted"
-      v-text="$t('status_page.files_readonly_note')"
+      v-text="$t('status_page.protection_follows_file_note')"
     />
   </UCard>
 </template>

@@ -85,6 +85,13 @@ export function shouldHideDownload(input: {
     || isContentFingerprintEncrypted(input.contentFingerprints ?? [])
 }
 
+// One fingerprint rule for both callers: validateISCNForm's English list below,
+// and the translated message 書檔 shows against its file list. A published book
+// with no content URL has nothing for a reader to open.
+export function hasContentFingerprint(fingerprints: Array<{ url: string }> | undefined): boolean {
+  return Array.isArray(fingerprints) && fingerprints.some(fingerprint => !!fingerprint.url)
+}
+
 export type CoverUrlErrorKey = 'iscn_form.cover_image_required' | 'iscn_form.cover_image_invalid'
 
 // One cover rule for both callers: the publish pipeline's English list below,
@@ -186,8 +193,7 @@ export function validateISCNForm(
     errors.push('Please fill in the author name')
   }
 
-  if (requireFileUrls
-    && (!Array.isArray(data.contentFingerprints) || !data.contentFingerprints.some((f: { url: string }) => !!f.url))) {
+  if (requireFileUrls && !hasContentFingerprint(data.contentFingerprints)) {
     errors.push('Please provide at least one content URL')
   }
 
