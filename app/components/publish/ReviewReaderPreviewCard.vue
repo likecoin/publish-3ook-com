@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import type { PriceFormItem } from '~/types/publish'
-import { getPriceItemUSDValue, formatPriceUSDLabel } from '~/utils/listing'
+import { getLowestPriceUSD, formatPriceUSDLabel } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 
@@ -76,13 +76,7 @@ const {
   isPlusReadingEnabled: boolean
 }>()
 
-// The cheapest way in, which is the figure a storefront leads with. Editions
-// seeded but never priced still carry -1, so they are excluded rather than
-// shown as the lowest — leaving null for an all-unpriced draft.
-const lowestPriceUSD = computed(() => {
-  const values = prices.map(getPriceItemUSDValue).filter(value => value >= 0)
-  return values.length ? Math.min(...values) : null
-})
+const lowestPriceUSD = computed(() => getLowestPriceUSD(prices))
 
 const readerPrice = computed(() => (
   lowestPriceUSD.value === null ? '' : formatPriceUSDLabel(lowestPriceUSD.value, $t)

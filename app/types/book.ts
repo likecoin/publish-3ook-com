@@ -3,7 +3,9 @@ export interface BookPriceInDecimalByCurrency {
   twd?: number
 }
 
-export type BookListingStatus = 'listed' | 'unlisted' | 'pending_review'
+// `draft` is local-only: an unfinished wizard session that the backend has
+// never heard of, so no listing ever reports it.
+export type BookListingStatus = 'listed' | 'unlisted' | 'pending_review' | 'draft'
 
 // The status page's tabs, in display order. Also the values accepted in its
 // `?tab=` query, so an unknown value can fall back instead of hiding every pane.

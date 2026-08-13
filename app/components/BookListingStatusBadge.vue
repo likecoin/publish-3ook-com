@@ -26,6 +26,12 @@ const display = computed(() => {
         class: 'text-primary-600 dark:text-primary-400',
         label: $t('my_books.status_listed'),
       }
+    case 'draft':
+      return {
+        icon: 'i-heroicons-pencil-square',
+        class: 'text-gray-500 dark:text-gray-400',
+        label: $t('my_books.status_draft'),
+      }
     case 'pending_review':
       return {
         icon: 'i-heroicons-clock',

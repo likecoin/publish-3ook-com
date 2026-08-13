@@ -46,7 +46,7 @@
 
       <UTable
         :columns="tableColumns"
-        :data="paginatedTableRows"
+        :data="displayedTableRows"
         :loading="isLoading"
         :progress="{ color: 'primary', animation: 'carousel' }"
         :ui="{
@@ -87,6 +87,11 @@
                 v-text="row.original.classId"
               />
               <div
+                v-if="row.original.draftStepLabel"
+                class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                v-text="$t('my_books.draft_step', { step: row.original.draftStepLabel })"
+              />
+              <div
                 v-if="row.original.unlistedEditionCount"
                 class="text-xs text-gray-500 dark:text-gray-400"
                 v-text="$t('my_books.unlisted_editions', {
@@ -102,8 +107,16 @@
           <span v-text="row.original.priceInUSD == null ? '-' : formatPriceUSDLabel(Number(row.original.priceInUSD), $t)" />
         </template>
 
+        <template #sold-cell="{ row }">
+          <span v-text="row.original.sold ?? '-'" />
+        </template>
+
         <template #status-cell="{ row }">
           <BookListingStatusBadge :status="row.original.status" />
+        </template>
+
+        <template #pendingAction-cell="{ row }">
+          <span v-text="row.original.pendingAction ?? '-'" />
         </template>
 
         <template #empty>
@@ -112,6 +125,16 @@
 
         <template #actions-cell="{ row }">
           <UButton
+            v-if="row.original.isDraft"
+            icon="i-heroicons-trash"
+            variant="ghost"
+            color="error"
+            size="sm"
+            :aria-label="$t('my_books.delete_draft')"
+            @click.stop="deleteDraft"
+          />
+          <UButton
+            v-else
             icon="i-heroicons-arrow-top-right-on-square"
             variant="ghost"
             color="neutral"
@@ -136,9 +159,21 @@
 </template>
 
 <script setup lang="ts">
+import { useObjectUrl } from '@vueuse/core'
 import type { BookListingStatus } from '~/types'
-import { formatPriceUSDLabel, getBookListingStatus } from '~/utils/listing'
+import type { PublishSession } from '~/types/publish'
+import { PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
+import { formatPriceUSDLabel, getBookListingStatus, getLowestPriceUSD } from '~/utils/listing'
 import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
+import {
+  PUBLISH_RESUME_QUERY,
+  clearPublishDraft,
+  getPublishSessionTitle,
+  hasPublishDraftContent,
+  loadPublishDraftFiles,
+  loadPublishSession,
+} from '~/utils/publishSession'
+import { isManualCoverRecord } from '~/utils/arweave'
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
@@ -156,11 +191,31 @@ const { lazyFetchClassNameById } = nftStore
 const { fetchBookListing, fetchModeratedBookList } = bookstoreApiStore
 
 // Books awaiting the author's action come first; a book that never sells still
-// needs looking at before one that is quietly selling.
+// needs looking at before one that is quietly selling. `draft` is pinned above
+// the sorted rows, so its entry is only here to satisfy the exhaustive record.
 const STATUS_SORT_ORDER: Record<BookListingStatus, number> = {
+  draft: -1,
   pending_review: 0,
   listed: 1,
   unlisted: 2,
+}
+
+// The draft row fills what the local session knows and leaves the rest
+// undefined, which the cells render as a placeholder.
+interface BookTableRow {
+  classId: string
+  className: string
+  hasClassName: boolean
+  coverSrc?: string
+  priceInUSD?: number | string | null
+  status: BookListingStatus
+  editionCount: number
+  unlistedEditionCount: number
+  pendingAction?: number
+  sold?: number
+  timestamp?: number
+  isDraft?: boolean
+  draftStepLabel?: string
 }
 
 const error = ref('')
@@ -204,7 +259,7 @@ const searchInput = ref('')
 
 // Rows. Mapping and filtering are separate so typing in the search box only
 // re-runs the filter instead of rebuilding every row's cover URL and status.
-const bookRows = computed(() => (isShowingModeratedList.value ? moderatedBookList : bookList).value.map((b) => {
+const bookRows = computed<BookTableRow[]>(() => (isShowingModeratedList.value ? moderatedBookList : bookList).value.map((b) => {
   const prices = b.prices || []
   // The listing carries its own name; on-chain metadata is only a fallback for
   // legacy classes whose listing doc never recorded one.
@@ -227,12 +282,79 @@ const bookRows = computed(() => (isShowingModeratedList.value ? moderatedBookLis
   }
 }))
 
+function matchesSearchInput(row: BookTableRow, normalizedSearchInput: string) {
+  return row.classId.toLowerCase().includes(normalizedSearchInput)
+    || row.className?.toLowerCase().includes(normalizedSearchInput)
+}
+
 const tableRows = computed(() => {
   if (!searchInput.value) { return bookRows.value }
   const normalizedSearchInput = searchInput.value.toLowerCase()
-  return bookRows.value.filter(b =>
-    b.classId.toLowerCase().includes(normalizedSearchInput)
-    || b.className?.toLowerCase().includes(normalizedSearchInput))
+  return bookRows.value.filter(b => matchesSearchInput(b, normalizedSearchInput))
+})
+
+// The unfinished wizard session: nothing about it has reached the backend, so
+// it exists on this device only. Read on mount — prerendering has no storage.
+const draftSession = ref<PublishSession | null>(null)
+const draftCoverBlob = shallowRef<Blob | null>(null)
+// Revoked for us when the blob changes and when this page unmounts.
+const draftCoverBlobUrl = useObjectUrl(draftCoverBlob)
+
+// The author's own cover outranks the one the EPUB supplied.
+const draftCoverRecords = computed(() => {
+  const covers = (draftSession.value?.fileRecords || []).filter(r => r.fileType?.startsWith('image/'))
+  return [...covers.filter(isManualCoverRecord), ...covers.filter(r => !isManualCoverRecord(r))]
+})
+
+// A draft never carries a data URL (localStorage quota), so its cover comes
+// from the uploaded copy, or from the bytes still in the draft file store.
+const draftCoverSrc = computed(() => {
+  const uploadedLink = draftCoverRecords.value.find(record => record.arweaveLink)?.arweaveLink
+  if (uploadedLink) {
+    return getImageResizeURL(parseImageURLFromMetadata(uploadedLink), { width: 100 })
+  }
+  return draftCoverBlobUrl.value
+})
+
+const draftRow = computed<BookTableRow | null>(() => {
+  const session = draftSession.value
+  if (!session || !hasPublishDraftContent(session)) { return null }
+  const prices = session.listingDraft?.prices || []
+  const stepLabelKey = session.wizardStep && PUBLISH_WIZARD_STEP_LABEL_KEYS[session.wizardStep]
+  return {
+    classId: session.classId || '',
+    className: getPublishSessionTitle(session, $t),
+    // No class ID to show under the name until the draft has minted one, and a
+    // half-minted draft's ID is not something to send the author looking up.
+    hasClassName: false,
+    coverSrc: draftCoverSrc.value,
+    priceInUSD: getLowestPriceUSD(prices),
+    status: 'draft',
+    editionCount: prices.length,
+    unlistedEditionCount: prices.filter(p => !p.isListed).length,
+    isDraft: true,
+    draftStepLabel: stepLabelKey ? $t(stepLabelKey) : undefined,
+  }
+})
+
+// The draft deliberately survives a disconnect, so the one on disk may belong to
+// a wallet other than the one now signed in. Compared case-insensitively: the
+// two addresses come from the same source, but a checksum difference would hide
+// the draft with nothing to show for it.
+const isDraftOwnedByWallet = computed(() => {
+  const draftWallet = draftSession.value?.walletAddress?.toLowerCase()
+  return !draftWallet || draftWallet === wallet.value?.toLowerCase()
+})
+
+// Pinned above the paginated rows rather than sorted among them: the draft has
+// no timestamp or sales to sort by, and it is the row an author returning
+// mid-publish came for.
+const visibleDraftRow = computed(() => {
+  const row = draftRow.value
+  // The moderated view lists other people's books.
+  if (!row || !isDraftOwnedByWallet.value || isShowingModeratedList.value) { return null }
+  if (!searchInput.value) { return row }
+  return matchesSearchInput(row, searchInput.value.toLowerCase()) ? row : null
 })
 
 // Pagination & sort
@@ -261,6 +383,10 @@ const {
   },
   defaultCompare: (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
 })
+
+const displayedTableRows = computed(() => (visibleDraftRow.value
+  ? [visibleDraftRow.value, ...paginatedTableRows.value]
+  : paginatedTableRows.value))
 
 // Columns
 const sortableColumns = computed(() => [
@@ -294,7 +420,27 @@ const tableColumns = computed(() => [
   ACTIONS_COLUMN,
 ])
 
+// Fire-and-forget: the row renders from the session alone, and the cover is
+// worth neither blocking the listing fetch nor an upload the draft skipped.
+async function loadDraftCoverBlob() {
+  const records = draftCoverRecords.value
+  if (!records.length || records.some(record => record.arweaveLink)) { return }
+  const blobs = await loadPublishDraftFiles(records)
+  draftCoverBlob.value = records.map(record => blobs.get(record.fileSHA256 || '')).find(Boolean) || null
+}
+
+async function deleteDraft() {
+  if (!window.confirm($t('my_books.delete_draft_confirm'))) { return }
+  useLogEvent('my_books_draft_deleted', { wizard_step: draftSession.value?.wizardStep })
+  await clearPublishDraft()
+  draftSession.value = null
+  draftCoverBlob.value = null
+}
+
 onMounted(async () => {
+  draftSession.value = loadPublishSession()
+  loadDraftCoverBlob()
+
   if (wallet.value) {
     // Only the promo form link needs these, so the table doesn't wait on them.
     likerStore.lazyFetchLikerInfoByWallet(wallet.value).catch(() => {})
@@ -325,7 +471,12 @@ onMounted(async () => {
   }
 })
 
-async function selectTableRow(_e: Event, row: { original: { classId: string } }) {
+async function selectTableRow(_e: Event, row: { original: BookTableRow }) {
+  if (row.original.isDraft) {
+    useLogEvent('my_books_resume_draft', { wizard_step: draftSession.value?.wizardStep })
+    await navigateTo(localeRoute({ name: 'new-book', query: { ...PUBLISH_RESUME_QUERY } }))
+    return
+  }
   useLogEvent('my_books_view_detail', { class_id: row.original.classId })
   await navigateTo(localeRoute({
     name: 'my-books-status-classId',

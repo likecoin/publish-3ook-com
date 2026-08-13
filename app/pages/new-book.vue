@@ -206,15 +206,20 @@ import type {
   PublishBookInput,
   PublishListingDraft,
   PublishSession,
+  PublishWizardStep,
 } from '~/types/publish'
+import { PUBLISH_WIZARD_STEPS, PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS, MAX_DESCRIPTION_LENGTH } from '~/constant'
 import { resolveShortDescription } from '~/utils/description'
 import {
+  PUBLISH_RESUME_QUERY,
   savePublishSession,
   loadPublishSession,
   updatePublishSession,
-  clearPublishSession,
+  clearPublishDraft,
+  getPublishSessionTitle,
+  loadPublishDraftFiles,
 } from '~/utils/publishSession'
 import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
@@ -231,10 +236,9 @@ const { stripHtmlTags, formatLanguage } = useFileUploadLocal()
 const { publishBook, isProcessing: isPublishing } = usePublishBook()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-type WizardStep = 'files' | 'details' | 'pricing' | 'review'
-const STEP_KEYS: WizardStep[] = ['files', 'details', 'pricing', 'review']
+const STEP_KEYS = PUBLISH_WIZARD_STEPS
 
-const step = ref<WizardStep>('files')
+const step = ref<PublishWizardStep>('files')
 const maxVisitedStepIndex = ref(0)
 const uploadFormRef = ref()
 const detailsFormRef = ref()
@@ -279,18 +283,14 @@ useSeoMeta({
   ogTitle: () => $t('seo_titles.publish_nft_book'),
 })
 
-const steps = computed(() => [
-  { key: 'files' as const, title: $t('publish_wizard.step_files') },
-  { key: 'details' as const, title: $t('publish_wizard.step_details') },
-  { key: 'pricing' as const, title: $t('publish_wizard.step_pricing') },
-  { key: 'review' as const, title: $t('publish_wizard.step_review') },
-])
+const steps = computed(() => STEP_KEYS.map(key => ({
+  key,
+  title: $t(PUBLISH_WIZARD_STEP_LABEL_KEYS[key]),
+})))
 
 const currentStepIndex = computed(() => STEP_KEYS.indexOf(step.value))
 const pendingSessionTitle = computed(() =>
-  pendingSession.value?.iscnFormData?.title
-  || pendingSession.value?.epubMetadata?.title
-  || $t('publish_wizard.untitled_draft'))
+  (pendingSession.value ? getPublishSessionTitle(pendingSession.value, $t) : ''))
 // Bytes recovered from the draft file store, by fileSHA256. Held apart from
 // pendingSession because the localStorage draft genuinely has no blobs in it;
 // a sibling store owns them.
@@ -339,13 +339,15 @@ onMounted(async () => {
   if (session) {
     // Before the prompt renders, so it can say the files are still here rather
     // than announcing a re-selection that turns out not to be needed.
-    restoredFileBlobs.value = await draftFileStore.loadDraftFiles(
-      session.fileRecords.map(record => ({
-        key: record.fileSHA256 || '',
-        expectedSize: record.fileSize,
-      })),
-    )
+    restoredFileBlobs.value = await loadPublishDraftFiles(session.fileRecords)
     pendingSession.value = session
+    // Arriving from the draft row in 我的書籍: that click was the resume
+    // decision, so don't ask it again — unless the files need picking again,
+    // which the prompt is the only place that says.
+    if (route.query.resume === PUBLISH_RESUME_QUERY.resume && !pendingSessionNeedsReselect.value) {
+      resumeDraft()
+      return
+    }
     showResumePrompt.value = true
     return
   }
@@ -445,8 +447,7 @@ async function hydrateCoverPreview() {
 
 function discardDraft() {
   useLogEvent('book_publish_draft_discarded', { status: pendingSession.value?.status })
-  clearPublishSession()
-  draftFileStore.clearDraftFiles()
+  clearPublishDraft()
   restoredFileBlobs.value = new Map()
   pendingSession.value = null
   showResumePrompt.value = false
@@ -570,15 +571,15 @@ watch(() => route.query.step, (value) => {
 })
 
 function goToStep(key: string) {
-  const index = STEP_KEYS.indexOf(key as WizardStep)
+  const index = STEP_KEYS.indexOf(key as PublishWizardStep)
   if (index < 0 || index > maxVisitedStepIndex.value || isPublishing.value) { return }
-  step.value = key as WizardStep
+  step.value = key as PublishWizardStep
 }
 
 function goToPreviousStep() {
   const index = currentStepIndex.value
   if (index > 0) {
-    step.value = STEP_KEYS[index - 1] as WizardStep
+    step.value = STEP_KEYS[index - 1] as PublishWizardStep
   }
 }
 
@@ -600,7 +601,7 @@ async function goToNextStep() {
 function advanceStep() {
   const nextIndex = currentStepIndex.value + 1
   if (nextIndex >= STEP_KEYS.length) { return }
-  step.value = STEP_KEYS[nextIndex] as WizardStep
+  step.value = STEP_KEYS[nextIndex] as PublishWizardStep
   maxVisitedStepIndex.value = Math.max(maxVisitedStepIndex.value, nextIndex)
 }
 
@@ -772,8 +773,7 @@ async function handlePublish() {
 
   if (result) {
     lastStepStatus.value = BookUploadStatus.COMPLETED
-    clearPublishSession()
-    draftFileStore.clearDraftFiles()
+    clearPublishDraft()
     // Here rather than at the picker: this is the point where a genre is known
     // to have been committed, not merely browsed past.
     rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)

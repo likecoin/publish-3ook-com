@@ -86,11 +86,23 @@ export interface PublishBookInput {
   skipMint?: boolean
 }
 
+// The wizard's steps, in order. Also the values its `?step=` query accepts, and
+// the label each one is shown under, so a step added here can't leave the
+// stepper or a resumed draft's readout blank.
+export const PUBLISH_WIZARD_STEPS = ['files', 'details', 'pricing', 'review'] as const
+export type PublishWizardStep = typeof PUBLISH_WIZARD_STEPS[number]
+export const PUBLISH_WIZARD_STEP_LABEL_KEYS: Record<PublishWizardStep, string> = {
+  files: 'publish_wizard.step_files',
+  details: 'publish_wizard.step_details',
+  pricing: 'publish_wizard.step_pricing',
+  review: 'publish_wizard.step_review',
+}
+
 // Persisted wizard draft + commit checkpoints (localStorage; survives quit).
 export interface PublishSession {
   version: 1
   status: BookUploadStatus
-  wizardStep?: string
+  wizardStep?: PublishWizardStep
   fileRecords: PublishFileRecord[]
   epubMetadata?: EpubMetadata
   encryptEbook: boolean
