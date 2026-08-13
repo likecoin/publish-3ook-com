@@ -111,6 +111,10 @@ const props = defineProps({
   // Collect-only mode (new-book wizard): onSubmit validates and emits the
   // selected files without uploading; the publish pipeline uploads later.
   collectOnly: { type: Boolean, default: false },
+  // A replacement upload on a published book already has a cover on chain, and
+  // 書檔's dropzone is what changes it. A PDF that yields no extractable cover
+  // would otherwise be blocked outright from being replaced.
+  requireCover: { type: Boolean, default: true },
   // Restores a previously collected selection (e.g. resumed wizard draft);
   // records restored without a blob must be re-selected before publish.
   initialFileRecords: {
@@ -522,18 +526,12 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
     }
   }
 
-  if (pdfFiles.length > 0 && coverFiles.length === 0) {
+  if (props.requireCover && coverFiles.length === 0) {
     return {
       valid: false,
-      error: $t('upload_form.missing_cover_for_pdf'),
-      canProceedAnyway: false,
-    }
-  }
-
-  if (epubFiles.length > 0 && coverFiles.length === 0) {
-    return {
-      valid: false,
-      error: $t('upload_form.missing_cover_for_epub'),
+      error: pdfFiles.length > 0
+        ? $t('upload_form.missing_cover_for_pdf')
+        : $t('upload_form.missing_cover_for_epub'),
       canProceedAnyway: false,
     }
   }

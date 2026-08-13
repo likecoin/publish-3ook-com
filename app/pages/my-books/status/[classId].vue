@@ -53,7 +53,11 @@
           :class-id="classId"
           :can-edit="userIsOwner"
           :cover-error="coverError"
+          :file-links-error="fileLinksError"
+          :sold-count="soldCount"
+          :file-links="chainFileLinks"
           @cover-replaced="handleCoverReplaced"
+          @files-replaced="handleFilesReplaced"
         />
       </div>
 
@@ -155,7 +159,8 @@ import { BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue, getSoldCount } from '~/utils/listing'
-import { getCoverUrlErrorKey } from '~/utils/iscn'
+import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
+import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -191,10 +196,18 @@ interface BookDetailsSectionApi {
   pendingModeratorInput: boolean
   coverUrl: string
   setCoverUrl: (coverUrl: string) => void
+  fileLinks: IscnFileLinksContext
+  setFiles: (links: IscnFileLinks) => void
   saveChain: () => Promise<boolean>
   discardChain: () => Promise<void>
 }
-const detailsSectionRef = ref<BookDetailsSectionApi | null>(null)
+// shallowRef, not ref: ref() deep-unwraps, which would turn the refs inside
+// fileLinks into the plain arrays they are not — and then FileLinksFields'
+// contentFingerprints.value.push() has no .value to push through.
+const detailsSectionRef = shallowRef<BookDetailsSectionApi | null>(null)
+
+// 書檔 shows and hand-edits the chain form's file rows; 書籍資料 owns them.
+const chainFileLinks = computed(() => detailsSectionRef.value?.fileLinks ?? null)
 
 // Editable copy of the editions, diffed per edition against a baseline taken
 // at load; the manage-mode pricing form writes into it and the bar saves the
@@ -266,11 +279,16 @@ const summaryRefreshCounter = ref(0)
 const filesRefreshCounter = ref(0)
 // Set by a save the cover would fail, and shown on the dropzone that fixes it.
 const coverError = ref('')
+// Same, for a book left with no content URL at all — shown by the file list.
+const fileLinksError = ref('')
 
 // Reverting the offending edit by hand also takes the save bar away, so without
 // this the complaint would outlive the save it belongs to.
 watch(changeCount, (count) => {
-  if (!count) { coverError.value = '' }
+  if (!count) {
+    coverError.value = ''
+    fileLinksError.value = ''
+  }
 })
 
 // Tabs
@@ -374,6 +392,10 @@ function handleCoverReplaced(coverUrl: string) {
   coverError.value = ''
 }
 
+function handleFilesReplaced(links: IscnFileLinks) {
+  detailsSectionRef.value?.setFiles(links)
+}
+
 function handleReducePendingNft() {
   classListingInfo.value.pendingNFTCount = (classListingInfo.value.pendingNFTCount || 0) - 1
 }
@@ -381,6 +403,13 @@ function handleReducePendingNft() {
 // Two-phase save: REST first, the wallet-signed chain tx last, per-group
 // failure handling. A failed group keeps its changes counted in the bar; a
 // wallet reject therefore never rolls back the settings that already saved.
+// The complaint is already rendered beside the control that fixes it; this is
+// the part the author would otherwise miss while looking at another tab.
+function failOnFilesTab(message: string) {
+  showErrorToast(message)
+  selectedTabItemIndex.value = 'files'
+}
+
 async function saveAllChanges() {
   if (isSavingChanges.value) { return }
   const details = detailsSectionRef.value
@@ -392,14 +421,19 @@ async function saveAllChanges() {
   // Ahead of every group, not inside the chain one: a cover the tx would reject
   // is knowable now, and bailing later would leave the settings saved and the
   // chain half not. Older books can hold a URL the current rules reject.
+  // Both rules are 書檔's: their fields moved there, so ISCNForm can no longer
+  // address either error to a field of its own, and a save that refuses has to
+  // say where the fix is.
   if (details?.isChainDirty) {
-    const errorKey = getCoverUrlErrorKey(details.coverUrl)
-    coverError.value = errorKey ? $t(errorKey) : ''
-    if (errorKey) {
-      showErrorToast(coverError.value)
-      selectedTabItemIndex.value = 'files'
-      return
-    }
+    const coverErrorKey = getCoverUrlErrorKey(details.coverUrl)
+    coverError.value = coverErrorKey ? $t(coverErrorKey) : ''
+    if (coverError.value) { return failOnFilesTab(coverError.value) }
+
+    const fingerprints = details.fileLinks.contentFingerprints.value
+    fileLinksError.value = hasContentFingerprint(fingerprints)
+      ? ''
+      : $t('iscn_form.content_fingerprint_required')
+    if (fileLinksError.value) { return failOnFilesTab(fileLinksError.value) }
   }
   isSavingChanges.value = true
   try {

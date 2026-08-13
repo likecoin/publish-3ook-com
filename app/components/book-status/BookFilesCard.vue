@@ -22,7 +22,11 @@
         <!-- The cover is a file like the others, so it lives in the file list
              rather than as an ar:// string typed into 書籍資料. Dropping an
              image here is the only way to change it. -->
+        <!-- w-fit beats the app-wide `formField.root: w-full`, which in a flex
+             row would give the cover the whole width and squeeze the file list
+             down to a filename broken mid-word. -->
         <UFormField
+          class="w-fit shrink-0"
           :label="$t('form.cover_image')"
           :error="coverError"
         >
@@ -55,7 +59,7 @@
               color="warning"
               variant="subtle"
               size="sm"
-              :label="$t('status_page.cover_pending_save')"
+              :label="$t('status_page.pending_save')"
             />
             <input
               ref="coverInput"
@@ -67,43 +71,111 @@
           </div>
         </UFormField>
 
-        <ul
-          v-if="fileRows.length"
-          class="grow space-y-2 self-start"
-        >
-          <li
-            v-for="file in fileRows"
-            :key="file.url"
-            class="flex items-center gap-3 text-sm"
+        <div class="grow min-w-0 self-start flex flex-col items-start gap-3">
+          <ul
+            v-if="displayedFileRows.length"
+            class="w-full space-y-2"
           >
-            <UBadge
-              variant="soft"
-              color="neutral"
-              size="xs"
-              class="uppercase"
+            <!-- Keyed by index, like the drawer's own rows: a URL is editable
+                 there, so keying by it would rebuild the row on every keystroke
+                 and collide the moment two rows read the same. -->
+            <li
+              v-for="(file, index) in displayedFileRows"
+              :key="index"
+              class="flex items-center gap-3 text-sm"
             >
-              {{ file.type || '?' }}
-            </UBadge>
-            <span
-              class="font-medium text-highlighted break-all"
-              v-text="file.fileName || file.url"
-            />
-          </li>
-        </ul>
-        <p
-          v-else
-          class="grow self-start text-sm text-muted"
-          v-text="'—'"
-        />
+              <UBadge
+                variant="soft"
+                color="neutral"
+                size="xs"
+                class="uppercase"
+              >
+                {{ file.type || '?' }}
+              </UBadge>
+              <span
+                class="font-medium text-highlighted break-all"
+                v-text="file.fileName || file.url"
+              />
+              <UBadge
+                v-if="file.isPending"
+                color="warning"
+                variant="subtle"
+                size="sm"
+                :label="$t('status_page.pending_save')"
+              />
+            </li>
+          </ul>
+          <p
+            v-else
+            class="text-sm text-muted"
+            v-text="'—'"
+          />
+          <UButton
+            v-if="canEdit"
+            size="xs"
+            variant="soft"
+            icon="i-heroicons-arrow-up-tray"
+            :label="$t('status_page.replace_book_file')"
+            @click="isReplaceModalOpen = true"
+          />
+          <p
+            v-if="fileLinksError"
+            class="text-sm text-error"
+            v-text="fileLinksError"
+          />
+        </div>
       </div>
-
-      <!-- The book files themselves stay read-only: replacing one has to
-           answer what happens to the readers who already bought it. -->
-      <p
-        class="mt-4 text-xs text-muted"
-        v-text="$t('status_page.files_readonly_note')"
-      />
     </UCard>
+
+    <UModal
+      v-model:open="isReplaceModalOpen"
+      :dismissible="false"
+      class="w-full max-w-[80vw]"
+    >
+      <template #header>
+        <h2
+          class="font-bold font-mono"
+          v-text="$t('status_page.replace_book_file')"
+        />
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            color="warning"
+            variant="subtle"
+            icon="i-heroicons-exclamation-triangle"
+            :description="soldCount > 0
+              ? $t('status_page.replace_book_file_warning', { count: soldCount })
+              : $t('status_page.replace_book_file_warning_none')"
+          />
+          <UploadForm
+            ref="uploadFormRef"
+            :key="replaceFormKey"
+            v-model:encrypt-ebook="encryptEbook"
+            :require-cover="false"
+            @file-upload-status="(status: string) => (uploadStatus = status)"
+            @file-ready="(records: FileRecord[]) => (pickedRecords = records)"
+            @submit="handleReplacementUploaded"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="w-full flex justify-center items-center gap-2">
+          <UButton
+            color="neutral"
+            variant="soft"
+            :label="$t('common.cancel')"
+            @click="isReplaceModalOpen = false"
+          />
+          <UButton
+            color="primary"
+            :disabled="!hasPickedEbook || !!uploadStatus"
+            :label="$t('iscn_form.confirm_upload')"
+            @click="startReplacementUpload"
+          />
+        </div>
+      </template>
+    </UModal>
 
     <!-- Collapsed: identifiers are what an author needs when something has
          gone wrong and support asks for them, never while publishing. -->
@@ -144,6 +216,14 @@
               </dd>
             </template>
           </dl>
+
+          <!-- The escape hatch the replacement flow cannot serve: a URL that
+               has to be repaired by hand when support asks for it. -->
+          <IscnFileLinksFields
+            v-if="canEdit && fileLinks"
+            class="pt-4"
+            :links="fileLinks"
+          />
         </template>
       </UCollapsible>
     </UCard>
@@ -154,7 +234,10 @@
 import { useObjectUrl } from '@vueuse/core'
 import type { FileRecord } from '~/types'
 import { copyToClipboard, formatBytes, parseImageURLFromMetadata } from '~/utils'
-import { COVER_ACCEPT_ATTRIBUTE } from '~/constant'
+import { isContentFingerprintEncrypted } from '~/utils/iscn'
+import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
+import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
+import { COVER_ACCEPT_ATTRIBUTE, EBOOK_FILE_TYPES } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
@@ -162,22 +245,72 @@ const { uploadFileRecordsToArweave } = useArweaveUpload()
 const { showErrorToast } = useToastComposable()
 const { takeImageFile, takeDroppedImageFile } = useImageFilePick()
 
-const { classId, canEdit = false, coverError = '' } = defineProps<{
+const { classId, canEdit = false, coverError = '', fileLinksError = '', soldCount = 0, fileLinks = null } = defineProps<{
   classId: string
   // Moderators reach this tab too, and nothing here can be saved without the
   // owner's signature — so an upload they make would only strand bytes.
   canEdit?: boolean
   // The save's complaint about the cover, shown where the cover is fixed.
   coverError?: string
+  // Same, for a book left with no content URL — 技術資料 below is the fix.
+  fileLinksError?: string
+  // How many copies a replacement would reach; named in the confirm dialog.
+  soldCount?: number
+  // The chain form's own file arrays, so the list shows what will be saved
+  // rather than what was last fetched, and 技術資料 can edit them in place.
+  fileLinks?: IscnFileLinksContext | null
 }>()
 
-const emit = defineEmits<{ coverReplaced: [coverUrl: string] }>()
+const emit = defineEmits<{
+  coverReplaced: [coverUrl: string]
+  filesReplaced: [links: IscnFileLinks]
+}>()
 
 const isLoading = ref(false)
 const coverUrl = ref('')
 const fileRows = ref<{ url: string, type: string, fileName: string }[]>([])
 const contentFingerprints = ref<string[]>([])
 const isTechnicalOpen = ref(false)
+
+const isReplaceModalOpen = ref(false)
+const uploadFormRef = ref<{ onSubmit: () => Promise<void> } | null>(null)
+const uploadStatus = ref('')
+const pickedRecords = ref<FileRecord[]>([])
+const encryptEbook = ref(false)
+// Remounts the upload form on close, so a second replacement starts from an
+// empty list instead of re-uploading the file the first one already handled.
+const replaceFormKey = ref(0)
+
+// The rows that fix this live in the drawer, which is collapsed by default —
+// an error pointing at something the author cannot see is only half a message.
+watch(() => fileLinksError, (message) => {
+  if (message) { isTechnicalOpen.value = true }
+})
+
+watch(isReplaceModalOpen, (isOpen) => {
+  if (!isOpen) {
+    pickedRecords.value = []
+    // Back to the book's own tier, not the one an abandoned attempt left behind:
+    // the modal opens on what the book already is, every time.
+    encryptEbook.value = isContentFingerprintEncrypted(contentFingerprints.value)
+    replaceFormKey.value += 1
+  }
+})
+
+const hasPickedEbook = computed(() => pickedRecords.value.some(
+  record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
+))
+
+// Prefer the chain form's live arrays over this card's own fetch, so a pending
+// replacement — or a row hand-edited in 技術資料 — shows here rather than only
+// in the save bar. Anything the last fetch did not carry is unsaved.
+const displayedFileRows = computed(() => {
+  const rows = fileLinks?.downloadableUrls.value.length ? fileLinks.downloadableUrls.value : fileRows.value
+  const savedUrls = new Set(fileRows.value.map(file => file.url))
+  return rows
+    .filter(row => row.url)
+    .map(row => ({ ...row, isPending: !savedUrls.has(row.url) }))
+})
 
 const coverInput = ref<HTMLInputElement | null>(null)
 const isDraggingCover = ref(false)
@@ -211,14 +344,20 @@ const coverMeta = computed(() => {
   return coverUrl.value || '—'
 })
 
+// The file and fingerprint rows are read-only here only for a viewer who has no
+// editable copy below; showing both to an owner would be the same data twice.
 const technicalRows = computed(() => [
   { label: $t('status_page.technical_class_id'), value: classId },
   { label: $t('form.cover_image'), value: coverUrl.value },
-  {
-    label: $t('publish_review.files_title'),
-    value: fileRows.value.map(file => [file.fileName, file.url].filter(Boolean).join(' — ')).join('\n'),
-  },
-  { label: $t('iscn_form.content_fingerprint'), value: contentFingerprints.value.join('\n') },
+  ...(canEdit && fileLinks
+    ? []
+    : [
+        {
+          label: $t('publish_review.files_title'),
+          value: fileRows.value.map(file => [file.fileName, file.url].filter(Boolean).join(' — ')).join('\n'),
+        },
+        { label: $t('iscn_form.content_fingerprint'), value: contentFingerprints.value.join('\n') },
+      ]),
 ])
 
 watch(() => classId, async () => {
@@ -232,6 +371,9 @@ watch(() => classId, async () => {
     contentFingerprints.value = loaded.formData.contentFingerprints
       .map(fingerprint => fingerprint.url)
       .filter(Boolean)
+    // Open the replacement modal on the tier the book already has, so keeping
+    // it is the default and changing it is the deliberate act.
+    encryptEbook.value = isContentFingerprintEncrypted(contentFingerprints.value)
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -241,6 +383,33 @@ watch(() => classId, async () => {
     isLoading.value = false
   }
 }, { immediate: true })
+
+// Confirmed before the upload rather than before the save: the bar announces
+// the audience too, but Arweave is where this stops being reversible.
+async function startReplacementUpload() {
+  const message = soldCount > 0
+    ? $t('status_page.replace_book_file_confirm', { count: soldCount })
+    : $t('status_page.replace_book_file_confirm_none')
+  if (!window.confirm(message)) { return }
+  await uploadFormRef.value?.onSubmit()
+}
+
+// Ebook records only, so the cover the upload carried is dropped whole: a
+// replacement EPUB brings its own embedded cover, and swapping the author's for
+// it silently is not what replacing a file means. Passing the image through
+// would also fingerprint a cover this book does not use. The cover has its own
+// dropzone above, and its own entry in the save bar.
+function handleReplacementUploaded({ fileRecords }: { fileRecords: FileRecord[] }) {
+  const ebookRecords = fileRecords.filter(
+    record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
+  )
+  if (!ebookRecords.length) { return }
+  const { downloadableUrls, contentFingerprints } = buildIscnLinksFromFileRecords(ebookRecords)
+  if (!downloadableUrls.length) { return }
+  emit('filesReplaced', { downloadableUrls, contentFingerprints })
+  useLogEvent('book_file_replaced', { class_id: classId })
+  isReplaceModalOpen.value = false
+}
 
 function handleCoverDrop(event: DragEvent) {
   isDraggingCover.value = false

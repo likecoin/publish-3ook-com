@@ -124,6 +124,7 @@ import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
 import type { BookListingSettingsContext } from '~/composables/useBookListingSettings'
 import { shouldHideDownload, createEmptyISCNFormData } from '~/utils/iscn'
+import { mergeIscnFileLinks, type IscnFileLinks, type IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import { resolveShortDescription } from '~/utils/description'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
 
@@ -252,6 +253,23 @@ function setCoverUrl(url: string) {
   iscnFormData.value.coverUrl = url
 }
 
+// Same hand-off for a replaced book file. Merged rather than assigned: the
+// replacement covers one format, and the rest of a published book's files have
+// readers depending on them.
+function setFiles(incoming: IscnFileLinks) {
+  const merged = mergeIscnFileLinks(iscnFormData.value, incoming)
+  iscnFormData.value.downloadableUrls = merged.downloadableUrls
+  iscnFormData.value.contentFingerprints = merged.contentFingerprints
+}
+
+// Handed to 書檔's 技術資料 drawer, which edits the rows in place — they are
+// the chain form's own arrays, which is what the pending-changes ledger diffs.
+// A stable object of refs, so the drawer keeps working across a metadata reload.
+const fileLinks: IscnFileLinksContext = {
+  downloadableUrls: computed(() => iscnFormData.value.downloadableUrls),
+  contentFingerprints: computed(() => iscnFormData.value.contentFingerprints),
+}
+
 function addModeratorWallet() {
   if (!moderatorWalletInput.value) { return }
   moderatorWallets.value.push(moderatorWalletInput.value)
@@ -287,8 +305,9 @@ async function saveChain(): Promise<boolean> {
   // listing's hideDownload in sync.
   const contentFingerprints = metadata.contentFingerprints as string[] | undefined
   if (contentFingerprints) {
-    // No encryptEbook here: the radio is inert without a replacement upload,
-    // so the saved fingerprints are the only trustworthy signal.
+    // No encryptEbook here even now that 書檔 can replace a file: the tier the
+    // author picked in that modal is a request, the fingerprints that came back
+    // are what the upload actually became.
     const nextHideDownload = shouldHideDownload({ contentFingerprints })
     if (nextHideDownload !== hideDownload.value) {
       hideDownload.value = nextHideDownload
@@ -310,6 +329,8 @@ defineExpose({
   pendingModeratorInput,
   coverUrl,
   setCoverUrl,
+  fileLinks,
+  setFiles,
   saveChain,
   discardChain,
 })
