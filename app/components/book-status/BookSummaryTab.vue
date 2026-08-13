@@ -25,6 +25,17 @@
       </ul>
     </UCard>
 
+    <BookStatusBookTodoCard
+      :genre="iscnFormData.genre"
+      :isbn="iscnFormData.isbn"
+      :short-description="iscnFormData.description"
+      :full-description="classListingInfo.descriptionFull"
+      :pending-nft-count="classListingInfo.pendingNFTCount"
+      :listed-edition-count="listedEditionCount"
+      :edition-count="editedPrices.length"
+      @go-to-tab="(tab: BookStatusTab) => emit('goToTab', tab)"
+    />
+
     <!-- The draft is empty until the listing loads, and an editionless book has
          no sale state to show. -->
     <BookStatusBookSaleStateCard
@@ -99,6 +110,8 @@ const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 
 const priceFormItems = computed(() =>
   (classListingInfo.prices || []).map(mapListingPriceToFormItem))
+
+const listedEditionCount = computed(() => editedPrices.value.filter(p => p.isListed).length)
 
 // Cached after any other tab loaded it; the summary reads, never writes.
 watch(() => classId, async () => {
