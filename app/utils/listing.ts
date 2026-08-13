@@ -44,6 +44,14 @@ export function getPriceItemUSDValue(p: PriceFormItem): number {
   return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
 }
 
+// The cheapest way in, which is the figure a storefront leads with. Editions
+// seeded but never priced still carry -1, so they are excluded rather than
+// shown as the lowest — leaving null for an all-unpriced draft.
+export function getLowestPriceUSD(prices: PriceFormItem[]): number | null {
+  const values = prices.map(getPriceItemUSDValue).filter(value => Number.isFinite(value) && value >= 0)
+  return values.length ? Math.min(...values) : null
+}
+
 // Zero is a real price the storefront labels, not a number to render.
 export function formatPriceUSDLabel(usd: number, t: TranslateFn): string {
   return usd === 0 ? t('publish_review.free') : `US$${usd}`
