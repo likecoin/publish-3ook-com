@@ -6,6 +6,8 @@
     <BookStatusPendingChangesBar
       v-if="bookstoreApiStore.isAuthenticated && userIsOwner"
       :changes="changes"
+      :audience="changeAudience"
+      :buyer-count="buyerCount"
       :needs-wallet-signature="needsWalletSignature"
       :is-saving="isSavingChanges"
       :last-saved-at="lastSavedAt"
@@ -256,7 +258,7 @@ function getEditionChanges(): BookEditEditionChange[] {
 }
 
 // The pending-changes ledger the bar, the tab badge and the summary tab share.
-const { changes, changeCount, needsWalletSignature } = useBookEditChanges({
+const { changes, changeCount, changeAudience, needsWalletSignature } = useBookEditChanges({
   chainChangedFields: () => detailsSectionRef.value?.changedFields ?? [],
   settingsChangedKeys: () => listingSettings.changedSettingKeys(),
   editionChanges: getEditionChanges,
@@ -310,6 +312,9 @@ const affiliationLink = computed(() => {
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
 const userIsOwner = computed(() => !!sessionWallet.value && ownerWallet.value === sessionWallet.value)
 const pendingNFTCount = computed(() => classListingInfo.value.pendingNFTCount || 0)
+// Owner-only per-edition counter, so this is the author's own reader count.
+const buyerCount = computed(() => (classListingInfo.value.prices || [])
+  .reduce((total, price) => total + (price.sold || 0), 0))
 
 watch(sessionWallet, async (newWallet) => {
   if (newWallet) {

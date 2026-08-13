@@ -18,11 +18,17 @@
               trailing-icon="i-heroicons-chevron-down"
             />
           </UDropdownMenu>
-          <p
-            v-if="needsWalletSignature"
-            class="hidden sm:block text-xs text-muted truncate"
-            v-text="$t('status_page.wallet_signature_hint')"
-          />
+          <div class="hidden sm:block min-w-0">
+            <p
+              class="text-xs text-muted truncate"
+              v-text="audienceLabel"
+            />
+            <p
+              v-if="needsWalletSignature"
+              class="text-xs text-muted truncate"
+              v-text="$t('status_page.wallet_signature_hint')"
+            />
+          </div>
         </template>
         <p
           v-else
@@ -59,12 +65,21 @@
 
 <script setup lang="ts">
 import type { DropdownMenuItem } from '#ui/types'
-import type { BookEditChangeEntry } from '~/composables/useBookEditChanges'
+import type { BookEditChangeAudience, BookEditChangeEntry } from '~/composables/useBookEditChanges'
 
 const { t: $t, locale } = useI18n()
 
-const { changes, needsWalletSignature = false, isSaving = false, lastSavedAt = null } = defineProps<{
+const {
+  changes,
+  audience = null,
+  buyerCount = 0,
+  needsWalletSignature = false,
+  isSaving = false,
+  lastSavedAt = null,
+} = defineProps<{
   changes: BookEditChangeEntry[]
+  audience?: BookEditChangeAudience | null
+  buyerCount?: number
   needsWalletSignature?: boolean
   isSaving?: boolean
   lastSavedAt?: number | null
@@ -77,6 +92,21 @@ const emit = defineEmits<{
 }>()
 
 const isDirty = computed(() => changes.length > 0)
+
+// Says who the save reaches, so the author does not have to infer it from the
+// field names. Counting nobody is worth saying out loud on a book with no sales.
+const audienceLabel = computed(() => {
+  switch (audience) {
+    case 'readers':
+      return buyerCount > 0
+        ? $t('status_page.changes_audience_readers', { count: buyerCount })
+        : $t('status_page.changes_audience_readers_none')
+    case 'future_purchases':
+      return $t('status_page.changes_audience_future')
+    default:
+      return $t('status_page.changes_audience_storefront')
+  }
+})
 
 // Only this visit's saves have a time to show; on a fresh load the clean state
 // says so without claiming a timestamp it does not have.
