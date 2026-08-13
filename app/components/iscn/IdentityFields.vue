@@ -121,7 +121,17 @@ const isShortDescriptionAuto = computed({
 // Keeps the derived line current while it is the one in force; writing it into
 // the field rather than leaving it empty is what stops a stale copy surviving
 // an edit to the long description.
-watch(derivedShortDescription, (value) => {
-  if (isShortDescriptionAuto.value) { formData.value.description = value }
+//
+// Auto-ness is judged against the *previous* derived value, not the computed
+// above: by the time this runs the computed has already invalidated, so it
+// would compare the untouched field against the new derivation and conclude
+// the author had written it by hand — flipping the switch off mid-keystroke.
+watch(derivedShortDescription, (value, previous) => {
+  const isFollowing = isAutoOverride.value ?? (
+    !formData.value.description || formData.value.description === previous
+  )
+  if (isFollowing && value !== formData.value.description) {
+    formData.value.description = value
+  }
 })
 </script>

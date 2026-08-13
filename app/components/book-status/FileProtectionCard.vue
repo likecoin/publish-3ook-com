@@ -20,7 +20,7 @@
       </div>
     </template>
     <PublishFileProtectionField
-      v-model="isEncrypted"
+      :model-value="isEncrypted"
       disabled
     />
     <p
@@ -31,30 +31,12 @@
 </template>
 
 <script setup lang="ts">
-import { shouldHideDownload } from '~/utils/iscn'
-
 const { t: $t } = useI18n()
-const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId } = defineProps<{
-  classId: string
+// The page already derives this from the saved fingerprints and keeps it in
+// sync across a chain save; re-deriving it here would let the card disagree
+// with the settings the same save writes.
+defineProps<{
+  isEncrypted: boolean
 }>()
-
-const isEncrypted = ref(true)
-
-// Cached after any other tab loaded it; this card reads, never writes.
-watch(() => classId, async () => {
-  if (!classId) { return }
-  try {
-    const loaded = await loadClassMetadataIntoForm(classId)
-    if (!loaded) { return }
-    isEncrypted.value = shouldHideDownload({
-      contentFingerprints: loaded.formData.contentFingerprints.map(f => f.url).filter(Boolean),
-    })
-  }
-  catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to load class metadata for the file protection card:', error)
-  }
-}, { immediate: true })
 </script>

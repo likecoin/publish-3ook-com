@@ -55,26 +55,23 @@ const { t: $t } = useI18n()
 const {
   genre = '',
   isbn = '',
-  shortDescription = '',
-  fullDescription = '',
   pendingNFTCount = 0,
-  listedEditionCount = 0,
-  editionCount = 0,
 } = defineProps<{
   genre?: string
   isbn?: string
-  shortDescription?: string
-  fullDescription?: string
   pendingNFTCount?: number
-  listedEditionCount?: number
-  editionCount?: number
 }>()
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 
-// Everything here is derived from what the page already holds. Whether the
-// preview actually cuts needs the EPUB's spine table, which only the upload
-// session has, so it is not on this list yet.
+// Everything here is derived from what the page already holds. Two candidates
+// are deliberately absent: whether the preview cuts needs the EPUB's spine
+// table, which only the upload session has, and 版本不一致 is stated by the
+// sale-state card above, beside the control that resolves it.
+//
+// 短簡介與簡介相同 is gone for good: it is what deriving the catalog line
+// produces whenever the description fits under the cap, so it flags the
+// intended default rather than a mistake.
 const items = computed<BookTodoItem[]>(() => {
   const list: BookTodoItem[] = []
   if (!genre) {
@@ -83,26 +80,11 @@ const items = computed<BookTodoItem[]>(() => {
   if (!isbn) {
     list.push({ key: 'isbn', label: $t('status_page.todo_no_isbn'), tab: 'details' })
   }
-  // Two identical blurbs mean the storefront's summary line repeats the whole
-  // description; the author almost certainly pasted rather than wrote one.
-  if (shortDescription && shortDescription === fullDescription) {
-    list.push({ key: 'description', label: $t('status_page.todo_duplicate_description'), tab: 'details' })
-  }
   if (pendingNFTCount > 0) {
     list.push({
       key: 'pending-send',
       label: $t('status_page.todo_pending_send', { count: pendingNFTCount }),
       tab: 'sales',
-    })
-  }
-  if (listedEditionCount > 0 && listedEditionCount < editionCount) {
-    list.push({
-      key: 'mixed-editions',
-      label: $t('status_page.todo_mixed_editions', {
-        listed: listedEditionCount,
-        hidden: editionCount - listedEditionCount,
-      }),
-      tab: 'pricing',
     })
   }
   return list
