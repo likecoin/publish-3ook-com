@@ -121,14 +121,27 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
 
 // Validates the raw price form items. Error names use the `prices.{i}.{field}`
 // path convention so UForm can route each error to its UFormField by name.
-export function validatePriceFormItems(rawPrices: PriceFormItem[], t: TranslateFn): FormError[] {
+// `reservedNames` are the names editions outside this form already use, so a
+// second edition cannot be created under the same name as the first.
+export function validatePriceFormItems(
+  rawPrices: PriceFormItem[],
+  t: TranslateFn,
+  reservedNames: string[] = [],
+): FormError[] {
   const errors: FormError[] = []
+  const taken = new Set(reservedNames.map(name => name.trim()).filter(Boolean))
   rawPrices.forEach((p, index) => {
     const priceFieldName = `prices.${index}.price`
     if (!p.name) {
       errors.push({
         name: `prices.${index}.name`,
         message: t('errors.product_name_required'),
+      })
+    }
+    else if (taken.has(p.name.trim())) {
+      errors.push({
+        name: `prices.${index}.name`,
+        message: t('errors.product_name_duplicate'),
       })
     }
     if (p.isCustomPricing) {

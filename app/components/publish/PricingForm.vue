@@ -55,6 +55,7 @@
                 <PublishEditionNameField
                   v-model:price="prices[index]!"
                   :index="index"
+                  :placeholder="namePlaceholder"
                 />
               </div>
               <PublishEditionRevenueInline :price="p" />
@@ -63,6 +64,7 @@
               <PublishEditionNameField
                 v-model:price="prices[index]!"
                 :index="index"
+                :placeholder="namePlaceholder"
               />
               <PublishEditionPriceField
                 v-model:price="prices[index]!"
@@ -413,13 +415,25 @@ const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 // 'new' collects a full draft in the wizard; 'edit' hosts one edition in the
 // add-edition modal; 'manage' hosts every live edition of a published book,
 // where structure (add/delete) and class settings are owned elsewhere.
-const { mode = 'new', maxEditions = MAX_EDITION_COUNT, displayEditIndex = undefined, hasExistingSignatureImage = false, epubSpineItems = undefined } = defineProps<{
+const {
+  mode = 'new',
+  maxEditions = MAX_EDITION_COUNT,
+  displayEditIndex = undefined,
+  hasExistingSignatureImage = false,
+  epubSpineItems = undefined,
+  namePlaceholder = '',
+  reservedNames = undefined,
+} = defineProps<{
   mode?: 'new' | 'edit' | 'manage'
   maxEditions?: number
   displayEditIndex?: number
   hasExistingSignatureImage?: boolean
   // Spine table of the uploaded EPUB, for the free-preview cut readout.
   epubSpineItems?: EpubSpineItem[]
+  namePlaceholder?: string
+  // Names already taken by editions this form does not show, so a new one
+  // cannot collide with them.
+  reservedNames?: string[]
 }>()
 
 const prices = defineModel<PriceFormItem[]>('prices', { required: true })
@@ -476,7 +490,7 @@ const formRef = ref()
 const formState = computed(() => ({ prices: prices.value }))
 
 function onFormValidate(): FormError[] {
-  return validatePriceFormItems(prices.value, $t)
+  return validatePriceFormItems(prices.value, $t, reservedNames)
 }
 
 // Hosts call this on submit: shows inline errors on invalid fields, toasts

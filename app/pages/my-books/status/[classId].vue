@@ -75,6 +75,7 @@
           :stock-balance="stockBalance"
           :locked="changeCount > 0"
           @restocked="calculateStock"
+          @added="refreshListingInfo"
           @error="(message: string) => (error = message)"
         />
         <PublishPricingForm
@@ -136,8 +137,6 @@
         />
       </div>
     </template>
-
-    <NuxtPage :transition="false" />
   </PageBody>
 </template>
 
@@ -467,10 +466,7 @@ useEventListener('beforeunload', (event: BeforeUnloadEvent) => {
   }
 })
 
-onBeforeRouteLeave((to) => {
-  // Navigating into this page's own child routes (edition modals) is not
-  // leaving the page.
-  if (to.path.startsWith(route.path)) { return true }
+onBeforeRouteLeave(() => {
   if (changeCount.value > 0) {
     return window.confirm($t('unsaved_changes_warning'))
   }
