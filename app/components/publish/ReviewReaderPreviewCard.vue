@@ -40,9 +40,8 @@
             variant="soft"
             color="neutral"
             size="xs"
-          >
-            {{ badge }}
-          </UBadge>
+            :label="badge"
+          />
         </div>
       </div>
     </div>

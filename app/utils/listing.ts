@@ -94,8 +94,10 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
     deliveryMethod: price.isAutoDeliver ? 'auto' : 'manual',
     autoMemo: price.autoMemo || '',
     stock: price.stock,
-    name: typeof price.name === 'object' ? price.name.zh || '' : price.name || '',
-    description: typeof price.description === 'object' ? price.description.zh || '' : price.description || '',
+    // This app writes zh and en alike, but an edition created elsewhere may
+    // carry only en; falling back keeps the required name from reading blank.
+    name: typeof price.name === 'object' ? price.name.zh || price.name.en || '' : price.name || '',
+    description: typeof price.description === 'object' ? price.description.zh || price.description.en || '' : price.description || '',
     isAllowCustomPrice: price.isAllowCustomPrice,
     isListed: !price.isUnlisted,
     oldIsAutoDeliver: price.isAutoDeliver,

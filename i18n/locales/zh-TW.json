@@ -797,6 +797,7 @@
   "publish_review.revenue_region": "地區",
   "publish_review.revenue_title": "你的收入（估算）",
   "publish_review.revenue_you_earn": "你的收入（約）",
+  "publish_review.tipping_partial": "{total} 個版本中的 {count} 個",
   "publish_wizard.back": "上一步",
   "publish_wizard.next": "下一步",
   "publish_wizard.publishing_do_not_close": "發佈完成前請勿關閉此頁面",
