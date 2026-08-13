@@ -916,6 +916,7 @@
   "status_page.changes_audience_readers_none": "No one has bought this yet, so no existing reader is affected",
   "status_page.changes_audience_storefront": "Only affects the storefront page",
   "status_page.copy_purchase_link": "Copy purchase link",
+  "status_page.cover_pending_save": "Unsaved",
   "status_page.discard_changes": "Discard",
   "status_page.discard_confirm": "Discard all unsaved changes?",
   "status_page.email_placeholder": "abc{at}example.com",

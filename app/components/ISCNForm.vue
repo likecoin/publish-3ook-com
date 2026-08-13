@@ -25,7 +25,6 @@
     <IscnIdentifierFields
       v-model="formData"
       :prefilled-fields="prefilledFields"
-      :show-file-fields="showFileFields"
     />
 
     <IscnPeopleFields

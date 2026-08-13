@@ -244,6 +244,12 @@ watch(iscnFormRef, (form) => {
   }
 })
 
+// The 書檔 tab owns the cover but not the transaction that writes it, so it
+// hands the new URL here, where it joins the rest of the chain diff.
+function setCoverUrl(coverUrl: string) {
+  iscnFormData.value.coverUrl = coverUrl
+}
+
 function addModeratorWallet() {
   if (!moderatorWalletInput.value) { return }
   moderatorWallets.value.push(moderatorWalletInput.value)
@@ -300,6 +306,7 @@ defineExpose({
   isChainDirty,
   changedFields,
   pendingModeratorInput,
+  setCoverUrl,
   saveChain,
   discardChain,
 })

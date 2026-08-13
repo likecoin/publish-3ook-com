@@ -29,7 +29,13 @@
 
       <!-- Step Content -->
       <div class="mt-6 p-4 border border-default rounded-lg bg-elevated flex flex-col gap-[24px]">
-        <div v-if="step === 'files'">
+        <!-- The cover belongs with the files it came out of: the EPUB supplies
+             one here, and this is where a different one gets dropped in. The
+             edit screen's 書檔 tab reads the same way. -->
+        <div
+          v-if="step === 'files'"
+          class="flex flex-col gap-6"
+        >
           <UploadForm
             ref="uploadFormRef"
             v-model:encrypt-ebook="encryptEbook"
@@ -39,17 +45,18 @@
             @file-ready="handleFileReady"
             @submit="handleFilesCollected"
           />
+
+          <PublishCoverField
+            v-if="fileRecords.length"
+            v-model:file-records="fileRecords"
+            v-model:epub-metadata="epubMetadata"
+            :src="coverImageSrc"
+          />
         </div>
         <div
           v-else-if="step === 'details'"
           class="text-left flex flex-col gap-6"
         >
-          <PublishCoverField
-            v-model:file-records="fileRecords"
-            v-model:epub-metadata="epubMetadata"
-            :src="coverImageSrc"
-          />
-
           <ISCNForm
             ref="detailsFormRef"
             v-model="iscnFormData"
