@@ -18,11 +18,7 @@
               :color="prices.length >= MAX_EDITION_COUNT ? 'neutral' : 'primary'"
               :disabled="locked || prices.length >= MAX_EDITION_COUNT"
               :label="$t('form.add_edition')"
-              :to="locked ? undefined : localeRoute({
-                name: 'my-books-status-classId-edit-new',
-                params: { classId },
-                query: { price_index: prices.length },
-              })"
+              @click="showAddEditionModal = true"
             />
           </UTooltip>
         </div>
@@ -117,6 +113,26 @@
       </div>
     </template>
 
+    <!-- A dialog rather than a child route: cancelling has to leave the page
+         exactly as it was, and a route made 取消 a navigation. -->
+    <UModal
+      v-model:open="showAddEditionModal"
+      :title="$t('form.add_edition')"
+      class="sm:max-w-7xl"
+      :ui="{ body: 'p-4 sm:p-6' }"
+    >
+      <template #body>
+        <BookStatusEditionCreateForm
+          :class-id="classId"
+          :edition-index="prices.length"
+          :existing-names="existingEditionNames"
+          :seed-price="seedPrice"
+          @submit="handleEditionCreated"
+          @cancel="showAddEditionModal = false"
+        />
+      </template>
+    </UModal>
+
     <UModal v-model:open="showRestockModal">
       <template #content>
         <LiteMintNFT
@@ -137,7 +153,6 @@ import { MAX_EDITION_COUNT } from '~/constant'
 const { t: $t } = useI18n()
 
 const apiFetch = useLikeCoApiFetch()
-const localeRoute = useLocaleRoute()
 const { showSuccessToast } = useToastComposable()
 
 const { classId, stockBalance = 0, locked = false } = defineProps<{
@@ -152,11 +167,29 @@ const prices = defineModel<ClassListingPrice[]>('prices', { required: true })
 
 const emit = defineEmits<{
   restocked: []
+  added: []
   error: [message: string]
 }>()
 
 const isUpdatingPricesOrder = ref(false)
 const showRestockModal = ref(false)
+const showAddEditionModal = ref(false)
+
+const existingEditionNames = computed(() => prices.value.map(price => (
+  typeof price.name === 'object' ? price.name.zh || price.name.en || '' : price.name || ''
+)))
+
+// The new edition opens at the book's current price rather than the global
+// default, since a second edition is nearly always a variation on the first.
+const seedPrice = computed(() => {
+  const first = prices.value[0]
+  return first === undefined ? '' : String(first.price ?? '')
+})
+
+async function handleEditionCreated() {
+  showAddEditionModal.value = false
+  emit('added')
+}
 
 const editionsTableColumns = computed(() => [
   { accessorKey: 'sort', header: $t('table.sort'), class: 'w-[60px]' },

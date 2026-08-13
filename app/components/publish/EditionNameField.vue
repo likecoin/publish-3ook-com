@@ -18,7 +18,7 @@
     </template>
     <UInput
       v-model="price.name"
-      :placeholder="$t('nft_book_form.product_name_placeholder')"
+      :placeholder="placeholder || $t('nft_book_form.product_name_placeholder')"
     />
   </UFormField>
 </template>
@@ -28,8 +28,9 @@ import type { PriceFormItem } from '~/types/publish'
 
 const { t: $t } = useI18n()
 
-defineProps<{
+const { placeholder = '' } = defineProps<{
   index: number
+  placeholder?: string
 }>()
 
 // The edition object is shared with the host's `prices` array and edited in

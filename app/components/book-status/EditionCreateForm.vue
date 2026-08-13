@@ -2,6 +2,15 @@
   <div class="flex flex-col gap-4">
     <AppErrorAlert v-model="error" />
 
+    <!-- The cost of a second edition falls on the reader, who now has to
+         choose before buying; say so before the author commits to one. -->
+    <UAlert
+      color="neutral"
+      variant="subtle"
+      icon="i-heroicons-information-circle"
+      :description="$t('status_page.add_edition_consequence')"
+    />
+
     <!-- Per-edition fields only; class-level listing settings live in the
          status page's Book details tab. -->
     <PublishPricingForm
@@ -12,9 +21,19 @@
       mode="edit"
       :display-edit-index="displayEditIndex"
       :has-existing-signature-image="hasExistingSignatureImage"
+      :name-placeholder="$t('nft_book_form.new_edition_name_placeholder')"
+      :reserved-names="existingNames"
     />
 
-    <div class="w-full flex justify-center">
+    <div class="w-full flex justify-center gap-3">
+      <UButton
+        :label="$t('common.cancel')"
+        color="neutral"
+        variant="ghost"
+        size="lg"
+        :disabled="isLoading"
+        @click="emit('cancel')"
+      />
       <UButton
         :label="$t('common.save')"
         :loading="isLoading"
@@ -64,12 +83,16 @@ const { addEditionPrice, uploadSignImages } = bookstoreApiStore
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { showErrorToast } = useToastComposable()
 
-const { classId, editionIndex } = defineProps<{
+const { classId, editionIndex, existingNames = [], seedPrice = '' } = defineProps<{
   classId: string
   editionIndex: string | number
+  // Names the book's other editions already use, and the price to open with,
+  // so a second edition starts from the first rather than from the defaults.
+  existingNames?: string[]
+  seedPrice?: string
 }>()
 
-const emit = defineEmits(['submit'])
+const emit = defineEmits(['submit', 'cancel'])
 
 const error = ref('')
 const isLoading = ref(false)
@@ -79,8 +102,10 @@ const pricingFormRef = ref()
 
 const displayEditIndex = computed(() => Number(editionIndex) + 1)
 
+// Blank, not prefilled: the old default named every new edition after the
+// first one, which is exactly the name it must not have.
 const prices = ref<PriceFormItem[]>([
-  createDefaultPriceFormItem({ name: $t('prices.standard_edition') }),
+  createDefaultPriceFormItem(seedPrice ? { price: seedPrice } : {}),
 ])
 
 // Only isAllowCustomPrice is relevant in edit mode; the rest of the settings
