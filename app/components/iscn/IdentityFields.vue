@@ -45,12 +45,31 @@
 
   <UFormField
     name="description"
-    :label="$t('iscn_form.description_short')"
     class="flex-1 text-left"
     :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
     :help="$t('iscn_form.description_short_help')"
+    :ui="{ label: 'w-full flex items-center justify-between gap-4' }"
   >
+    <template #label>
+      <span v-text="$t('iscn_form.description_short')" />
+      <USwitch
+        v-model="isShortDescriptionAuto"
+        size="xs"
+        :label="$t('iscn_form.description_short_auto')"
+        :ui="{ root: 'flex-row-reverse gap-2', wrapper: 'ms-0' }"
+      />
+    </template>
+    <!-- Derived by default, and shown as text so the author can read what will
+         be stored. Both live books have the two fields byte-identical, which is
+         what a plain textarea prefilled from the long one produces. -->
+    <p
+      v-if="isShortDescriptionAuto"
+      class="rounded-lg border border-default bg-elevated/60 px-3 py-2 text-sm whitespace-pre-wrap"
+      :class="derivedShortDescription ? 'text-highlighted' : 'text-dimmed'"
+      v-text="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
+    />
     <UTextarea
+      v-else
       v-model="formData.description"
       :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
       autoresize
@@ -80,8 +99,29 @@ const descriptionFull = defineModel<string>('descriptionFull')
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
 
-// Shown as the short field's placeholder so the author can see what will be
-// stored if they leave it alone. ISCNForm writes the same value at submit.
+// What the catalog line becomes when it is not written by hand. ISCNForm
+// resolves the same value at submit, so this is a readout, not the source.
 const derivedShortDescription = computed(() =>
   deriveShortDescription(descriptionFull.value || '', MAX_DESCRIPTION_LENGTH))
+
+// Auto until the author says otherwise. Inferred rather than stored, because a
+// book published before this existed has the two fields identical — which is
+// derivation, not a deliberate override, and should keep following the long one.
+const isAutoOverride = ref<boolean | null>(null)
+const isShortDescriptionAuto = computed({
+  get: () => isAutoOverride.value ?? (
+    !formData.value.description || formData.value.description === derivedShortDescription.value
+  ),
+  set: (value: boolean) => {
+    isAutoOverride.value = value
+    if (value) { formData.value.description = derivedShortDescription.value }
+  },
+})
+
+// Keeps the derived line current while it is the one in force; writing it into
+// the field rather than leaving it empty is what stops a stale copy surviving
+// an edit to the long description.
+watch(derivedShortDescription, (value) => {
+  if (isShortDescriptionAuto.value) { formData.value.description = value }
+})
 </script>

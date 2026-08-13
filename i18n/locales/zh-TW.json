@@ -419,6 +419,7 @@
   "iscn_form.cover_image_required": "封面圖片為必填",
   "iscn_form.description_required": "描述為必填",
   "iscn_form.description_short": "短簡介",
+  "iscn_form.description_short_auto": "自動從簡介產生",
   "iscn_form.description_short_help": "留空的話，會自動從上方簡介擷取。用於書店列表與 Stripe 等外部平台。",
   "iscn_form.downloadable_url": "可下載網址",
   "iscn_form.enter_author_description": "輸入作者描述",
