@@ -127,7 +127,7 @@
           :class-id="classId"
           :edition-index="prices.length"
           :existing-names="existingEditionNames"
-          :seed-price="seedPrice"
+          :seed-pricing="seedPricing"
           :has-existing-signature-image="hasExistingSignatureImage"
           @submit="handleEditionCreated"
           @cancel="showAddEditionModal = false"
@@ -150,7 +150,8 @@
 
 <script setup lang="ts">
 import type { ClassListingPrice, EditionTableRow } from '~/types'
-import { getListingPriceName } from '~/utils/listing'
+import type { PriceFormItem } from '~/types/publish'
+import { getListingPriceName, mapListingPriceToFormItem } from '~/utils/listing'
 import { MAX_EDITION_COUNT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -186,9 +187,21 @@ const existingEditionNames = computed(() => prices.value.map(price => getListing
 
 // The new edition opens at the book's current price rather than the global
 // default, since a second edition is nearly always a variation on the first.
-const seedPrice = computed(() => {
+// Per-currency overrides come along, since seeding their USD equivalent as a
+// plain tier would open the ladder select on a rung that does not exist.
+const seedPricing = computed<Partial<PriceFormItem>>(() => {
   const first = prices.value[0]
-  return first === undefined ? '' : String(first.price ?? '')
+  if (!first) { return {} }
+  const { price, isCustomPricing, priceUSDInput, priceHKDInput, priceTWDInput }
+    = mapListingPriceToFormItem(first)
+  return {
+    // -1 is how an unpriced edition is marked, so it seeds nothing.
+    ...(price && price !== '-1' ? { price } : {}),
+    isCustomPricing,
+    priceUSDInput,
+    priceHKDInput,
+    priceTWDInput,
+  }
 })
 
 async function handleEditionCreated() {

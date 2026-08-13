@@ -80,13 +80,13 @@ const bookstoreApiStore = useBookstoreApiStore()
 const { addEditionPrice, uploadSignImages } = bookstoreApiStore
 const { showErrorToast } = useToastComposable()
 
-const { classId, editionIndex, existingNames = [], seedPrice = '', hasExistingSignatureImage = false } = defineProps<{
+const { classId, editionIndex, existingNames = [], seedPricing = {}, hasExistingSignatureImage = false } = defineProps<{
   classId: string
   editionIndex: string | number
-  // Names the book's other editions already use, and the price to open with,
-  // so a second edition starts from the first rather than from the defaults.
+  // Names the book's other editions already use, and the pricing fields to open
+  // with, so a second edition starts from the first rather than the defaults.
   existingNames?: string[]
-  seedPrice?: string
+  seedPricing?: Partial<PriceFormItem>
   hasExistingSignatureImage?: boolean
 }>()
 
@@ -99,10 +99,10 @@ const pricingFormRef = ref()
 
 const displayEditIndex = computed(() => Number(editionIndex) + 1)
 
-// Blank, not prefilled: the old default named every new edition after the
-// first one, which is exactly the name it must not have.
+// The name stays blank, not prefilled: the old default named every new edition
+// after the first one, which is exactly the name it must not have.
 const prices = ref<PriceFormItem[]>([
-  createDefaultPriceFormItem(seedPrice ? { price: seedPrice } : {}),
+  createDefaultPriceFormItem(seedPricing),
 ])
 
 // Only isAllowCustomPrice is relevant in edit mode; the rest of the settings

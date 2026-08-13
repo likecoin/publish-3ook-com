@@ -12,7 +12,7 @@ export interface BookEditChangeEntry {
   key: string
   label: string
   // The tab that owns the field, so the bar can jump to it.
-  tab: 'details' | 'pricing'
+  tab: 'files' | 'details' | 'pricing'
   group: BookEditChangeGroup
   audience: BookEditChangeAudience
   // Saving this entry signs an on-chain transaction; the bar announces it so
@@ -60,6 +60,10 @@ const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
 // descriptionFull / TOC / moderators are edited on the details tab even though
 // they save through the settings POST.
 const DETAILS_TAB_SETTING_KEYS = new Set(['descriptionFull', 'tableOfContents', 'moderatorWallets'])
+
+// The cover is chain metadata, but the only control that changes it is 書檔's
+// dropzone, so that is where its entry has to jump.
+const FILES_TAB_CHAIN_KEYS = new Set(['coverUrl'])
 
 // The file itself and what may be done with it are the only edits that reach
 // someone who already paid; everything else is either the next sale's terms or
@@ -115,7 +119,7 @@ export function useBookEditChanges(options: {
       push({
         key: `chain.${field}`,
         label: labelKey ? t(labelKey) : field,
-        tab: 'details',
+        tab: FILES_TAB_CHAIN_KEYS.has(field) ? 'files' : 'details',
         group: 'chain',
         audience: READER_FACING_CHAIN_KEYS.has(field) ? 'readers' : 'storefront',
         needsWallet: true,

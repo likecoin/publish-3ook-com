@@ -22,48 +22,50 @@
         <!-- The cover is a file like the others, so it lives in the file list
              rather than as an ar:// string typed into 書籍資料. Dropping an
              image here is the only way to change it. -->
-        <div
-          class="flex flex-col gap-2 items-start rounded-lg border border-dashed p-3 transition-colors"
-          :class="isDraggingCover ? 'border-primary bg-primary/5' : 'border-default'"
-          @dragover.prevent="isDraggingCover = true"
-          @dragleave="isDraggingCover = false"
-          @drop.prevent="handleCoverDrop"
+        <UFormField
+          :label="$t('form.cover_image')"
+          :error="coverError"
         >
-          <p
-            class="text-sm text-muted"
-            v-text="$t('form.cover_image')"
-          />
-          <BookCoverThumbnail
-            :src="coverSrc"
-            size="lg"
-          />
-          <p
-            class="text-xs text-muted break-all max-w-[120px]"
-            v-text="coverMeta"
-          />
-          <UButton
-            size="xs"
-            variant="soft"
-            icon="i-heroicons-arrow-up-tray"
-            :loading="isUploadingCover"
-            :label="$t('publish_cover.replace')"
-            @click="coverInput?.click()"
-          />
-          <UBadge
-            v-if="pendingCover"
-            color="warning"
-            variant="subtle"
-            size="sm"
-            :label="$t('status_page.cover_pending_save')"
-          />
-          <input
-            ref="coverInput"
-            type="file"
-            :accept="COVER_ACCEPT_ATTRIBUTE"
-            class="hidden"
-            @change="handleCoverPick"
+          <div
+            class="flex flex-col gap-2 items-start rounded-lg p-3 transition-colors"
+            :class="coverDropzoneClass"
+            @dragover.prevent="isDraggingCover = true"
+            @dragleave="isDraggingCover = false"
+            @drop.prevent="handleCoverDrop"
           >
-        </div>
+            <BookCoverThumbnail
+              :src="coverSrc"
+              size="lg"
+            />
+            <p
+              class="text-xs text-muted break-all max-w-[120px]"
+              v-text="coverMeta"
+            />
+            <UButton
+              v-if="canEdit"
+              size="xs"
+              variant="soft"
+              icon="i-heroicons-arrow-up-tray"
+              :loading="isUploadingCover"
+              :label="$t('publish_cover.replace')"
+              @click="coverInput?.click()"
+            />
+            <UBadge
+              v-if="pendingCover"
+              color="warning"
+              variant="subtle"
+              size="sm"
+              :label="$t('status_page.cover_pending_save')"
+            />
+            <input
+              ref="coverInput"
+              type="file"
+              :accept="COVER_ACCEPT_ATTRIBUTE"
+              class="hidden"
+              @change="handleCoverPick"
+            >
+          </div>
+        </UFormField>
 
         <ul
           v-if="fileRows.length"
@@ -160,8 +162,13 @@ const { uploadFileRecordsToArweave } = useArweaveUpload()
 const { showErrorToast } = useToastComposable()
 const { takeImageFile, takeDroppedImageFile } = useImageFilePick()
 
-const { classId } = defineProps<{
+const { classId, canEdit = false, coverError = '' } = defineProps<{
   classId: string
+  // Moderators reach this tab too, and nothing here can be saved without the
+  // owner's signature — so an upload they make would only strand bytes.
+  canEdit?: boolean
+  // The save's complaint about the cover, shown where the cover is fixed.
+  coverError?: string
 }>()
 
 const emit = defineEmits<{ coverReplaced: [coverUrl: string] }>()
@@ -182,6 +189,13 @@ const pendingCoverPreview = useObjectUrl(pendingCoverFile)
 const coverSrc = computed(() => (
   pendingCoverPreview.value || parseImageURLFromMetadata(coverUrl.value)
 ))
+
+// Only a droppable zone looks like one: without the right to replace it, the
+// cover is just a picture.
+const coverDropzoneClass = computed(() => canEdit && [
+  'border border-dashed',
+  isDraggingCover.value ? 'border-primary bg-primary/5' : 'border-default',
+])
 
 // Only what we actually know: a replacement carries its own name, dimensions
 // and size; a cover already on chain is just an id.
@@ -230,6 +244,7 @@ watch(() => classId, async () => {
 
 function handleCoverDrop(event: DragEvent) {
   isDraggingCover.value = false
+  if (!canEdit) { return }
   const file = takeDroppedImageFile(event)
   if (file) { replaceCover(file) }
 }

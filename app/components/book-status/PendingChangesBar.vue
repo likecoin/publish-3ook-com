@@ -72,14 +72,14 @@ const { t: $t, locale } = useI18n()
 const {
   changes,
   audience = null,
-  buyerCount = 0,
+  soldCount = 0,
   needsWalletSignature = false,
   isSaving = false,
   lastSavedAt = null,
 } = defineProps<{
   changes: BookEditChangeEntry[]
   audience?: BookEditChangeAudience | null
-  buyerCount?: number
+  soldCount?: number
   needsWalletSignature?: boolean
   isSaving?: boolean
   lastSavedAt?: number | null
@@ -98,8 +98,8 @@ const isDirty = computed(() => changes.length > 0)
 const audienceLabel = computed(() => {
   switch (audience) {
     case 'readers':
-      return buyerCount > 0
-        ? $t('status_page.changes_audience_readers', { count: buyerCount })
+      return soldCount > 0
+        ? $t('status_page.changes_audience_readers', { count: soldCount })
         : $t('status_page.changes_audience_readers_none')
     case 'future_purchases':
       return $t('status_page.changes_audience_future')

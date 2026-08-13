@@ -7,7 +7,7 @@
       v-if="bookstoreApiStore.isAuthenticated && userIsOwner"
       :changes="changes"
       :audience="changeAudience"
-      :buyer-count="buyerCount"
+      :sold-count="soldCount"
       :needs-wallet-signature="needsWalletSignature"
       :is-saving="isSavingChanges"
       :last-saved-at="lastSavedAt"
@@ -51,6 +51,8 @@
         <BookStatusBookFilesCard
           :key="filesRefreshCounter"
           :class-id="classId"
+          :can-edit="userIsOwner"
+          :cover-error="coverError"
           @cover-replaced="handleCoverReplaced"
         />
       </div>
@@ -112,7 +114,7 @@
           :class-id="classId"
           :class-listing-info="classListingInfo"
           :store-url="affiliationLink"
-          :buyer-count="buyerCount"
+          :can-edit="userIsOwner"
           :pending-changes="changes"
           @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
         />
@@ -152,7 +154,8 @@ import type { ClassListingData, ClassListingPrice } from '~/types'
 import { BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
-import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue } from '~/utils/listing'
+import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue, getSoldCount } from '~/utils/listing'
+import { getCoverUrlErrorKey } from '~/utils/iscn'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -186,6 +189,7 @@ interface BookDetailsSectionApi {
   isChainDirty: boolean
   changedFields: string[]
   pendingModeratorInput: boolean
+  coverUrl: string
   setCoverUrl: (coverUrl: string) => void
   saveChain: () => Promise<boolean>
   discardChain: () => Promise<void>
@@ -260,6 +264,14 @@ const summaryRefreshCounter = ref(0)
 // Same for the files tab, on discard as well as save: it holds the picked
 // cover's preview and its 待儲存 badge, neither of which survives either.
 const filesRefreshCounter = ref(0)
+// Set by a save the cover would fail, and shown on the dropzone that fixes it.
+const coverError = ref('')
+
+// Reverting the offending edit by hand also takes the save bar away, so without
+// this the complaint would outlive the save it belongs to.
+watch(changeCount, (count) => {
+  if (!count) { coverError.value = '' }
+})
 
 // Tabs
 const tabItems = computed(() => [
@@ -305,9 +317,7 @@ const affiliationLink = computed(() => {
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
 const userIsOwner = computed(() => !!sessionWallet.value && ownerWallet.value === sessionWallet.value)
 const pendingNFTCount = computed(() => classListingInfo.value.pendingNFTCount || 0)
-// Owner-only per-edition counter, so this is the author's own reader count.
-const buyerCount = computed(() => (classListingInfo.value.prices || [])
-  .reduce((total, price) => total + (price.sold || 0), 0))
+const soldCount = computed(() => getSoldCount(classListingInfo.value.prices))
 
 watch(sessionWallet, async (newWallet) => {
   if (newWallet) {
@@ -361,6 +371,7 @@ async function calculateStock() {
 
 function handleCoverReplaced(coverUrl: string) {
   detailsSectionRef.value?.setCoverUrl(coverUrl)
+  coverError.value = ''
 }
 
 function handleReducePendingNft() {
@@ -377,6 +388,18 @@ async function saveAllChanges() {
     showErrorToast($t('errors.add_moderator_wallet'))
     selectedTabItemIndex.value = 'details'
     return
+  }
+  // Ahead of every group, not inside the chain one: a cover the tx would reject
+  // is knowable now, and bailing later would leave the settings saved and the
+  // chain half not. Older books can hold a URL the current rules reject.
+  if (details?.isChainDirty) {
+    const errorKey = getCoverUrlErrorKey(details.coverUrl)
+    coverError.value = errorKey ? $t(errorKey) : ''
+    if (errorKey) {
+      showErrorToast(coverError.value)
+      selectedTabItemIndex.value = 'files'
+      return
+    }
   }
   isSavingChanges.value = true
   try {
