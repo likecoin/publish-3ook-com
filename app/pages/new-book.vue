@@ -90,7 +90,6 @@
             v-model:settings="listingDraft"
             v-model:signature-image="signatureImage"
             mode="new"
-            :max-editions="MAX_EDITION_COUNT"
             :epub-spine-items="epubMetadata?.spineItems"
           />
         </div>
@@ -210,7 +209,7 @@ import type {
 } from '~/types/publish'
 import { PUBLISH_WIZARD_STEPS, PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { MAX_EDITION_COUNT, PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS, MAX_DESCRIPTION_LENGTH } from '~/constant'
+import { PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS, MAX_DESCRIPTION_LENGTH } from '~/constant'
 import { resolveShortDescription } from '~/utils/description'
 import {
   PUBLISH_RESUME_QUERY,
