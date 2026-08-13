@@ -27,20 +27,6 @@
       />
     </UFormField>
 
-    <UFormField
-      v-if="showFileFields"
-      name="coverUrl"
-      required
-      :label="$t('form.cover_image')"
-      class="text-left"
-    >
-      <UInput
-        v-model="formData.coverUrl"
-        placeholder="ar://{arweave_id}"
-        class="font-mono"
-      />
-    </UFormField>
-
     <UFormField :label="$t('form_labels.book_info')">
       <UInput
         v-model="formData.bookInfoUrl"
@@ -58,11 +44,8 @@ import { languageOptions } from '~/constant/index'
 
 const { t: $t } = useI18n()
 
-const { prefilledFields = [], showFileFields = true } = defineProps<{
+const { prefilledFields = [] } = defineProps<{
   prefilledFields?: ISCNPrefillableField[]
-  // coverUrl only exists once something has been uploaded, so the collect-only
-  // wizard hides it and injects the URL at publish time instead.
-  showFileFields?: boolean
 }>()
 
 const formData = defineModel<ISCNFormData>({ required: true })

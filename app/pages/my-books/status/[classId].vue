@@ -48,7 +48,11 @@
         v-show="selectedTabItemIndex === 'files'"
         class="mt-4"
       >
-        <BookStatusBookFilesCard :class-id="classId" />
+        <BookStatusBookFilesCard
+          :key="filesRefreshCounter"
+          :class-id="classId"
+          @cover-replaced="handleCoverReplaced"
+        />
       </div>
 
       <div
@@ -180,6 +184,7 @@ interface BookDetailsSectionApi {
   isChainDirty: boolean
   changedFields: string[]
   pendingModeratorInput: boolean
+  setCoverUrl: (coverUrl: string) => void
   saveChain: () => Promise<boolean>
   discardChain: () => Promise<void>
 }
@@ -250,6 +255,9 @@ const isSavingChanges = ref(false)
 const lastSavedAt = ref<number | null>(null)
 // Remounts the summary tab after a save so its chain-metadata copy refetches.
 const summaryRefreshCounter = ref(0)
+// Same for the files tab, on discard as well as save: it holds the picked
+// cover's preview and its 待儲存 badge, neither of which survives either.
+const filesRefreshCounter = ref(0)
 
 // Tabs
 const tabItems = computed(() => [
@@ -273,7 +281,9 @@ const selectedTabItemIndex = ref<BookStatusTab>(
 
 // A pane mounts on its first visit and stays mounted from then on, so an
 // unopened tab costs no fetches while edits still survive tab switches.
-const visitedTabs = reactive(new Set<BookStatusTab>([selectedTabItemIndex.value]))
+// 'details' is seeded regardless: it owns the chain form the 書檔 tab writes a
+// replaced cover into, and its metadata fetch is the same cached one 書檔 makes.
+const visitedTabs = reactive(new Set<BookStatusTab>([selectedTabItemIndex.value, 'details']))
 
 watch(selectedTabItemIndex, (value) => {
   if (value) {
@@ -345,6 +355,10 @@ async function calculateStock() {
     .filter(price => !price.isAutoDeliver)
     .reduce((total, price) => total + (price.stock || 0), 0)
   stockBalance.value = (Number(count) - manuallyAssignedNFTCount - AUTHOR_RESERVED_NFT_COUNT - pendingNFTCount) || 0
+}
+
+function handleCoverReplaced(coverUrl: string) {
+  detailsSectionRef.value?.setCoverUrl(coverUrl)
 }
 
 function handleReducePendingNft() {
@@ -436,6 +450,7 @@ async function saveAllChanges() {
       showSuccessToast($t('status_page.settings_saved'))
       await refreshListingInfo()
       summaryRefreshCounter.value += 1
+      filesRefreshCounter.value += 1
     }
   }
   finally {
@@ -456,6 +471,7 @@ async function discardAllChanges() {
   rebuildEditionDraft()
   signatureImage.value = null
   await detailsSectionRef.value?.discardChain()
+  filesRefreshCounter.value += 1
 }
 
 // Unsaved edits guard the page as a whole; the forms' own guards are off.

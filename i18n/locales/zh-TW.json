@@ -916,6 +916,7 @@
   "status_page.changes_audience_readers_none": "還沒有人買過，不影響現有讀者",
   "status_page.changes_audience_storefront": "只影響書店頁面",
   "status_page.copy_purchase_link": "複製購買連結",
+  "status_page.cover_pending_save": "待儲存",
   "status_page.discard_changes": "放棄",
   "status_page.discard_confirm": "放棄所有未儲存的變更？",
   "status_page.email_placeholder": "abc{at}example.com",
