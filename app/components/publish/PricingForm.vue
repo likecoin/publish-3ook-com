@@ -29,117 +29,46 @@
               body: 'flex flex-col gap-[20px]',
             }"
           >
-            <template #header>
+            <template
+              v-if="!isSingleEditionLayout"
+              #header
+            >
               <h3
                 class="font-bold font-mono"
                 v-text="`${$t('nft_book_form.edition_number', { number: (displayEditIndex || (index + 1)) })} - ${p.name || $t('nft_book_form.product_name_placeholder')}`"
               />
             </template>
 
-            <!-- 1. What this edition is -->
-            <UFormField
-              :name="`prices.${index}.name`"
-              :ui="{ container: 'space-y-2' }"
+            <!-- 1–2. What this edition costs and is called. A book with one
+                 edition is a book with a price, so those two lead and the
+                 numbers they imply sit beside them rather than a tab away. -->
+            <div
+              v-if="isSingleEditionLayout"
+              class="grid gap-4 md:grid-cols-2 items-start"
             >
-              <template #label>
-                {{ $t('nft_book_form.product_name') }}
-                <ToolTips :image-style="{ width: '250px' }">
-                  <template #image>
-                    <img
-                      src="~/assets/images/hint/editionInfo-en.png"
-                      class="object-cover"
-                      alt=""
-                    >
-                  </template>
-                  <UIcon name="i-heroicons-question-mark-circle" />
-                </ToolTips>
-              </template>
-              <UInput
-                v-model="p.name"
-                :placeholder="$t('nft_book_form.product_name_placeholder')"
-              />
-            </UFormField>
-
-            <!-- 2. Price -->
-            <UFormField
-              :name="`prices.${index}.price`"
-              :label="$t('nft_book_form.unit_price_label')"
-            >
-              <div class="space-y-3">
-                <UCheckbox
-                  v-if="shouldShowCustomPricingUI(p)"
-                  v-model="p.isCustomPricing"
-                  :label="$t('nft_book_form.use_custom_pricing')"
-                  @update:model-value="(v: boolean | 'indeterminate') => onCustomPricingToggle(p, v === true)"
+              <div class="space-y-4">
+                <PublishEditionPriceField
+                  v-model:price="prices[index]!"
+                  :index="index"
+                  show-ladder-hint
                 />
-                <USelect
-                  v-if="!p.isCustomPricing"
-                  v-model="p.price"
-                  class="w-full"
-                  :items="USD_PRICING_OPTIONS"
-                  value-key="value"
+                <PublishEditionNameField
+                  v-model:price="prices[index]!"
+                  :index="index"
                 />
-                <div
-                  v-else
-                  class="flex flex-col gap-3 p-3 bg-elevated rounded-lg"
-                >
-                  <p class="text-xs text-muted">
-                    {{ $t('nft_book_form.custom_pricing_description') }}
-                  </p>
-                  <UFormField :label="$t('nft_book_form.custom_price_usd')">
-                    <UInput
-                      :model-value="p.priceUSDInput"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0"
-                      @update:model-value="(v: string | number) => { p.priceUSDInput = String(v ?? '') }"
-                    />
-                  </UFormField>
-                  <UFormField :label="$t('nft_book_form.custom_price_hkd')">
-                    <UInput
-                      :model-value="p.priceHKDInput"
-                      type="number"
-                      step="1"
-                      min="0"
-                      placeholder="0"
-                      @update:model-value="(v: string | number) => { p.priceHKDInput = String(v ?? '') }"
-                    />
-                  </UFormField>
-                  <UFormField :label="$t('nft_book_form.custom_price_twd')">
-                    <UInput
-                      :model-value="p.priceTWDInput"
-                      type="number"
-                      step="1"
-                      min="0"
-                      placeholder="0"
-                      @update:model-value="(v: string | number) => { p.priceTWDInput = String(v ?? '') }"
-                    />
-                  </UFormField>
-                </div>
               </div>
-            </UFormField>
-
-            <!-- Tipping is stored per edition. The other modes set it for
-                 every edition at once from the sale-settings card below, which
-                 does not exist in manage mode, so edit it in place there. -->
-            <UFormField
-              v-if="mode === 'manage'"
-              class="flex items-center"
-            >
-              <UTooltip
-                class="flex items-center gap-2"
-                :text="$t('nft_book_form.accept_tipping_tooltip')"
-              >
-                <UCheckbox
-                  v-model="p.isAllowCustomPrice"
-                  :name="`prices.${index}.isAllowCustomPrice`"
-                  :label="$t('nft_book_form.accept_tipping')"
-                />
-
-                <UIcon name="i-heroicons-question-mark-circle" />
-              </UTooltip>
-            </UFormField>
+              <PublishEditionRevenueInline :price="p" />
+            </div>
+            <template v-else>
+              <PublishEditionNameField
+                v-model:price="prices[index]!"
+                :index="index"
+              />
+              <PublishEditionPriceField
+                v-model:price="prices[index]!"
+                :index="index"
+              />
+            </template>
 
             <!-- Collapsed by default so the rarely-used editor does not push
                  the price down the card. -->
@@ -148,117 +77,140 @@
               :editor-id="`pricing-${index}`"
             />
 
-            <!-- 3. Copies / delivery -->
-            <UFormField
-              :label="$t('nft_book_form.copies_label')"
-            >
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
-                  <URadioGroup
-                    v-model="p.deliveryMethod"
-                    :items="[
-                      { label: $t('nft_book_form.unlimited'), value: 'auto' },
-                      { label: $t('nft_book_form.limited'), value: 'manual' },
-                    ]"
-                    orientation="vertical"
-                  />
-                  <UTooltip
-                    v-if="p.deliveryMethod === 'manual'"
-                    :text="$t('nft_book_form.manual_delivery_tooltip')"
-                  >
-                    <UIcon name="i-heroicons-question-mark-circle" />
-                  </UTooltip>
-                </div>
-
-                <div
-                  v-if="p.deliveryMethod === 'manual'"
-                  class="space-y-3"
+            <PublishEditionAdvancedPanel :collapsible="isSingleEditionLayout">
+              <!-- Tipping is stored per edition. The other modes set it for
+                   every edition at once from the sale-settings card below, which
+                   does not exist in manage mode, so edit it in place there. -->
+              <UFormField
+                v-if="mode === 'manage'"
+                class="flex items-center"
+              >
+                <UTooltip
+                  class="flex items-center gap-2"
+                  :text="$t('nft_book_form.accept_tipping_tooltip')"
                 >
-                  <UFormField :label="$t('nft_book_form.stock')">
+                  <UCheckbox
+                    v-model="p.isAllowCustomPrice"
+                    :name="`prices.${index}.isAllowCustomPrice`"
+                    :label="$t('nft_book_form.accept_tipping')"
+                  />
+
+                  <UIcon name="i-heroicons-question-mark-circle" />
+                </UTooltip>
+              </UFormField>
+
+              <!-- 3. Copies / delivery -->
+              <UFormField
+                :label="$t('nft_book_form.copies_label')"
+              >
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <URadioGroup
+                      v-model="p.deliveryMethod"
+                      :items="[
+                        { label: $t('nft_book_form.unlimited'), value: 'auto' },
+                        { label: $t('nft_book_form.limited'), value: 'manual' },
+                      ]"
+                      orientation="vertical"
+                    />
+                    <UTooltip
+                      v-if="p.deliveryMethod === 'manual'"
+                      :text="$t('nft_book_form.manual_delivery_tooltip')"
+                    >
+                      <UIcon name="i-heroicons-question-mark-circle" />
+                    </UTooltip>
+                  </div>
+
+                  <div
+                    v-if="p.deliveryMethod === 'manual'"
+                    class="space-y-3"
+                  >
+                    <UFormField :label="$t('nft_book_form.stock')">
+                      <UInput
+                        v-model="p.stock"
+                        type="number"
+                        step="1"
+                        :min="1"
+                        :max="maxSupply"
+                        placeholder="100"
+                      />
+                    </UFormField>
+                  </div>
+                </div>
+              </UFormField>
+
+              <!-- 4. Delivery extras -->
+              <UFormField :label="$t('nft_book_form.enable_custom_message_page')">
+                <div class="space-y-3 w-full">
+                  <UFormField
+                    :label="$t('nft_book_form.auto_delivery_memo')"
+                  >
                     <UInput
-                      v-model="p.stock"
-                      type="number"
-                      step="1"
-                      :min="1"
-                      :max="maxSupply"
-                      placeholder="100"
+                      v-model="p.autoMemo"
+                      :placeholder="$t('nft_book_form.memo_placeholder')"
+                      :disabled="p.deliveryMethod === 'manual'"
+                    />
+                  </UFormField>
+
+                  <UFormField :ui="{ label: 'w-full flex justify-between items-center' }">
+                    <template #label>
+                      <p
+                        class="block"
+                        v-text="$t('nft_book_form.autograph_image')"
+                      />
+                      <span
+                        class="text-muted text-[12px] block"
+                        v-text="$t('nft_book_form.image_requirements')"
+                      />
+                    </template>
+                    <UInput
+                      type="file"
+                      accept="image/png"
+                      @input="onImgUpload"
+                    />
+                    <div
+                      v-if="signatureImagePreview"
+                      class="mt-2"
+                    >
+                      <img
+                        :src="signatureImagePreview"
+                        alt="Signature preview"
+                        class="w-full max-h-[180px] object-contain rounded border border-default"
+                      >
+                    </div>
+                    <p
+                      v-else-if="hasExistingSignatureImage"
+                      class="mt-2 text-sm text-muted"
+                      v-text="$t('nft_book_form.autograph_image_uploaded')"
                     />
                   </UFormField>
                 </div>
-              </div>
-            </UFormField>
+              </UFormField>
 
-            <!-- 4. Delivery extras -->
-            <UFormField :label="$t('nft_book_form.enable_custom_message_page')">
-              <div class="space-y-3 w-full">
-                <UFormField
-                  :label="$t('nft_book_form.auto_delivery_memo')"
-                >
-                  <UInput
-                    v-model="p.autoMemo"
-                    :placeholder="$t('nft_book_form.memo_placeholder')"
-                    :disabled="p.deliveryMethod === 'manual'"
-                  />
-                </UFormField>
-
-                <UFormField :ui="{ label: 'w-full flex justify-between items-center' }">
-                  <template #label>
-                    <p
-                      class="block"
-                      v-text="$t('nft_book_form.autograph_image')"
-                    />
-                    <span
-                      class="text-muted text-[12px] block"
-                      v-text="$t('nft_book_form.image_requirements')"
-                    />
-                  </template>
-                  <UInput
-                    type="file"
-                    accept="image/png"
-                    @input="onImgUpload"
-                  />
-                  <div
-                    v-if="signatureImagePreview"
-                    class="mt-2"
-                  >
-                    <img
-                      :src="signatureImagePreview"
-                      alt="Signature preview"
-                      class="w-full max-h-[180px] object-contain rounded border border-default"
-                    >
-                  </div>
-                  <p
-                    v-else-if="hasExistingSignatureImage"
-                    class="mt-2 text-sm text-muted"
-                    v-text="$t('nft_book_form.autograph_image_uploaded')"
-                  />
-                </UFormField>
-              </div>
-            </UFormField>
-
-            <!-- 5. Store visibility. Both options are named and both say what
-                 they do: hiding an edition does not stop it selling through a
-                 purchase link, which a bare off-switch never conveyed. -->
-            <UFormField :label="$t('nft_book_form.edition_visibility')">
-              <URadioGroup
-                :model-value="p.isListed ? 'sell' : 'hide'"
-                :items="[
-                  {
-                    label: $t('nft_book_form.edition_visibility_sell'),
-                    description: $t('nft_book_form.edition_visibility_sell_hint'),
-                    value: 'sell',
-                  },
-                  {
-                    label: $t('nft_book_form.edition_visibility_hide'),
-                    description: $t('nft_book_form.edition_visibility_hide_hint'),
-                    value: 'hide',
-                  },
-                ]"
-                orientation="vertical"
-                :ui="{ fieldset: 'gap-3' }"
-                @update:model-value="(value) => (p.isListed = value === 'sell')"
-              />
-            </UFormField>
+              <!-- 5. Store visibility. Both options are named and both say what
+                   they do: hiding an edition does not stop it selling through a
+                   purchase link, which a bare off-switch never conveyed. -->
+              <UFormField :label="$t('nft_book_form.edition_visibility')">
+                <URadioGroup
+                  :model-value="p.isListed ? 'sell' : 'hide'"
+                  :items="[
+                    {
+                      label: $t('nft_book_form.edition_visibility_sell'),
+                      description: $t('nft_book_form.edition_visibility_sell_hint'),
+                      value: 'sell',
+                    },
+                    {
+                      label: $t('nft_book_form.edition_visibility_hide'),
+                      description: $t('nft_book_form.edition_visibility_hide_hint'),
+                      value: 'hide',
+                    },
+                  ]"
+                  orientation="vertical"
+                  :ui="{ fieldset: 'gap-3' }"
+                  @update:model-value="(value) => (p.isListed = value === 'sell')"
+                />
+              </UFormField>
+            </PublishEditionAdvancedPanel>
           </UCard>
 
           <div class="flex justify-center items-center mt-2">
@@ -440,7 +392,6 @@ import { v4 as uuidv4 } from 'uuid'
 
 import type { FormError } from '#ui/types'
 import {
-  USD_PRICING_OPTIONS,
   DEFAULT_MAX_SUPPLY,
   MAX_EDITION_COUNT,
 } from '~/constant'
@@ -479,19 +430,12 @@ const editionListRef = ref<HTMLElement | null>(null)
 const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
-const route = useRoute()
-
-// Backdoor: ?advanced_pricing=1 reveals the custom USD/HKD/TWD pricing UI.
-const isAdvancedPricingEnabled = computed(() => route.query.advanced_pricing === '1')
-function shouldShowCustomPricingUI(p: PriceFormItem): boolean {
-  return isAdvancedPricingEnabled.value || p.isCustomPricing
-}
-function onCustomPricingToggle(p: PriceFormItem, enabled: boolean) {
-  if (enabled && p.priceUSDInput === '' && p.price && p.price !== '-1') {
-    p.priceUSDInput = p.price
-  }
-}
 const hasMultiplePrices = computed(() => prices.value.length > 1)
+
+// A published book with one edition has no edition to choose between, so the
+// price leads and the per-edition machinery collapses. Two or more keep the
+// full cards, where telling them apart is the whole point.
+const isSingleEditionLayout = computed(() => mode === 'manage' && prices.value.length === 1)
 // A free price tier (0) always opts the book into Plus all-you-can-read.
 const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p) === 0))
 

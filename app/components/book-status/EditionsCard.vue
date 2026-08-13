@@ -29,7 +29,10 @@
       </div>
     </template>
 
+    <!-- One edition is not a list to compare; the price form below already
+         shows everything a single row would, so the table waits for a second. -->
     <UTable
+      v-if="prices.length > 1"
       :columns="editionsTableColumns"
       :data="editionsTableRows"
     >
@@ -90,6 +93,14 @@
         </span>
       </template>
     </UTable>
+    <!-- The stock balance lives in a table row, so it needs somewhere else to
+         go once the table is hidden; it is the number 鑄造更多庫存 acts on. -->
+    <p
+      v-if="prices.length <= 1 && hasManualEdition"
+      class="p-4 text-sm text-muted"
+      v-text="$t('table.stock_balance', { count: stockBalance })"
+    />
+
     <template #footer>
       <div class="flex justify-end items-center ">
         <UTooltip
@@ -158,6 +169,8 @@ const editionsTableColumns = computed(() => [
   { accessorKey: 'stock', header: $t('table.stock'), class: 'w-[120px]' },
   { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
 ])
+
+const hasManualEdition = computed(() => prices.value.some(price => !price.isAutoDeliver))
 
 const editionsTableRows = computed(() => {
   const rows: EditionTableRow[] = prices.value.map((element, index) => ({
