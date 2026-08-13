@@ -9,8 +9,10 @@ import type { BookListingStatus } from '~/types/book'
 // A book's shelf state as the author sees it. A book still awaiting moderation
 // isn't for sale yet whatever its editions say, and one whose every edition is
 // unlisted is as invisible to readers as an explicitly hidden one.
+// Only `isUnlisted` is read off the prices, so callers holding an edit draft
+// rather than the API shape can pass what they have.
 export function getBookListingStatus(
-  book: Pick<BookListingItem, 'prices' | 'isHidden' | 'isPendingReview'>,
+  book: Pick<BookListingItem, 'isHidden' | 'isPendingReview'> & { prices?: { isUnlisted?: boolean }[] },
 ): BookListingStatus {
   if (book.isPendingReview) { return 'pending_review' }
   const prices = book.prices || []

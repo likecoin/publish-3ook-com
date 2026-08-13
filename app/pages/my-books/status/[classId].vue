@@ -28,31 +28,10 @@
     </UProgress>
 
     <template v-if="bookstoreApiStore.isAuthenticated">
-      <UCard :ui="{ body: 'p-3' }">
-        <div class="flex items-center gap-2">
-          <h3
-            class="font-bold font-mono"
-            v-text="nftClassName || classId"
-          />
-          <ULink
-            :to="affiliationLink"
-            class="flex items-center"
-            target="_blank"
-          >
-            <UIcon
-              name="i-heroicons-arrow-top-right-on-square"
-              size="xl"
-            />
-          </ULink>
-          <UButton
-            icon="i-heroicons-document-duplicate"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            @click="copyToClipboard(affiliationLink)"
-          />
-        </div>
-      </UCard>
+      <h1
+        class="font-bold font-mono text-lg text-highlighted"
+        v-text="nftClassName || classId"
+      />
 
       <!-- Labels only: each pane below mounts on its first visit and then stays
            mounted (v-show), so edits survive visiting another tab while they
@@ -121,8 +100,11 @@
       >
         <BookStatusBookSummaryTab
           :key="summaryRefreshCounter"
+          v-model:prices="editedPrices"
           :class-id="classId"
           :class-listing-info="classListingInfo"
+          :store-url="affiliationLink"
+          :buyer-count="buyerCount"
           :pending-changes="changes"
           @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
         />
@@ -160,7 +142,6 @@
 
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
-import { copyToClipboard } from '~/utils'
 import type { ClassListingData, ClassListingPrice } from '~/types'
 import { BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
