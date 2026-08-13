@@ -9,15 +9,16 @@ import type { BookListingStatus } from '~/types/book'
 // A book's shelf state as the author sees it. A book still awaiting moderation
 // isn't for sale yet whatever its editions say, and one whose every edition is
 // unlisted is as invisible to readers as an explicitly hidden one.
-// Only `isUnlisted` is read off the prices, so callers holding an edit draft
-// rather than the API shape can pass what they have.
 export function getBookListingStatus(
-  book: Pick<BookListingItem, 'isHidden' | 'isPendingReview'> & { prices?: { isUnlisted?: boolean }[] },
+  book: Pick<BookListingItem, 'isHidden' | 'isPendingReview'> & { hasListedEdition: boolean },
 ): BookListingStatus {
   if (book.isPendingReview) { return 'pending_review' }
-  const prices = book.prices || []
-  if (book.isHidden || !prices.length || prices.every(p => p.isUnlisted)) { return 'unlisted' }
+  if (book.isHidden || !book.hasListedEdition) { return 'unlisted' }
   return 'listed'
+}
+
+export function hasListedEdition(prices: { isUnlisted?: boolean }[] | undefined): boolean {
+  return !!prices?.length && prices.some(p => !p.isUnlisted)
 }
 
 type TranslateFn = (key: string, params?: Record<string, unknown>) => string
@@ -40,6 +41,13 @@ export function createDefaultPriceFormItem(overrides: Partial<PriceFormItem> = {
     priceTWDInput: '',
     ...overrides,
   }
+}
+
+// This app writes zh and en alike, but an edition created elsewhere may carry
+// only en; falling back keeps a required name from reading blank.
+export function getListingPriceName(name: ClassListingPrice['name']): string {
+  if (typeof name === 'object') { return name.zh || name.en || '' }
+  return name || ''
 }
 
 export function getPriceItemUSDValue(p: PriceFormItem): number {
@@ -104,10 +112,8 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
     deliveryMethod: price.isAutoDeliver ? 'auto' : 'manual',
     autoMemo: price.autoMemo || '',
     stock: price.stock,
-    // This app writes zh and en alike, but an edition created elsewhere may
-    // carry only en; falling back keeps the required name from reading blank.
-    name: typeof price.name === 'object' ? price.name.zh || price.name.en || '' : price.name || '',
-    description: typeof price.description === 'object' ? price.description.zh || price.description.en || '' : price.description || '',
+    name: getListingPriceName(price.name),
+    description: getListingPriceName(price.description),
     isAllowCustomPrice: price.isAllowCustomPrice,
     isListed: !price.isUnlisted,
     oldIsAutoDeliver: price.isAutoDeliver,
@@ -129,20 +135,26 @@ export function validatePriceFormItems(
   reservedNames: string[] = [],
 ): FormError[] {
   const errors: FormError[] = []
+  // Seeded with the editions this form does not show, then grown as the form's
+  // own rows are checked, so renaming edition 2 onto edition 1 is caught too.
   const taken = new Set(reservedNames.map(name => name.trim()).filter(Boolean))
   rawPrices.forEach((p, index) => {
     const priceFieldName = `prices.${index}.price`
+    const trimmedName = p.name.trim()
     if (!p.name) {
       errors.push({
         name: `prices.${index}.name`,
         message: t('errors.product_name_required'),
       })
     }
-    else if (taken.has(p.name.trim())) {
+    else if (taken.has(trimmedName)) {
       errors.push({
         name: `prices.${index}.name`,
         message: t('errors.product_name_duplicate'),
       })
+    }
+    else {
+      taken.add(trimmedName)
     }
     if (p.isCustomPricing) {
       const isMissing = (

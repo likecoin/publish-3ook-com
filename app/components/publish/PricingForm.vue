@@ -34,38 +34,32 @@
               />
             </template>
 
-            <!-- 1–2. What this edition costs and is called. A book with one
-                 edition is a book with a price, so those two lead and the
-                 numbers they imply sit beside them rather than a tab away. -->
-            <div
-              v-if="isSingleEditionLayout"
-              class="grid gap-4 md:grid-cols-2 items-start"
-            >
-              <div class="space-y-4">
-                <PublishEditionPriceField
-                  v-model:price="prices[index]!"
-                  :index="index"
-                  show-ladder-hint
-                />
+            <!-- A book with one edition is a book with a price, so the price
+                 leads and the numbers it implies sit beside it. With more than
+                 one, the name leads, since that is what tells them apart —
+                 hence the ordering rather than two copies of the pair. -->
+            <div :class="isSingleEditionLayout ? 'grid gap-4 md:grid-cols-2 items-start' : 'contents'">
+              <!-- flex, not space-y: `order` is what puts the price first, and
+                   it only applies to flex or grid children. -->
+              <div :class="isSingleEditionLayout ? 'flex flex-col gap-4' : 'contents'">
                 <PublishEditionNameField
                   v-model:price="prices[index]!"
                   :index="index"
                   :placeholder="namePlaceholder"
+                  :class="isSingleEditionLayout ? 'order-2' : ''"
+                />
+                <PublishEditionPriceField
+                  v-model:price="prices[index]!"
+                  :index="index"
+                  :show-ladder-hint="isSingleEditionLayout"
+                  :class="isSingleEditionLayout ? 'order-1' : ''"
                 />
               </div>
-              <PublishEditionRevenueInline :price="p" />
+              <PublishEditionRevenueInline
+                v-if="isSingleEditionLayout"
+                :price="p"
+              />
             </div>
-            <template v-else>
-              <PublishEditionNameField
-                v-model:price="prices[index]!"
-                :index="index"
-                :placeholder="namePlaceholder"
-              />
-              <PublishEditionPriceField
-                v-model:price="prices[index]!"
-                :index="index"
-              />
-            </template>
 
             <!-- Collapsed by default so the rarely-used editor does not push
                  the price down the card. -->
@@ -96,7 +90,6 @@
                 </UTooltip>
               </UFormField>
 
-              <!-- 3. Copies / delivery -->
               <UFormField
                 :label="$t('nft_book_form.copies_label')"
               >
@@ -136,7 +129,6 @@
                 </div>
               </UFormField>
 
-              <!-- 4. Delivery extras -->
               <UFormField :label="$t('nft_book_form.enable_custom_message_page')">
                 <div class="space-y-3 w-full">
                   <UFormField
@@ -184,9 +176,9 @@
                 </div>
               </UFormField>
 
-              <!-- 5. Store visibility. Both options are named and both say what
-                   they do: hiding an edition does not stop it selling through a
-                   purchase link, which a bare off-switch never conveyed. -->
+              <!-- Both options are named and both say what they do: hiding an
+                   edition does not stop it selling through a purchase link,
+                   which a bare off-switch never conveyed. -->
               <UFormField :label="$t('nft_book_form.edition_visibility')">
                 <URadioGroup
                   :model-value="p.isListed ? 'sell' : 'hide'"
