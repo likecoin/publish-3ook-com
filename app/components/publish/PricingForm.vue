@@ -236,19 +236,27 @@
               </div>
             </UFormField>
 
-            <!-- 5. Store visibility -->
-            <UFormField>
-              <div class="flex items-center gap-2">
-                <USwitch v-model="p.isListed" />
-                <span
-                  class="text-sm"
-                  v-text="$t('nft_book_form.list_for_sale')"
-                />
-              </div>
-              <p
-                v-if="!p.isListed"
-                class="text-muted text-[12px] mt-1"
-                v-text="$t('nft_book_form.list_for_sale_off_hint')"
+            <!-- 5. Store visibility. Both options are named and both say what
+                 they do: hiding an edition does not stop it selling through a
+                 purchase link, which a bare off-switch never conveyed. -->
+            <UFormField :label="$t('nft_book_form.edition_visibility')">
+              <URadioGroup
+                :model-value="p.isListed ? 'sell' : 'hide'"
+                :items="[
+                  {
+                    label: $t('nft_book_form.edition_visibility_sell'),
+                    description: $t('nft_book_form.edition_visibility_sell_hint'),
+                    value: 'sell',
+                  },
+                  {
+                    label: $t('nft_book_form.edition_visibility_hide'),
+                    description: $t('nft_book_form.edition_visibility_hide_hint'),
+                    value: 'hide',
+                  },
+                ]"
+                orientation="vertical"
+                :ui="{ fieldset: 'gap-3' }"
+                @update:model-value="(value) => (p.isListed = value === 'sell')"
               />
             </UFormField>
           </UCard>

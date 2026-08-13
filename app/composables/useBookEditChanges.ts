@@ -86,7 +86,7 @@ const EDITION_FIELD_LABEL_KEYS: Record<string, string> = {
   stock: 'nft_book_form.stock',
   autoMemo: 'nft_book_form.auto_delivery_memo',
   isAllowCustomPrice: 'nft_book_form.accept_tipping',
-  isListed: 'nft_book_form.list_for_sale',
+  isListed: 'nft_book_form.edition_visibility',
 }
 
 export function useBookEditChanges(options: {
