@@ -56,10 +56,21 @@
         />
       </template>
       <template #name-cell="{ row }">
-        <h4
-          class="font-medium"
-          v-text="typeof row.original.name === 'object' ? row.original.name.zh : row.original.name"
-        />
+        <div class="flex items-center gap-2">
+          <h4
+            class="font-medium"
+            v-text="typeof row.original.name === 'object' ? row.original.name.zh : row.original.name"
+          />
+          <!-- Hidden is not off: the edition still sells through a purchase
+               link, so it reads as information rather than a warning. -->
+          <UBadge
+            v-if="row.original.isUnlisted && !row.original.isStockBalancePlaceholderRow"
+            color="info"
+            variant="subtle"
+            size="sm"
+            :label="$t('nft_book_form.edition_visibility_hide')"
+          />
+        </div>
       </template>
       <template #delivery-cell="{ row }">
         <h4
