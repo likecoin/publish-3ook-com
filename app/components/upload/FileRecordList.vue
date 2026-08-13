@@ -42,13 +42,13 @@
             :title="$t('upload_form.file_already_uploaded')"
           />
           <UButton
-            v-if="record.hasValidationIssues"
+            v-if="advisoryOf(record)"
             variant="ghost"
             color="warning"
             size="xs"
             icon="i-heroicons-exclamation-triangle"
             :aria-expanded="isExpanded(record)"
-            :label="$t('upload_form.epub_has_issues')"
+            :label="advisoryLabel(record)"
             :trailing-icon="isExpanded(record) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
             @click="toggleIssues(record)"
           />
@@ -67,8 +67,14 @@
         class="pb-3 space-y-2 text-sm"
       >
         <p
+          v-if="advisoryOf(record) === 'epub-validation'"
           class="text-xs text-muted"
           v-text="$t('upload_form.epub_validation_notice')"
+        />
+        <p
+          v-if="advisoryOf(record) === 'pdf-no-text-layer'"
+          class="text-xs text-muted"
+          v-text="$t('upload_form.pdf_no_text_layer_notice')"
         />
         <div
           v-if="record.validationErrors"
@@ -97,6 +103,8 @@
 import type { FileRecord } from '~/types'
 import { needsFileReselect, isRecordUploaded, isGeneratedCoverRecord } from '~/utils/arweave'
 
+const { t: $t } = useI18n()
+
 defineProps<{
   fileRecords: FileRecord[]
 }>()
@@ -112,8 +120,31 @@ const emit = defineEmits<{
 // record that has no blob, so two drops of one filename coexist as two rows.
 const collapsed = ref(new Set<FileRecord>())
 
+// Both advisories are non-blocking and share one row: a record can only ever
+// carry one of them, since validation issues are an EPUB verdict and the text
+// layer a PDF one. Named rather than tested twice in the template — the label
+// and the body would otherwise each re-derive which of the two this is, and a
+// third advisory would silently inherit the PDF copy.
+type FileAdvisory = 'epub-validation' | 'pdf-no-text-layer' | undefined
+
+const advisoryOf = (record: FileRecord): FileAdvisory => {
+  if (record.hasValidationIssues) { return 'epub-validation' }
+  if (record.hasSearchableText === false) { return 'pdf-no-text-layer' }
+  return undefined
+}
+
+const ADVISORY_LABELS: Record<NonNullable<FileAdvisory>, string> = {
+  'epub-validation': 'upload_form.epub_has_issues',
+  'pdf-no-text-layer': 'upload_form.pdf_no_text_layer',
+}
+
+const advisoryLabel = (record: FileRecord) => {
+  const advisory = advisoryOf(record)
+  return advisory ? $t(ADVISORY_LABELS[advisory]) : ''
+}
+
 const isExpanded = (record: FileRecord) =>
-  !!record.hasValidationIssues && !collapsed.value.has(record)
+  !!advisoryOf(record) && !collapsed.value.has(record)
 
 function toggleIssues(record: FileRecord) {
   if (!collapsed.value.delete(record)) { collapsed.value.add(record) }
