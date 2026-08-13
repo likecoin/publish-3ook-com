@@ -951,6 +951,8 @@
   "status_page.tab_pricing": "Pricing & Sales",
   "status_page.tab_sales_orders": "Sales & Orders",
   "status_page.tab_summary": "Status & Summary",
+  "status_page.technical_class_id": "Book ID",
+  "status_page.technical_details": "Technical details",
   "status_page.todo_duplicate_description": "The short blurb is identical to the description, so store listings repeat it in full",
   "status_page.todo_fix": "Fix",
   "status_page.todo_mixed_editions": "Editions disagree: {listed} on sale, {hidden} not",

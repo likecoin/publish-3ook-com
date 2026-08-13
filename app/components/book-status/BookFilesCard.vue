@@ -102,13 +102,56 @@
         v-text="$t('status_page.files_readonly_note')"
       />
     </UCard>
+
+    <!-- Collapsed: identifiers are what an author needs when something has
+         gone wrong and support asks for them, never while publishing. -->
+    <UCard v-if="!isLoading">
+      <UCollapsible v-model:open="isTechnicalOpen">
+        <UButton
+          variant="link"
+          color="neutral"
+          class="px-0"
+          :label="$t('status_page.technical_details')"
+          :trailing-icon="isTechnicalOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+        />
+        <template #content>
+          <dl class="grid grid-cols-[minmax(96px,auto)_1fr] gap-x-4 gap-y-2 pt-4 text-sm">
+            <template
+              v-for="row in technicalRows"
+              :key="row.label"
+            >
+              <dt
+                class="text-muted"
+                v-text="row.label"
+              />
+              <dd class="flex items-start gap-2 min-w-0">
+                <span
+                  class="font-mono text-xs break-all whitespace-pre-line text-highlighted"
+                  v-text="row.value || '—'"
+                />
+                <UButton
+                  v-if="row.value"
+                  icon="i-heroicons-document-duplicate"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  class="shrink-0"
+                  :aria-label="$t('common.copy')"
+                  @click="copyToClipboard(row.value)"
+                />
+              </dd>
+            </template>
+          </dl>
+        </template>
+      </UCollapsible>
+    </UCard>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
 import type { FileRecord } from '~/types'
-import { formatBytes, parseImageURLFromMetadata } from '~/utils'
+import { copyToClipboard, formatBytes, parseImageURLFromMetadata } from '~/utils'
 import { OPEN_IMAGE_FILE_TYPES, COVER_ACCEPT_ATTRIBUTE } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -125,6 +168,8 @@ const emit = defineEmits<{ coverReplaced: [coverUrl: string] }>()
 const isLoading = ref(false)
 const coverUrl = ref('')
 const fileRows = ref<{ url: string, type: string, fileName: string }[]>([])
+const contentFingerprints = ref<string[]>([])
+const isTechnicalOpen = ref(false)
 
 const coverInput = ref<HTMLInputElement | null>(null)
 const isDraggingCover = ref(false)
@@ -151,6 +196,16 @@ const coverMeta = computed(() => {
   return coverUrl.value || '—'
 })
 
+const technicalRows = computed(() => [
+  { label: $t('status_page.technical_class_id'), value: classId },
+  { label: $t('form.cover_image'), value: coverUrl.value },
+  {
+    label: $t('publish_review.files_title'),
+    value: fileRows.value.map(file => [file.fileName, file.url].filter(Boolean).join(' — ')).join('\n'),
+  },
+  { label: $t('iscn_form.content_fingerprint'), value: contentFingerprints.value.join('\n') },
+])
+
 watch(() => classId, async () => {
   if (!classId) { return }
   try {
@@ -159,6 +214,9 @@ watch(() => classId, async () => {
     if (!loaded) { return }
     coverUrl.value = loaded.formData.coverUrl || ''
     fileRows.value = (loaded.formData.downloadableUrls || []).filter(file => file.url)
+    contentFingerprints.value = loaded.formData.contentFingerprints
+      .map(fingerprint => fingerprint.url)
+      .filter(Boolean)
   }
   catch (error) {
     // eslint-disable-next-line no-console
