@@ -71,32 +71,29 @@
 </template>
 
 <script setup lang="ts">
-import type { ClassListingData } from '~/types'
 import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
-const apiFetch = useLikeCoApiFetch()
 const bookstoreApiStore = useBookstoreApiStore()
 const { addEditionPrice, uploadSignImages } = bookstoreApiStore
-const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { showErrorToast } = useToastComposable()
 
-const { classId, editionIndex, existingNames = [], seedPrice = '' } = defineProps<{
+const { classId, editionIndex, existingNames = [], seedPrice = '', hasExistingSignatureImage = false } = defineProps<{
   classId: string
   editionIndex: string | number
   // Names the book's other editions already use, and the price to open with,
   // so a second edition starts from the first rather than from the defaults.
   existingNames?: string[]
   seedPrice?: string
+  hasExistingSignatureImage?: boolean
 }>()
 
 const emit = defineEmits(['submit', 'cancel'])
 
 const error = ref('')
 const isLoading = ref(false)
-const hasExistingSignatureImage = ref(false)
 const signatureImage = ref<File | null>(null)
 const pricingFormRef = ref()
 
@@ -121,32 +118,6 @@ const settings = ref<PricingFormSettings>({
   connectedWallets: null,
 })
 
-// The new edition starts from the blank defaults; this only guards ownership
-// and learns whether a signature image already exists for the class.
-onMounted(async () => {
-  try {
-    isLoading.value = true
-    const classResData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId}`)
-    if (!classResData) {
-      throw new Error($t('errors.nft_class_not_found'))
-    }
-    if (classResData.ownerWallet !== sessionWallet.value) {
-      throw new Error('NOT_OWNER_OF_NFT_CLASS')
-    }
-    if (classResData.enableSignatureImage) {
-      hasExistingSignatureImage.value = true
-    }
-  }
-  catch (e) {
-    error.value = (e as Error).toString()
-    // eslint-disable-next-line no-console
-    console.error(e)
-  }
-  finally {
-    isLoading.value = false
-  }
-})
-
 async function onSubmit() {
   try {
     // UForm surfaces validation errors inline on the offending fields.
@@ -163,7 +134,6 @@ async function onSubmit() {
       const form = new FormData()
       form.append('signImage', signatureImage.value)
       await uploadSignImages(form, classId)
-      hasExistingSignatureImage.value = true
     }
     emit('submit')
   }

@@ -99,7 +99,7 @@ const isMixed = computed(() => listedCount.value > 0 && listedCount.value < pric
 const listingStatus = computed(() => getBookListingStatus({
   isPendingReview,
   isHidden: isHiddenByPlatform,
-  prices: prices.value.map(p => ({ isUnlisted: !p.isListed })),
+  hasListedEdition: listedCount.value > 0,
 }))
 
 // Moderation and platform hiding are not the author's to undo here.
@@ -129,7 +129,9 @@ const saleState = computed({
   get: () => (listedCount.value > 0 ? 'listed' : 'unlisted'),
   set: (value: string) => {
     const isListed = value === 'listed'
-    prices.value = prices.value.map(price => ({ ...price, isListed }))
+    // Mutated in place, as every other owner of this array does: the edition
+    // field components write back through shared object identity.
+    prices.value.forEach((price) => { price.isListed = isListed })
   },
 })
 </script>

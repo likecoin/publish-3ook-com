@@ -33,7 +33,5 @@ const { placeholder = '' } = defineProps<{
   placeholder?: string
 }>()
 
-// The edition object is shared with the host's `prices` array and edited in
-// place, as the form has always done; this only owns the markup.
 const price = defineModel<PriceFormItem>('price', { required: true })
 </script>

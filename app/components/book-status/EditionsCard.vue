@@ -12,6 +12,7 @@
             :disabled="!locked"
           >
             <UButton
+              v-if="canAddEdition"
               icon="i-heroicons-plus"
               class="mb-[12px]"
               variant="outline"
@@ -58,7 +59,7 @@
         <div class="flex items-center gap-2">
           <h4
             class="font-medium"
-            v-text="typeof row.original.name === 'object' ? row.original.name.zh : row.original.name"
+            v-text="getListingPriceName(row.original.name)"
           />
           <!-- Hidden is not off: the edition still sells through a purchase
                link, so it reads as information rather than a warning. -->
@@ -127,6 +128,7 @@
           :edition-index="prices.length"
           :existing-names="existingEditionNames"
           :seed-price="seedPrice"
+          :has-existing-signature-image="hasExistingSignatureImage"
           @submit="handleEditionCreated"
           @cancel="showAddEditionModal = false"
         />
@@ -148,6 +150,7 @@
 
 <script setup lang="ts">
 import type { ClassListingPrice, EditionTableRow } from '~/types'
+import { getListingPriceName } from '~/utils/listing'
 import { MAX_EDITION_COUNT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -155,12 +158,16 @@ const { t: $t } = useI18n()
 const apiFetch = useLikeCoApiFetch()
 const { showSuccessToast } = useToastComposable()
 
-const { classId, stockBalance = 0, locked = false } = defineProps<{
+const { classId, stockBalance = 0, locked = false, canAddEdition = false, hasExistingSignatureImage = false } = defineProps<{
   classId: string
   stockBalance?: number
   // Reorder/add/restock shift the indexes the pending-changes ledger is keyed
   // on, so they wait while edits are pending.
   locked?: boolean
+  // Only the owner can sign for a new edition; the dialog no longer refetches
+  // the listing to find that out for itself.
+  canAddEdition?: boolean
+  hasExistingSignatureImage?: boolean
 }>()
 
 const prices = defineModel<ClassListingPrice[]>('prices', { required: true })
@@ -175,9 +182,7 @@ const isUpdatingPricesOrder = ref(false)
 const showRestockModal = ref(false)
 const showAddEditionModal = ref(false)
 
-const existingEditionNames = computed(() => prices.value.map(price => (
-  typeof price.name === 'object' ? price.name.zh || price.name.en || '' : price.name || ''
-)))
+const existingEditionNames = computed(() => prices.value.map(price => getListingPriceName(price.name)))
 
 // The new edition opens at the book's current price rather than the global
 // default, since a second edition is nearly always a variation on the first.

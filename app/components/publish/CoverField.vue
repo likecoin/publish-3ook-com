@@ -59,10 +59,11 @@
 
 <script setup lang="ts">
 import type { EpubMetadata, FileRecord } from '~/types'
-import { OPEN_IMAGE_FILE_TYPES, COVER_ACCEPT_ATTRIBUTE } from '~/constant'
+import { COVER_ACCEPT_ATTRIBUTE } from '~/constant'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()
+const { takeImageFile } = useImageFilePick()
 
 const { src = '' } = defineProps<{
   src?: string
@@ -89,17 +90,8 @@ const { canRevertCover, selectManualCoverFile, revertToGeneratedCover } = useMan
 const openFilePicker = () => fileInput.value?.click()
 
 async function handlePick(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  // Reset first: picking the same file twice must still fire a change event.
-  input.value = ''
+  const file = takeImageFile(event)
   if (!file) { return }
-  if (!OPEN_IMAGE_FILE_TYPES.includes(file.type)) {
-    showErrorToast($t('upload_form.unsupported_file_type_title'), {
-      description: $t('upload_form.unsupported_file_type', { fileName: file.name }),
-    })
-    return
-  }
   isReading.value = true
   try {
     await selectManualCoverFile(file)

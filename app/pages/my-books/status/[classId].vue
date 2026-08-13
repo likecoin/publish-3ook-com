@@ -78,6 +78,8 @@
           :class-id="classId"
           :stock-balance="stockBalance"
           :locked="changeCount > 0"
+          :can-add-edition="userIsOwner"
+          :has-existing-signature-image="hasExistingSignatureImage"
           @restocked="calculateStock"
           @added="refreshListingInfo"
           @error="(message: string) => (error = message)"

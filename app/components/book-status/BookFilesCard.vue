@@ -152,12 +152,13 @@
 import { useObjectUrl } from '@vueuse/core'
 import type { FileRecord } from '~/types'
 import { copyToClipboard, formatBytes, parseImageURLFromMetadata } from '~/utils'
-import { OPEN_IMAGE_FILE_TYPES, COVER_ACCEPT_ATTRIBUTE } from '~/constant'
+import { COVER_ACCEPT_ATTRIBUTE } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 const { uploadFileRecordsToArweave } = useArweaveUpload()
 const { showErrorToast } = useToastComposable()
+const { takeImageFile, takeDroppedImageFile } = useImageFilePick()
 
 const { classId } = defineProps<{
   classId: string
@@ -229,15 +230,12 @@ watch(() => classId, async () => {
 
 function handleCoverDrop(event: DragEvent) {
   isDraggingCover.value = false
-  const file = event.dataTransfer?.files?.[0]
+  const file = takeDroppedImageFile(event)
   if (file) { replaceCover(file) }
 }
 
 function handleCoverPick(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  // Reset first: picking the same file twice must still fire a change event.
-  input.value = ''
+  const file = takeImageFile(event)
   if (file) { replaceCover(file) }
 }
 
@@ -245,12 +243,6 @@ function handleCoverPick(event: Event) {
 // and there is nowhere to put the bytes otherwise. Writing coverUrl is what
 // joins the pending-changes bar, so the tx still waits for 儲存變更.
 async function replaceCover(file: File) {
-  if (!OPEN_IMAGE_FILE_TYPES.includes(file.type)) {
-    showErrorToast($t('upload_form.unsupported_file_type_title'), {
-      description: $t('upload_form.unsupported_file_type', { fileName: file.name }),
-    })
-    return
-  }
   isUploadingCover.value = true
   try {
     const { width, height } = await readImageDimensions(file)

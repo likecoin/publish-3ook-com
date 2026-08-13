@@ -163,7 +163,7 @@ import { useObjectUrl } from '@vueuse/core'
 import type { BookListingStatus } from '~/types'
 import type { PublishSession } from '~/types/publish'
 import { PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
-import { formatPriceUSDLabel, getBookListingStatus, getLowestPriceUSD } from '~/utils/listing'
+import { formatPriceUSDLabel, getBookListingStatus, hasListedEdition, getLowestPriceUSD } from '~/utils/listing'
 import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 import {
   PUBLISH_RESUME_QUERY,
@@ -273,7 +273,7 @@ const bookRows = computed<BookTableRow[]>(() => (isShowingModeratedList.value ? 
     // full size for a 40px-wide box.
     coverSrc: b.thumbnailUrl ? getImageResizeURL(parseImageURLFromMetadata(b.thumbnailUrl), { width: 100 }) : undefined,
     priceInUSD: b.minPrice ?? prices[0]?.price,
-    status: getBookListingStatus(b),
+    status: getBookListingStatus({ ...b, hasListedEdition: hasListedEdition(prices) }),
     editionCount: prices.length,
     unlistedEditionCount: prices.filter(p => p.isUnlisted).length,
     pendingAction: b.pendingNFTCount,
