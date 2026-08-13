@@ -91,6 +91,7 @@
           :settings="listingSettings"
           :is-free-book="isFreeBook"
         />
+        <BookStatusFileProtectionCard :class-id="classId" />
       </div>
 
       <div

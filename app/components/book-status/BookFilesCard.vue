@@ -60,31 +60,10 @@
         />
       </div>
     </UCard>
-
-    <!-- Protection tier: read-only — it follows the files that were uploaded,
-         so without a replacement upload there is nothing to choose here. -->
-    <UCard>
-      <template #header>
-        <h3
-          class="font-bold font-mono"
-          v-text="$t('upload_form.drm_section_title')"
-        />
-      </template>
-      <PublishFileProtectionField
-        v-model="isEncrypted"
-        disabled
-      />
-      <p
-        class="mt-3 text-xs text-muted"
-        v-text="$t('status_page.files_readonly_note')"
-      />
-    </UCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { shouldHideDownload } from '~/utils/iscn'
-
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
@@ -95,7 +74,6 @@ const { classId } = defineProps<{
 const isLoading = ref(false)
 const coverUrl = ref('')
 const fileRows = ref<{ url: string, type: string, fileName: string }[]>([])
-const isEncrypted = ref(true)
 
 watch(() => classId, async () => {
   if (!classId) { return }
@@ -105,9 +83,6 @@ watch(() => classId, async () => {
     if (!loaded) { return }
     coverUrl.value = loaded.formData.coverUrl || ''
     fileRows.value = (loaded.formData.downloadableUrls || []).filter(file => file.url)
-    isEncrypted.value = shouldHideDownload({
-      contentFingerprints: loaded.formData.contentFingerprints.map(f => f.url).filter(Boolean),
-    })
   }
   catch (error) {
     // eslint-disable-next-line no-console
