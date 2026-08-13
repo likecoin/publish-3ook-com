@@ -38,7 +38,8 @@
       v-if="editedPrices.length"
       v-model:prices="editedPrices"
       :store-url="storeUrl"
-      :buyer-count="buyerCount"
+      :can-edit="canEdit"
+      :sold-count="soldCount"
       :is-pending-review="classListingInfo.isPendingReview ?? false"
       :is-hidden-by-platform="classListingInfo.isHidden ?? false"
     />
@@ -81,20 +82,22 @@ import type { BookStatusTab } from '~/types/book'
 import type { ISCNFormData } from '~/types/iscn'
 import type { BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import type { PriceFormItem } from '~/types/publish'
-import { mapListingPriceToFormItem } from '~/utils/listing'
+import { mapListingPriceToFormItem, getSoldCount } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId, classListingInfo, storeUrl, buyerCount = 0, pendingChanges = [] } = defineProps<{
+const { classId, classListingInfo, storeUrl, canEdit = false, pendingChanges = [] } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
   storeUrl: string
-  buyerCount?: number
+  canEdit?: boolean
   pendingChanges?: BookEditChangeEntry[]
 }>()
+
+const soldCount = computed(() => getSoldCount(classListingInfo.prices))
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 

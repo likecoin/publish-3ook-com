@@ -13,7 +13,7 @@
     <div class="space-y-4">
       <URadioGroup
         v-model="saleState"
-        :disabled="isLocked"
+        :disabled="!canEdit || isLocked"
         :items="stateItems"
         orientation="vertical"
         :ui="{ fieldset: 'gap-3' }"
@@ -21,14 +21,14 @@
 
       <!-- The one thing unlisting does not do, said before the author asks. -->
       <p
-        v-if="buyerCount > 0"
+        v-if="soldCount > 0"
         class="flex items-start gap-1.5 text-sm text-muted"
       >
         <UIcon
           name="i-heroicons-book-open"
           class="mt-0.5 shrink-0"
         />
-        <span v-text="$t('status_page.sale_state_buyers_keep_access', { count: buyerCount })" />
+        <span v-text="$t('status_page.sale_state_sold_copies_keep_access', { count: soldCount })" />
       </p>
 
       <UAlert
@@ -40,9 +40,10 @@
       />
 
       <!-- Editions can disagree, and the control writes all of them, so say so
-           rather than silently flattening a deliberate mix. -->
+           rather than silently flattening a deliberate mix. Nobody who cannot
+           switch needs warning about what switching does. -->
       <UAlert
-        v-else-if="isMixed"
+        v-else-if="isMixed && canEdit"
         color="warning"
         variant="subtle"
         icon="i-heroicons-exclamation-triangle"
@@ -82,9 +83,12 @@ import { getBookListingStatus } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 
-const { buyerCount = 0, isPendingReview = false, isHiddenByPlatform = false } = defineProps<{
+const { canEdit = false, soldCount = 0, isPendingReview = false, isHiddenByPlatform = false } = defineProps<{
   storeUrl: string
-  buyerCount?: number
+  // Moderators see this tab, but the save bar is the owner's; letting them flip
+  // the radio would count changes nothing on the page can save or discard.
+  canEdit?: boolean
+  soldCount?: number
   isPendingReview?: boolean
   isHiddenByPlatform?: boolean
 }>()
@@ -102,7 +106,9 @@ const listingStatus = computed(() => getBookListingStatus({
   hasListedEdition: listedCount.value > 0,
 }))
 
-// Moderation and platform hiding are not the author's to undo here.
+// Moderation and platform hiding are not the author's to undo here. A non-owner
+// is disabled separately: this is the locked-and-explained kind, and there is no
+// explanation to give someone who is simply reading.
 const isLocked = computed(() => isPendingReview || isHiddenByPlatform)
 const lockReason = computed(() => {
   if (isPendingReview) { return $t('status_page.sale_state_pending_review_hint') }

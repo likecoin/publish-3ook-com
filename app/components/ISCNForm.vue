@@ -242,7 +242,7 @@ import { useEventListener } from '@vueuse/core'
 import type { FormError } from '#ui/types'
 import type { FileRecord, ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
-import { isValidImageUrl, isContentFingerprintEncrypted } from '~/utils/iscn'
+import { isContentFingerprintEncrypted } from '~/utils/iscn'
 
 import {
   licenseOptions,
@@ -268,7 +268,7 @@ const fileRecords = ref<FileRecord[]>([])
 const uploadStatus = ref('')
 const { validateWithFeedback } = useFormValidateFeedback()
 
-// showFileFields=false hides coverUrl/fingerprints/downloadableUrls for the
+// showFileFields=false hides the fingerprint/downloadable-URL rows for the
 // collect-only wizard, where those URLs only exist after publish uploads.
 // guardUnsavedChanges=false disables the leave-confirmation guards for hosts
 // that persist the form some other way (the wizard's localStorage draft).
@@ -383,19 +383,10 @@ function onFormValidate(): FormError[] {
     errors.push({ name: 'descriptionFull', message: $t('validation.text_cannot_exceed', { max: MAX_DESCRIPTION_FULL_LENGTH }) })
   }
   // File-derived URLs only exist where the file fields are shown; the wizard
-  // injects them at publish time instead.
-  if (props.showFileFields) {
-    if (!data.contentFingerprints?.some(f => !!f.url)) {
-      // Bind to the first row's field (always rendered) so the error shows
-      // inline and useFormValidateFeedback can scroll to it.
-      errors.push({ name: 'contentFingerprints.0.url', message: $t('iscn_form.content_fingerprint_required') })
-    }
-    if (!data.coverUrl) {
-      errors.push({ name: 'coverUrl', message: $t('iscn_form.cover_image_required') })
-    }
-    else if (!isValidImageUrl(data.coverUrl)) {
-      errors.push({ name: 'coverUrl', message: $t('iscn_form.cover_image_invalid') })
-    }
+  // injects them at publish time instead. Bind to the first row's field
+  // (always rendered) so the error shows inline and can be scrolled to.
+  if (props.showFileFields && !data.contentFingerprints?.some(f => !!f.url)) {
+    errors.push({ name: 'contentFingerprints.0.url', message: $t('iscn_form.content_fingerprint_required') })
   }
   return errors
 }

@@ -62,6 +62,12 @@ export function getLowestPriceUSD(prices: PriceFormItem[]): number | null {
   return values.length ? Math.min(...values) : null
 }
 
+// Copies sold across the editions — not a headcount of readers: one person can
+// buy several, and buying two editions counts twice.
+export function getSoldCount(prices: ClassListingPrice[] | undefined): number {
+  return (prices || []).reduce((total, price) => total + (price.sold || 0), 0)
+}
+
 // Zero is a real price the storefront labels, not a number to render.
 export function formatPriceUSDLabel(usd: number, t: TranslateFn): string {
   return usd === 0 ? t('publish_review.free') : `US$${usd}`
@@ -141,7 +147,7 @@ export function validatePriceFormItems(
   rawPrices.forEach((p, index) => {
     const priceFieldName = `prices.${index}.price`
     const trimmedName = p.name.trim()
-    if (!p.name) {
+    if (!trimmedName) {
       errors.push({
         name: `prices.${index}.name`,
         message: t('errors.product_name_required'),

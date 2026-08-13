@@ -85,6 +85,21 @@ export function shouldHideDownload(input: {
     || isContentFingerprintEncrypted(input.contentFingerprints ?? [])
 }
 
+export type CoverUrlErrorKey = 'iscn_form.cover_image_required' | 'iscn_form.cover_image_invalid'
+
+// One cover rule for both callers: the publish pipeline's English list below,
+// and the translated message 書檔 shows against its dropzone.
+export function getCoverUrlErrorKey(coverUrl: string): CoverUrlErrorKey | '' {
+  if (!coverUrl) { return 'iscn_form.cover_image_required' }
+  if (!isValidImageUrl(coverUrl)) { return 'iscn_form.cover_image_invalid' }
+  return ''
+}
+
+const COVER_URL_ERROR_MESSAGES: Record<CoverUrlErrorKey, string> = {
+  'iscn_form.cover_image_required': 'Please provide a cover image URL',
+  'iscn_form.cover_image_invalid': 'Cover image URL must be a valid URL with http://, https://, ar://, or ipfs:// protocol',
+}
+
 export function isValidImageUrl(urlString: string): boolean {
   if (!urlString) { return false }
 
@@ -176,13 +191,11 @@ export function validateISCNForm(
     errors.push('Please provide at least one content URL')
   }
 
-  if (!data.coverUrl) {
-    if (requireFileUrls) {
-      errors.push('Please provide a cover image URL')
-    }
-  }
-  else if (!isValidImageUrl(data.coverUrl)) {
-    errors.push('Cover image URL must be a valid URL with http://, https://, ar://, or ipfs:// protocol')
+  // A missing cover is only a failure once uploads exist; a malformed one
+  // always is.
+  if (requireFileUrls || data.coverUrl) {
+    const coverErrorKey = getCoverUrlErrorKey(data.coverUrl || '')
+    if (coverErrorKey) { errors.push(COVER_URL_ERROR_MESSAGES[coverErrorKey]) }
   }
 
   return errors
