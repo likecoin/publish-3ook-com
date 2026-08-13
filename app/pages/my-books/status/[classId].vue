@@ -96,7 +96,7 @@
           :settings="listingSettings"
           :is-free-book="isFreeBook"
         />
-        <BookStatusFileProtectionCard :class-id="classId" />
+        <BookStatusFileProtectionCard :is-encrypted="listingSettings.hideDownload.value" />
       </div>
 
       <div
