@@ -304,8 +304,10 @@ const onFileUpload = async (event: Event) => {
             else if (fileRecord.fileType === 'application/pdf') {
               uploadStatus.value = $t('upload_form.reading_pdf')
               // Detaches fileBytes; nothing below reads it again.
-              const { hasSearchableText } = await processPdf({ buffer: fileBytes, file })
+              const { hasSearchableText, hasLegibleText }
+                = await processPdf({ buffer: fileBytes, file })
               fileRecord.hasSearchableText = hasSearchableText
+              fileRecord.hasLegibleText = hasLegibleText
               uploadStatus.value = $t('upload_form.loading')
             }
             else if (fileRecord.fileType?.startsWith('image/')) {

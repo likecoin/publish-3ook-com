@@ -5,9 +5,12 @@ import assert from 'node:assert/strict'
 import {
   PDF_TEXT_MIN_CHARS_PER_PAGE,
   PDF_TEXT_SAMPLE_PAGES,
+  PDF_TEXT_MAX_UNMAPPED_RATIO,
   samplePdfPageNumbers,
   hasSearchableText,
   countPagesWithText,
+  legibleCharCount,
+  stripUnmappedChars,
 } from '../app/utils/pdf-text.ts'
 
 const sample = (pageCount, size = PDF_TEXT_SAMPLE_PAGES) =>
@@ -117,4 +120,75 @@ test('holds the threshold at the character it is defined on', () => {
 test('ignores counts that are not numbers', () => {
   assert.equal(countPagesWithText([PROSE, Number.NaN, undefined, PROSE]), 2)
   assert.equal(countPagesWithText([]), 0)
+})
+
+// Invented rather than lifted out of a real file: these are shaped like what an
+// extractor returns, which is all the rules read. A font embedded without a
+// ToUnicode CMap decodes to its glyph indices, and those land in the control
+// range and the Latin-1 supplement. Escaped, so the fixture can be read.
+const GLYPH_INDICES = '\u001F\u001E\u001D\u001C\u001B\u001A\u0019\u0018'
+const CJK_PAGE = '這是一頁排版正常的內文，讀者可以搜尋、選取與朗讀。'
+const LATIN_PAGE = 'A page of ordinary prose a reader can search and select.'
+
+test('counts an ordinary page in either script as wholly legible', () => {
+  assert.equal(legibleCharCount(CJK_PAGE), CJK_PAGE.length)
+  assert.equal(legibleCharCount(LATIN_PAGE), LATIN_PAGE.length)
+  // The Latin-1 supplement is where half of a garbled CJK page lands, but it is
+  // also how a European book spells its own words: it is not evidence by itself.
+  const european = 'Cañón, café, größer — ¡Hola!'
+  assert.equal(legibleCharCount(european), european.length)
+})
+
+test('counts a page of glyph indices as no text at all', () => {
+  assert.equal(legibleCharCount(GLYPH_INDICES), 0)
+  assert.equal(legibleCharCount(`1 ${GLYPH_INDICES} ¡¢£¤¥¦§¨©`), 0)
+  // The private use areas, including the two astral ones, and the replacement
+  // character a stricter extractor substitutes for the same missing mapping.
+  assert.equal(legibleCharCount('\uE000\uF8FF\u{F0000}\u{100000}\uFFFD'), 0)
+})
+
+test('reads whitespace as layout rather than as a failed mapping', () => {
+  const spaced = 'a\tb\nc\rd e'
+  assert.equal(legibleCharCount(spaced), spaced.length)
+  // getTextContent joins positioned runs with spaces, so a page of them is
+  // spaces around nothing, not a page of text.
+  assert.equal(legibleCharCount('   \n\t '), 0)
+  assert.equal(legibleCharCount(''), 0)
+})
+
+// The margin that keeps a mixed page: a running header set in the one broken
+// font should not cost the reader the prose underneath it.
+test('keeps a page whose prose outweighs a garbled header', () => {
+  const page = `${GLYPH_INDICES} ${CJK_PAGE.repeat(8)}`
+  assert.equal(legibleCharCount(page), page.length)
+})
+
+test('holds the threshold at the ratio it is defined on', () => {
+  const VISIBLE = 20
+  const page = unmapped => 'x'.repeat(VISIBLE - unmapped) + '\u0001'.repeat(unmapped)
+  const allowed = Math.floor(VISIBLE * PDF_TEXT_MAX_UNMAPPED_RATIO)
+  assert.equal(legibleCharCount(page(allowed)), VISIBLE)
+  assert.equal(legibleCharCount(page(allowed + 1)), 0)
+})
+
+// How the composable takes the second verdict: a garbled page contributes zero
+// legible characters, so the one-third rule that already answers the scan
+// answers this too, unchanged.
+test('judges a garbled book by the same third', () => {
+  const garbled = legibleCharCount(GLYPH_INDICES)
+  const prose = legibleCharCount(CJK_PAGE.repeat(4))
+
+  assert.equal(hasSearchableText(Array(8).fill(prose)), true)
+  assert.equal(hasSearchableText(Array(8).fill(garbled)), false)
+  // A book legible only in one short stretch is still a book the reader cannot
+  // search, so the stretch must not carry the verdict on its own.
+  assert.equal(hasSearchableText([prose, garbled, garbled, garbled, garbled]), false)
+})
+
+test('strips what failed to decode without touching the text around it', () => {
+  assert.equal(stripUnmappedChars(CJK_PAGE), CJK_PAGE)
+  assert.equal(stripUnmappedChars(`${GLYPH_INDICES} ${LATIN_PAGE}`), LATIN_PAGE)
+  // A removed run leaves the spaces that surrounded it adjacent.
+  assert.equal(stripUnmappedChars(`a ${GLYPH_INDICES} b`), 'a b')
+  assert.equal(stripUnmappedChars(GLYPH_INDICES), '')
 })

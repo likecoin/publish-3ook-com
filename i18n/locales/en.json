@@ -1072,6 +1072,8 @@
   "upload_form.missing_cover_for_pdf": "PDF cover extraction failed. Please upload a cover image (JPG/PNG).",
   "upload_form.missing_ebook_file": "Please upload an EPUB or PDF file.",
   "upload_form.only_one_cover_image": "Only one cover image is allowed.",
+  "upload_form.pdf_garbled_text": "This PDF's text cannot be read",
+  "upload_form.pdf_garbled_text_notice": "The file does have text, but its fonts were embedded without the mapping that turns them back into characters, so it extracts as symbols like ¡¢£. Readers can still read it, but they cannot search, select or have the text read aloud, and AI cannot suggest the book's details from its contents. Re-exporting the PDF from the original layout file usually fixes this.",
   "upload_form.pdf_no_text_layer": "This PDF has no searchable text",
   "upload_form.pdf_no_text_layer_notice": "This usually means the file is a scan. Readers can still read it, but they cannot search, select or have the text read aloud, and AI cannot suggest the book's details from its contents. If you have the original or an OCR'd version, upload that instead.",
   "upload_form.preparing_cover": "Preparing cover image...",

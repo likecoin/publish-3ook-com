@@ -1072,6 +1072,8 @@
   "upload_form.missing_cover_for_pdf": "PDF 封面擷取失敗，請上傳封面圖片（JPG/PNG）。",
   "upload_form.missing_ebook_file": "請上傳 EPUB 或 PDF 檔案。",
   "upload_form.only_one_cover_image": "僅允許一張封面圖片。",
+  "upload_form.pdf_garbled_text": "此 PDF 的文字無法辨識",
+  "upload_form.pdf_garbled_text_notice": "檔案其實有文字，但嵌入的字型缺少還原成文字的對應資料，擷取出來只是 ¡¢£ 之類的符號。讀者仍可正常閱讀，但無法搜尋、選取或朗讀內容，AI 也無法從內文自動填寫書籍資料。通常從原始排版檔重新匯出 PDF 即可解決。",
   "upload_form.pdf_no_text_layer": "此 PDF 沒有可搜尋的文字",
   "upload_form.pdf_no_text_layer_notice": "這通常代表檔案是掃描影本。讀者仍可正常閱讀，但無法搜尋、選取或朗讀內容，AI 也無法從內文自動填寫書籍資料。若你有原始檔或已做過 OCR 的版本，建議改用該檔案。",
   "upload_form.preparing_cover": "準備封面圖片中...",

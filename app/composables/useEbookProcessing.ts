@@ -10,7 +10,14 @@ import {
 } from '~/constant'
 import { getPdfDocument } from '~/utils/pdf'
 import { sanitizePdfTitle, sanitizePdfAuthor } from '~/utils/pdf-metadata'
-import { samplePdfPageNumbers, hasSearchableText, countPagesWithText } from '~/utils/pdf-text'
+import {
+  PDF_TEXT_MIN_CHARS_PER_PAGE,
+  samplePdfPageNumbers,
+  hasSearchableText,
+  countPagesWithText,
+  legibleCharCount,
+  stripUnmappedChars,
+} from '~/utils/pdf-text'
 
 // Cap matches the backend's validation limit (MAX_CONTENT_EXCERPT_CHARS).
 const CONTENT_EXCERPT_MAX_CHARS = 20000
@@ -94,71 +101,119 @@ async function readPdfPageText(pdf: PDFDocumentProxy, pageNumber: number): Promi
     .trim()
 }
 
+// The two ways a PDF can fail a reader, per page: a scan has no characters, and
+// a file whose fonts carry no ToUnicode has plenty that decode to nothing.
+interface PdfPageStat {
+  chars: number
+  legibleChars: number
+}
+
+// Undefined where the file would not open or reading it threw — see FileRecord,
+// which carries both to the author on the same terms.
+interface PdfTextLayerVerdict {
+  hasSearchableText?: boolean
+  hasLegibleText?: boolean
+}
+
+function toPdfPageStat(pageText: string): PdfPageStat {
+  return { chars: pageText.length, legibleChars: legibleCharCount(pageText) }
+}
+
+const hasTextLayer = (stats: PdfPageStat[]) =>
+  hasSearchableText(stats.map(stat => stat.chars))
+
+const hasLegibleTextLayer = (stats: PdfPageStat[]) =>
+  hasSearchableText(stats.map(stat => stat.legibleChars))
+
+// Held to the same floor as every other rule here: a half-title carrying one
+// PUA ornament is entirely unmapped over three characters, and would otherwise
+// buy the probe for a book with nothing wrong with it. A blank page is neither
+// garbled nor legible — books have blank pages.
+const isPageGarbled = (stat: PdfPageStat) =>
+  stat.chars >= PDF_TEXT_MIN_CHARS_PER_PAGE && stat.legibleChars === 0
+
 // The PDF counterpart of extractSpineData's excerpt half, feeding the same AI
-// metadata suggestion. The per-page character counts are the same walk's answer
-// to whether the file carries a text layer at all — see processPdf.
+// metadata suggestion. The per-page stats are the same walk's answer to whether
+// the file carries a text layer, and whether it can be read — see processPdf.
 async function extractPdfExcerpt(
   pdf: PDFDocumentProxy,
-): Promise<{ excerpt: string, charCountsPerPage: number[] }> {
+): Promise<{ excerpt: string, pageStats: PdfPageStat[] }> {
   let excerpt = ''
-  const charCountsPerPage: number[] = []
+  let charsSeen = 0
+  const pageStats: PdfPageStat[] = []
   const pageCount = Math.min(pdf.numPages, PDF_EXCERPT_MAX_PAGES)
   for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
     const pageText = await readPdfPageText(pdf, pageNumber)
-    charCountsPerPage.push(pageText.length)
-    if (pageText) { excerpt += `${pageText}\n\n` }
+    const stat = toPdfPageStat(pageText)
+    pageStats.push(stat)
+    charsSeen += stat.chars
+    // A garbled page is skipped rather than stopped on: the pages after it may
+    // still be legible, and glyph indices in the excerpt are worse for the AI
+    // suggestion than no excerpt at all. A page that is kept is still stripped —
+    // it is kept for its prose, not for the header that failed to decode.
+    if (stat.legibleChars) { excerpt += `${stripUnmappedChars(pageText)}\n\n` }
     if (excerpt.length >= CONTENT_EXCERPT_MAX_CHARS) { break }
+    // Measured on what the pages held rather than on what was kept. A book whose
+    // opening pages are garbled has a text layer worth walking further into; a
+    // scan holds nothing either way and still gives up here.
     if (pageNumber >= PDF_EXCERPT_PROBE_PAGES
-      && excerpt.length < PDF_EXCERPT_PROBE_MIN_CHARS) { break }
+      && charsSeen < PDF_EXCERPT_PROBE_MIN_CHARS) { break }
   }
   return {
     excerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim(),
-    charCountsPerPage,
+    pageStats,
   }
 }
 
-// Second opinion for a file whose opening pages read as a scan, sampling across
-// the whole book: the excerpt walk gives up near the front, so on its own it
-// would call a book that opens on full-page plates a scan. Cheap where it runs
-// — an image-only page has no embedded font, so getTextContent fetches no cmap.
+// Second opinion for a file whose opening pages read as a scan or as glyph
+// indices, sampling across the whole book: the excerpt walk reads only from the
+// front, so on its own it would call a book that opens on full-page plates a
+// scan. Cheapest on the scan — an image-only page has no embedded font, so
+// getTextContent fetches no cmap — and eight pages either way.
 async function probePdfTextLayer(
   pdf: PDFDocumentProxy,
-  excerptCharCounts: number[],
-): Promise<number[]> {
-  const charCountsPerPage: number[] = []
+  excerptStats: PdfPageStat[],
+): Promise<PdfPageStat[]> {
+  const pageStats: PdfPageStat[] = []
   for (const pageNumber of samplePdfPageNumbers(pdf.numPages)) {
     // The walk read pages 1..n of this same document with this same function,
     // so a sampled page it already covered costs nothing to reuse — on a book
     // short enough that the sample falls inside the walk, all of them do.
-    // `??` and not `||`: a count of 0 is an answer, not a missing one.
-    charCountsPerPage.push(
-      excerptCharCounts[pageNumber - 1] ?? (await readPdfPageText(pdf, pageNumber)).length,
+    // `??` and not `||`: an all-zero stat is an answer, not a missing one.
+    pageStats.push(
+      excerptStats[pageNumber - 1] ?? toPdfPageStat(await readPdfPageText(pdf, pageNumber)),
     )
   }
-  return charCountsPerPage
+  return pageStats
 }
 
-// The per-page counts the text-layer verdict is taken over, and which of the two
-// samplers produced them. A book whose opening pages read as text is answered by
-// the excerpt walk for free, and only a suspect file pays for the probe.
+// The per-page stats both verdicts are taken over, and which sampler produced
+// them.
 //
-// The probe's counts replace the walk's rather than joining them. It skips page
-// one and spreads across the body, so it is the better judge of both cases the
-// walk gets wrong — a scan opening on a born-digital title page, and a text book
-// opening on plates. Joining the two would let a long stretch of plates outvote
-// a body the probe found to be all text. The walk is the fallback only for a
-// document too short to have anything to probe.
+// One garbled page buys the probe, rather than the walk's own legibility verdict
+// deciding it. The walk's run is not a fixed length — it walks on past a garbled
+// page — so how much of the book it covers depends on how broken the file is,
+// and a file garbled either side of one legible chapter can land its whole walk
+// on that chapter and read as a book that is fine.
+//
+// The probe's stats replace the walk's rather than joining them. It skips page
+// one and spreads across the body, so it is the better judge of every case the
+// walk gets wrong — a scan opening on a born-digital title page, a text book
+// opening on plates, and a garbled book opening on its one legible spread.
+// Joining the two would let a long stretch of plates outvote a body the probe
+// found to be all text. The walk is the fallback only for a document too short
+// to have anything to probe.
 async function samplePdfTextLayer(
   pdf: PDFDocumentProxy,
-  excerptCharCounts: number[],
-): Promise<{ counts: number[], source: 'excerpt' | 'probe' }> {
-  if (hasSearchableText(excerptCharCounts)) {
-    return { counts: excerptCharCounts, source: 'excerpt' }
+  excerptStats: PdfPageStat[],
+): Promise<{ stats: PdfPageStat[], source: 'excerpt' | 'probe' }> {
+  if (hasTextLayer(excerptStats) && !excerptStats.some(isPageGarbled)) {
+    return { stats: excerptStats, source: 'excerpt' }
   }
-  const counts = await probePdfTextLayer(pdf, excerptCharCounts)
-  return counts.length
-    ? { counts, source: 'probe' }
-    : { counts: excerptCharCounts, source: 'excerpt' }
+  const stats = await probePdfTextLayer(pdf, excerptStats)
+  return stats.length
+    ? { stats, source: 'probe' }
+    : { stats: excerptStats, source: 'excerpt' }
 }
 
 interface UseEbookProcessingOptions {
@@ -424,30 +479,34 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
 
   const judgePdfTextLayer = async (
     pdf: PDFDocumentProxy,
-    excerptCharCounts: number[],
-  ): Promise<boolean | undefined> => {
+    excerptStats: PdfPageStat[],
+  ): Promise<PdfTextLayerVerdict> => {
     try {
-      const { counts, source } = await samplePdfTextLayer(pdf, excerptCharCounts)
+      const { stats, source } = await samplePdfTextLayer(pdf, excerptStats)
       // No sample at all means no verdict, which is not the same as "scan".
-      if (!counts.length) { return undefined }
-      const searchable = hasSearchableText(counts)
-      // The ratio ships so the one-third rule can be re-tuned against real
-      // uploads instead of argued about, and `sample_source` is what keeps it
-      // tunable: the two samplers read a different number of pages from
-      // different parts of the book, so a pooled sampled_pages means nothing.
+      if (!stats.length) { return {} }
+      const searchable = hasTextLayer(stats)
+      const legible = hasLegibleTextLayer(stats)
+      // The ratios ship so the one-third rule and the unmapped-character line
+      // can be re-tuned against real uploads instead of argued about, and
+      // `sample_source` is what keeps them tunable: the two samplers read a
+      // different number of pages from different parts of the book, so a pooled
+      // sampled_pages means nothing.
       useLogEvent('book_publish_pdf_text_detected', {
         has_searchable_text: searchable,
+        has_legible_text: legible,
         sample_source: source,
         page_count: pdf.numPages,
-        sampled_pages: counts.length,
-        pages_with_text: countPagesWithText(counts),
+        sampled_pages: stats.length,
+        pages_with_text: countPagesWithText(stats.map(stat => stat.chars)),
+        pages_with_legible_text: countPagesWithText(stats.map(stat => stat.legibleChars)),
       })
-      return searchable
+      return { hasSearchableText: searchable, hasLegibleText: legible }
     }
     catch (textLayerError) {
       // eslint-disable-next-line no-console
       console.warn('Failed to judge the PDF text layer:', textLayerError)
-      return undefined
+      return {}
     }
   }
 
@@ -455,9 +514,9 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
   // without a cover or metadata, and validateFiles then asks the author for a
   // cover. That path is recoverable, so it stays silent rather than raising
   // onError.
-  const processPdf = async ({ buffer, file }: { buffer: ArrayBuffer, file: File }): Promise<{
-    hasSearchableText?: boolean
-  }> => {
+  const processPdf = async (
+    { buffer, file }: { buffer: ArrayBuffer, file: File },
+  ): Promise<PdfTextLayerVerdict> => {
     let pdf: PDFDocumentProxy
     try {
       pdf = await getPdfDocument(buffer)
@@ -493,13 +552,13 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
         console.warn('Failed to extract a cover from the PDF:', coverError)
       }
 
-      let excerptCharCounts: number[] = []
+      let excerptStats: PdfPageStat[] = []
       try {
-        // Left unset when the PDF is a scan: handleFilesCollected merges this
-        // entry over the last one, so an empty string would blank an excerpt
-        // an earlier pass had read.
-        const { excerpt, charCountsPerPage } = await extractPdfExcerpt(pdf)
-        excerptCharCounts = charCountsPerPage
+        // Left unset when the PDF is a scan or reads as glyph indices:
+        // handleFilesCollected merges this entry over the last one, so an empty
+        // string would blank an excerpt an earlier pass had read.
+        const { excerpt, pageStats } = await extractPdfExcerpt(pdf)
+        excerptStats = pageStats
         if (excerpt) { metadata.contentExcerpt = excerpt }
       }
       catch (excerptError) {
@@ -511,15 +570,15 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
       // wizard epubMetadataList[0], so an empty one would shadow the metadata
       // of an EPUB uploaded alongside it. useManualCover creates its own.
       //
-      // The verdict deliberately does not live here. A false would fail the
+      // The verdicts deliberately do not live here. A false would fail the
       // some(Boolean) below, so the entry carrying it would be dropped for
-      // exactly the files it describes; it rides on the FileRecord instead.
+      // exactly the files it describes; they ride on the FileRecord instead.
       const { epubFileName, ...extracted } = metadata
       if (Object.values(extracted).some(Boolean)) {
         epubMetadataList.value.push(metadata)
       }
 
-      return { hasSearchableText: await judgePdfTextLayer(pdf, excerptCharCounts) }
+      return await judgePdfTextLayer(pdf, excerptStats)
     }
     finally {
       // A book-sized PDF stays resident in the worker until destroyed. Caught

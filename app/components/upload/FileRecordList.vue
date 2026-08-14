@@ -48,7 +48,7 @@
             size="xs"
             icon="i-heroicons-exclamation-triangle"
             :aria-expanded="isExpanded(record)"
-            :label="advisoryLabel(record)"
+            :label="advisoryCopy(record, 'label')"
             :trailing-icon="isExpanded(record) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
             @click="toggleIssues(record)"
           />
@@ -67,14 +67,8 @@
         class="pb-3 space-y-2 text-sm"
       >
         <p
-          v-if="advisoryOf(record) === 'epub-validation'"
           class="text-xs text-muted"
-          v-text="$t('upload_form.epub_validation_notice')"
-        />
-        <p
-          v-if="advisoryOf(record) === 'pdf-no-text-layer'"
-          class="text-xs text-muted"
-          v-text="$t('upload_form.pdf_no_text_layer_notice')"
+          v-text="advisoryCopy(record, 'notice')"
         />
         <div
           v-if="record.validationErrors"
@@ -120,27 +114,41 @@ const emit = defineEmits<{
 // record that has no blob, so two drops of one filename coexist as two rows.
 const collapsed = ref(new Set<FileRecord>())
 
-// Both advisories are non-blocking and share one row: a record can only ever
-// carry one of them, since validation issues are an EPUB verdict and the text
-// layer a PDF one. Named rather than tested twice in the template — the label
-// and the body would otherwise each re-derive which of the two this is, and a
-// third advisory would silently inherit the PDF copy.
-type FileAdvisory = 'epub-validation' | 'pdf-no-text-layer' | undefined
+// Every advisory is non-blocking and they share one row, which shows the first
+// that applies: a record can carry more than one condition, since a scan has no
+// legible text either. Named rather than tested in the template — the label and
+// the body would otherwise each re-derive which of them this is.
+type FileAdvisory = 'epub-validation' | 'pdf-no-text-layer' | 'pdf-garbled-text' | undefined
 
 const advisoryOf = (record: FileRecord): FileAdvisory => {
   if (record.hasValidationIssues) { return 'epub-validation' }
+  // Ordered: a file with no text layer has no legible text either, and would
+  // otherwise be told it is merely garbled.
   if (record.hasSearchableText === false) { return 'pdf-no-text-layer' }
+  if (record.hasLegibleText === false) { return 'pdf-garbled-text' }
   return undefined
 }
 
-const ADVISORY_LABELS: Record<NonNullable<FileAdvisory>, string> = {
-  'epub-validation': 'upload_form.epub_has_issues',
-  'pdf-no-text-layer': 'upload_form.pdf_no_text_layer',
+// The notice key does not follow from the label key, so both are listed. One
+// table, so a further advisory cannot inherit another's copy by omission.
+const ADVISORY_COPY: Record<NonNullable<FileAdvisory>, { label: string, notice: string }> = {
+  'epub-validation': {
+    label: 'upload_form.epub_has_issues',
+    notice: 'upload_form.epub_validation_notice',
+  },
+  'pdf-no-text-layer': {
+    label: 'upload_form.pdf_no_text_layer',
+    notice: 'upload_form.pdf_no_text_layer_notice',
+  },
+  'pdf-garbled-text': {
+    label: 'upload_form.pdf_garbled_text',
+    notice: 'upload_form.pdf_garbled_text_notice',
+  },
 }
 
-const advisoryLabel = (record: FileRecord) => {
+const advisoryCopy = (record: FileRecord, part: 'label' | 'notice') => {
   const advisory = advisoryOf(record)
-  return advisory ? $t(ADVISORY_LABELS[advisory]) : ''
+  return advisory ? $t(ADVISORY_COPY[advisory][part]) : ''
 }
 
 const isExpanded = (record: FileRecord) =>
