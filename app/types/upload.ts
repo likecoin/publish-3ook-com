@@ -18,6 +18,9 @@ export interface FileRecord {
   // PDFs only, and undefined means undetermined — the file would not open, or
   // reading it threw. Only an explicit false is a scan the author is told about.
   hasSearchableText?: boolean
+  // Also PDFs only, on the same terms, and independent of the above: a file can
+  // carry a text layer that decodes to glyph indices rather than to its words.
+  hasLegibleText?: boolean
 }
 
 // One spine content document of an EPUB, in spine order; sizeBytes is the
