@@ -258,6 +258,7 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
       ipfsHash: ipfsThumbnailHash ?? undefined,
       fileSHA256,
       isGeneratedCover: true,
+      sourceFileName: metadata.epubFileName,
     }
     // Preview bytes only: the cover still uploads from its blob and
     // hashes, so an unreadable one must not cost the entry its spine
@@ -338,12 +339,14 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
       const book = ePub(buffer)
       await book.ready
 
-      const epubMetadata: EpubMetadata = {}
+      // Named up front, not inside the metadata branch: this is what ties the
+      // entry and its extracted cover to the file, and an EPUB that declares no
+      // metadata at all still has both.
+      const epubMetadata: EpubMetadata = { epubFileName: file.name }
 
       // Get metadata
       const metadata = book.packaging?.metadata
       if (metadata) {
-        epubMetadata.epubFileName = file.name
         epubMetadata.title = metadata.title
         epubMetadata.author = metadata.creator
         epubMetadata.language = formatLanguage(metadata.language)

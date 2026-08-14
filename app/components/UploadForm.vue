@@ -52,12 +52,20 @@
         >
       </form>
 
-      <UploadFileRecordList
-        v-if="fileRecords.length"
-        :file-records="fileRecords"
-        @delete="handleDeleteFile"
-        @reselect="openFilePicker"
-      />
+      <template v-if="fileRecords.length">
+        <UploadFileRecordList
+          :file-records="fileRecords"
+          :can-revert-cover="canRevertCover"
+          :owns-cover="requireCover"
+          @delete="handleDeleteFile"
+          @reselect="openFilePicker"
+          @revert-cover="revertCover"
+        />
+        <p
+          class="text-xs text-muted"
+          v-text="$t('upload_form.drop_to_replace_hint')"
+        />
+      </template>
     </div>
     <PublishFileProtectionField
       v-if="showDrmOption"
@@ -85,8 +93,8 @@
 </template>
 
 <script setup lang="ts">
-import { PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
-import { isGeneratedCoverRecord } from '~/utils/arweave'
+import { EBOOK_FILE_TYPES, PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
+import { isGeneratedCoverRecord, isManualCoverRecord } from '~/utils/arweave'
 
 import type { FileRecord, EpubMetadata } from '~/types'
 
@@ -133,14 +141,22 @@ const isDragging = ref(false)
 // wrong value here silently discards a resumed draft's real uploads.
 const isEncryptEBookData = defineModel<boolean>('encryptEbook', { default: true })
 
-const emit = defineEmits(['arweaveUploaded', 'submit', 'fileReady', 'fileUploadStatus'])
+const emit = defineEmits<{
+  arweaveUploaded: [payload: { arweaveId?: string, arweaveLink?: string }]
+  submit: [payload: { fileRecords: FileRecord[], epubMetadata?: EpubMetadata }]
+  fileReady: [records: FileRecord[], epubMetadata?: EpubMetadata]
+  fileUploadStatus: [status: string]
+}>()
 
 // The wizard restores its draft after this form has mounted, so a one-shot copy
 // left a resumed draft's list empty. Declared below the emit it calls: with
 // immediate the first run happens during setup, before a hoisted const exists.
 watch(() => props.initialFileRecords, (records: FileRecord[]) => {
   if (!records.length || fileRecords.value.length) { return }
-  fileRecords.value = records.map(record => ({ ...record }))
+  // Shared, not cloned: the host rebuilds a resumed draft's cover previews into
+  // these objects afterwards, and a clone would never see it — leaving the
+  // author's cover with nothing to restore.
+  fileRecords.value = [...records]
   emit('fileReady', fileRecords.value)
 }, { immediate: true })
 
@@ -215,7 +231,29 @@ const {
   },
 })
 
-const { applyManualCover } = useManualCover({
+// Carries the metadata with the records: the cover can be replaced without
+// leaving the file step, and the wizard's review screen reads it from there.
+// Merged by the host, so an entry it already has keeps what this one lacks.
+const emitFileReady = () => {
+  emit('fileReady', fileRecords.value, epubMetadataList.value[0])
+}
+
+// One file per format, so the dropzone alone decides between adding and
+// replacing. The cover the outgoing file generated leaves with it — matched by
+// provenance, since the incoming file brings its own and both are named after
+// the book rather than the file.
+const releaseEbookSlot = (fileType: string) => {
+  const index = fileRecords.value.findIndex(record => record.fileType === fileType)
+  if (index < 0) { return }
+  const [removed] = fileRecords.value.splice(index, 1)
+  if (!removed) { return }
+  fileRecords.value = fileRecords.value.filter(record => !(
+    isGeneratedCoverRecord(record) && record.sourceFileName === removed.fileName
+  ))
+  removeMetadataForDeletedFile(removed)
+}
+
+const { applyManualCover, canRevertCover, revertToGeneratedCover } = useManualCover({
   fileRecords,
   // Fills a book still missing a cover before replacing one that has it, and
   // creates the entry when no EPUB supplied metadata at all (PDF + cover).
@@ -269,13 +307,21 @@ const onFileUpload = async (event: Event) => {
         if (isImageA === isImageB) { return 0 }
         return isImageA ? 1 : -1
       })
-      for (const file of sortedFiles) {
+      for (const [index, file] of sortedFiles.entries()) {
         let fileRecord: FileRecord = {}
 
         if (!UPLOADABLE_FILE_TYPES.includes(file.type)) {
           showErrorToast($t('upload_form.unsupported_file_type_title'), {
             description: $t('upload_form.unsupported_file_type', { fileName: file.name }),
           })
+          continue
+        }
+
+        // Of several files of one format in a single drop, only the last is
+        // kept. Skipped here rather than evicted later, so a 200MB EPUB is not
+        // hashed and parsed just to lose its slot to the next one.
+        if (EBOOK_FILE_TYPES.includes(file.type)
+          && sortedFiles.some((other, i) => i > index && other.type === file.type)) {
           continue
         }
 
@@ -291,6 +337,9 @@ const onFileUpload = async (event: Event) => {
               ipfsHash: ipfsHash || undefined,
               fileSHA256,
               fileBlob: file,
+            }
+            if (EBOOK_FILE_TYPES.includes(file.type)) {
+              releaseEbookSlot(file.type)
             }
             if (fileRecord.fileType === 'application/epub+zip') {
               const validation = await validateEpub(fileBytes)
@@ -316,6 +365,7 @@ const onFileUpload = async (event: Event) => {
               // record's lifetime.
               fileRecord.fileData = await fileToDataUrl(file)
               applyManualCover(fileRecord)
+              useLogEvent('book_publish_cover_replaced')
               uploadStatus.value = ''
               continue
             }
@@ -342,14 +392,27 @@ const onFileUpload = async (event: Event) => {
       imageFile.value.value = ''
     }
     uploadStatus.value = ''
-    emit('fileReady', fileRecords.value)
+    emitFileReady()
   }
 }
 
 const handleDeleteFile = (index: number) => {
+  // Discarding the author's own cover puts the ebook's back rather than leaving
+  // the book with none: the generated one is still held, just not listed.
+  if (isManualCoverRecord(fileRecords.value[index] || {}) && canRevertCover.value) {
+    revertCover()
+    return
+  }
   const [removedFile] = fileRecords.value.splice(index, 1)
   if (!removedFile) { return }
   removeMetadataForDeletedFile(removedFile)
+  emitFileReady()
+}
+
+const revertCover = () => {
+  if (!revertToGeneratedCover()) { return }
+  useLogEvent('book_publish_cover_reverted')
+  emitFileReady()
 }
 
 const runUploadQuotaCheck = async (): Promise<void> => {
