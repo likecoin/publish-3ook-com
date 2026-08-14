@@ -21,10 +21,14 @@ NODE_OPTIONS=--max_old_space_size=8192 yarn build      # SSR build
 yarn preview                    # Preview production build
 ```
 
-CI runs: `yarn lint` → `yarn typecheck` → `yarn generate` (all must pass).
+CI runs: `yarn lint` → `yarn typecheck` → `yarn test` → `yarn generate` (all must pass).
 CD: pushes to `master` deploy to GitHub Pages via `yarn generate:production`.
 
-**Almost no automated tests exist** — changes are verified manually via `yarn dev` in the browser. The one exception is `yarn test` (`node --test`, no framework), which runs `test/preview-cut.test.mjs`: the free-preview cut rules in `app/utils/preview-cut.ts` are a verbatim copy of the ebook-cors server's `preview/plan.js`, and both repos check their copy against a byte-identical `preview-cut.golden.json`. Never change the rules or the fixture here alone — change the server first, then copy the fixture across, or the author-facing preview readout drifts from what readers actually get.
+**There is no component or end-to-end test suite** — UI changes are verified manually via `yarn dev` in the browser. `yarn test` (`node --test`, no framework) runs `test/*.test.mjs`, mostly unit tests over the pure logic in `app/utils/`. Three of them also guard invariants that nothing else enforces:
+
+- `test/preview-cut.test.mjs` — the free-preview cut rules in `app/utils/preview-cut.ts` are a verbatim copy of the ebook-cors server's `preview/plan.js`, and both repos check their copy against a byte-identical `preview-cut.golden.json`. Never change the rules or the fixture here alone — change the server first, then copy the fixture across, or the author-facing preview readout drifts from what readers actually get.
+- `test/i18n-parity.test.mjs` — `i18n/locales/en.json` and `zh-TW.json` must agree on keys, interpolation placeholders and plural branches.
+- `test/analytics-events.test.mjs` — every name in `useLogEvent.ts`'s Intercom allowlist must have a real emitter, since Intercom caps a workspace at 120 event names.
 
 ## Architecture
 
