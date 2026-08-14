@@ -251,6 +251,9 @@ const releaseEbookSlot = (fileType: string) => {
     isGeneratedCoverRecord(record) && record.sourceFileName === removed.fileName
   ))
   removeMetadataForDeletedFile(removed)
+  // Only reached when a file was actually displaced, so this counts drops that
+  // the author meant as a replacement rather than as their first upload.
+  useLogEvent('book_publish_file_replaced', { file_type: fileType })
 }
 
 const { applyManualCover, canRevertCover, revertToGeneratedCover } = useManualCover({
@@ -286,6 +289,10 @@ const {
   },
 })
 
+// The single slot a dropped file competes for: one per ebook format, and one
+// shared by every image type, since the book has one cover.
+const uploadSlotOf = (file: File) => file.type.startsWith('image/') ? 'image' : file.type
+
 const onFileUpload = async (event: Event) => {
   try {
     uploadStatus.value = $t('upload_form.loading')
@@ -317,11 +324,11 @@ const onFileUpload = async (event: Event) => {
           continue
         }
 
-        // Of several files of one format in a single drop, only the last is
-        // kept. Skipped here rather than evicted later, so a 200MB EPUB is not
-        // hashed and parsed just to lose its slot to the next one.
-        if (EBOOK_FILE_TYPES.includes(file.type)
-          && sortedFiles.some((other, i) => i > index && other.type === file.type)) {
+        // Of several files competing for one slot in a single drop, only the
+        // last is kept. Skipped here rather than evicted later, so a 200MB EPUB
+        // is not hashed and parsed just to lose its slot to the next one.
+        const slot = uploadSlotOf(file)
+        if (sortedFiles.some((other, i) => i > index && uploadSlotOf(other) === slot)) {
           continue
         }
 
@@ -374,7 +381,12 @@ const onFileUpload = async (event: Event) => {
         else {
           isSizeExceeded.value = true
         }
-        upsertFileRecord(fileRecord)
+        // A file too large to accept, or one that failed to hash, leaves the
+        // record untouched. Listing it would show a nameless row and count as a
+        // file the wizard can move on from.
+        if (fileRecord.fileName) {
+          upsertFileRecord(fileRecord)
+        }
         uploadStatus.value = ''
       }
     }
