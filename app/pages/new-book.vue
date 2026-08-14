@@ -29,30 +29,18 @@
 
       <!-- Step Content -->
       <div class="mt-6 p-4 border border-default rounded-lg bg-elevated flex flex-col gap-[24px]">
-        <!-- The cover belongs with the files it came out of: the EPUB supplies
-             one here, and this is where a different one gets dropped in. The
-             edit screen's 書檔 tab reads the same way. -->
-        <div
+        <!-- One dropzone for everything: the cover is a file like the others,
+             and dropping an image is what changes it. -->
+        <UploadForm
           v-if="step === 'files'"
-          class="flex flex-col gap-6"
-        >
-          <UploadForm
-            ref="uploadFormRef"
-            v-model:encrypt-ebook="encryptEbook"
-            collect-only
-            :show-drm-option="false"
-            :initial-file-records="fileRecords"
-            @file-ready="handleFileReady"
-            @submit="handleFilesCollected"
-          />
-
-          <PublishCoverField
-            v-if="fileRecords.length"
-            v-model:file-records="fileRecords"
-            v-model:epub-metadata="epubMetadata"
-            :src="coverImageSrc"
-          />
-        </div>
+          ref="uploadFormRef"
+          v-model:encrypt-ebook="encryptEbook"
+          collect-only
+          :show-drm-option="false"
+          :initial-file-records="fileRecords"
+          @file-ready="handleFileReady"
+          @submit="handleFilesCollected"
+        />
         <div
           v-else-if="step === 'details'"
           class="text-left flex flex-col gap-6"
@@ -472,6 +460,7 @@ function serializeDraft(): PublishSession {
       fileType: record.fileType || '',
       fileSize: record.fileSize,
       isGeneratedCover: record.isGeneratedCover,
+      sourceFileName: record.sourceFileName,
       ipfsHash: record.ipfsHash,
       fileSHA256: record.fileSHA256,
       arweaveId: record.arweaveId,
@@ -624,8 +613,14 @@ async function validatePricingStep(): Promise<boolean> {
   return true
 }
 
-function handleFileReady(records: FileRecord[]) {
+function handleFileReady(records: FileRecord[], metadata?: EpubMetadata) {
   fileRecords.value = records
+  // Not deferred to 下一步: the stepper can jump straight back to 確認, and
+  // coverImageSrc reads the cover from here. Merged for the reason
+  // handleFilesCollected merges — a cover-only drop hands back a stub.
+  if (metadata) {
+    epubMetadata.value = { ...epubMetadata.value, ...metadata }
+  }
 }
 
 function handleFilesCollected(payload: {

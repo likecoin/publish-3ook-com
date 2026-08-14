@@ -9,6 +9,9 @@ export interface FileRecord {
   // Set only on a cover extracted from the EPUB itself, never on one the
   // author picked. Decides which cover 復原 restores and which one publishes.
   isGeneratedCover?: boolean
+  // The ebook a generated cover came out of, so replacing that ebook takes its
+  // cover with it even in a resumed draft, where the metadata list is empty.
+  sourceFileName?: string
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string

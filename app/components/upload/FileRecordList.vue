@@ -1,7 +1,7 @@
 <template>
   <ul class="flex flex-col w-full">
     <li
-      v-for="(record, index) of fileRecords"
+      v-for="{ record, index } of displayedRecords"
       :key="`${record.fileName}-${index}`"
       class="border-b border-default"
     >
@@ -16,16 +16,23 @@
             {{ record.fileName }}
           </p>
           <UBadge
-            v-if="isGeneratedCoverRecord(record)"
+            v-if="isCoverRecord(record)"
             variant="soft"
             color="neutral"
             size="xs"
           >
-            {{ $t('upload_form.file_generated_cover') }}
+            {{ isGeneratedCoverRecord(record)
+              ? $t('upload_form.file_generated_cover')
+              : $t('upload_form.file_cover') }}
           </UBadge>
           <p class="text-muted text-sm">
             {{ Math.round((record.fileSize || 0) * 0.001) }} KB
           </p>
+          <p
+            v-if="ownsCover && isCoverRecord(record)"
+            class="text-xs text-muted"
+            v-text="coverHint(record)"
+          />
           <button
             v-if="needsFileReselect(record)"
             type="button"
@@ -35,6 +42,15 @@
           />
         </div>
         <div class="flex items-center gap-2">
+          <UButton
+            v-if="canRevertCover && isManualCoverRecord(record)"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-heroicons-arrow-uturn-left"
+            :label="$t('publish_cover.revert')"
+            @click="emit('revertCover')"
+          />
           <UIcon
             v-if="isRecordUploaded(record)"
             name="i-heroicons-check-circle"
@@ -95,18 +111,42 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
-import { needsFileReselect, isRecordUploaded, isGeneratedCoverRecord } from '~/utils/arweave'
+import { needsFileReselect, isRecordUploaded, isGeneratedCoverRecord, isManualCoverRecord, isCoverRecord } from '~/utils/arweave'
 
 const { t: $t } = useI18n()
 
-defineProps<{
+const { fileRecords, canRevertCover = false, ownsCover = true } = defineProps<{
   fileRecords: FileRecord[]
+  // Whether the ebook's own cover is still around to go back to; the row only
+  // offers 復原 when it is.
+  canRevertCover?: boolean
+  // False where the listed cover is not the book's — a replacement upload shows
+  // what came out of the file, but the published cover is set elsewhere.
+  ownsCover?: boolean
 }>()
 
 const emit = defineEmits<{
   delete: [index: number]
   reselect: [index: number]
+  revertCover: []
 }>()
+
+// The replaced copy speaks of going back, so it is only true alongside the
+// 復原 button — a PDF that yielded no cover of its own has nothing to go to.
+const coverHint = (record: FileRecord) =>
+  canRevertCover && isManualCoverRecord(record)
+    ? $t('publish_cover.replaced_hint')
+    : $t('publish_cover.hint')
+
+// Both covers are kept — 復原 needs the ebook's own — but only one of them is
+// this book's cover, so the superseded row is hidden. Indices are carried
+// along: delete and reselect address the unfiltered array.
+const displayedRecords = computed(() => {
+  const hasManualCover = fileRecords.some(record => isManualCoverRecord(record))
+  return fileRecords
+    .map((record, index) => ({ record, index }))
+    .filter(({ record }) => !(hasManualCover && isGeneratedCoverRecord(record)))
+})
 
 // Tracks what was dismissed rather than what is open, so a file's issues are
 // visible the moment it lands and stay hidden once the author collapses them.

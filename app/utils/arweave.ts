@@ -38,12 +38,17 @@ export function isGeneratedCoverRecord(
   return record.isGeneratedCover ?? !!record.fileName?.endsWith(GENERATED_COVER_SUFFIX)
 }
 
+// Any image in a book's file list is its cover: nothing else uploads one.
+export function isCoverRecord(record: { fileType?: string }): boolean {
+  return !!record.fileType?.startsWith('image/')
+}
+
 // The author's own cover choice. Both kinds coexist after a replacement, and
 // only this one may be pruned — the generated one is what 復原 reverts to.
 export function isManualCoverRecord(
   record: { fileName?: string, fileType?: string, isGeneratedCover?: boolean },
 ): boolean {
-  return !!record.fileType?.startsWith('image/') && !isGeneratedCoverRecord(record)
+  return isCoverRecord(record) && !isGeneratedCoverRecord(record)
 }
 
 // A record with an upload result: Arweave results always carry arweaveId;

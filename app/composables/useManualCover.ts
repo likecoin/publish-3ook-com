@@ -10,12 +10,9 @@ interface UseManualCoverOptions {
 }
 
 /**
- * Owns the author's cover choice, outside the component that collects files.
- *
- * UploadForm is mounted only on the wizard's file step, so anything living
- * inside it is gone by the time step 2 offers 更換封面. Both callers therefore
- * share this instead: the drop path hands over a record it already built, the
- * step 2 path builds one from a File.
+ * Owns the author's cover choice: which record is the book's cover, and what
+ * 復原 goes back to. Kept out of the component that collects files so the rule
+ * survives that component being unmounted between wizard steps.
  */
 export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOptions) {
   const generatedCoverRecord = computed(() =>
@@ -58,23 +55,6 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
     return manualRecord
   }
 
-  // Throws on an unreadable file; callers already surface upload errors.
-  async function selectManualCoverFile(file: File): Promise<FileRecord> {
-    // Two independent full reads of the same file, so run them together.
-    const [info, fileData] = await Promise.all([getFileInfo(file), fileToDataUrl(file)])
-    if (!info) { throw new Error('Failed to read the selected cover image') }
-    const record: FileRecord = {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      fileBlob: file,
-      ipfsHash: info.ipfsHash || undefined,
-      fileSHA256: info.fileSHA256,
-      fileData,
-    }
-    return applyManualCover(record)
-  }
-
   function revertToGeneratedCover(): boolean {
     const generated = generatedCoverRecord.value
     if (!generated) { return false }
@@ -88,7 +68,6 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
     hasManualCover,
     canRevertCover,
     applyManualCover,
-    selectManualCoverFile,
     revertToGeneratedCover,
   }
 }
