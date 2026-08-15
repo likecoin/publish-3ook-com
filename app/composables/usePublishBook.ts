@@ -12,7 +12,7 @@ import { resolveShortDescription } from '~/utils/description'
 import type { NFTTokenMetadata } from '~/composables/useNFTMinter'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { isRecordUploaded, clearStaleOpenTierResults } from '~/utils/arweave'
-import { mapPriceFormItemsToPayload } from '~/utils/listing'
+import { mapPriceFormItemsToPayload, shouldEnableCustomMessagePage } from '~/utils/listing'
 import { shouldHideDownload, validateISCNForm, createBookTokenMetadataBuilder } from '~/utils/iscn'
 
 export interface PublishCallbacks {
@@ -253,7 +253,6 @@ export function usePublishBook() {
       if (!alreadyListed) {
         const { listingDraft } = input
         const prices = mapPriceFormItemsToPayload(listingDraft.prices)
-        const shouldEnableCustomMessagePage = prices.some(p => !p.isAutoDeliver || p.autoMemo)
         const hideDownload = shouldHideDownload({
           encryptEbook: input.encryptEbook,
           contentFingerprints: input.iscnFormData.contentFingerprints.map(f => f.url),
@@ -264,7 +263,7 @@ export function usePublishBook() {
           moderatorWallets: listingDraft.moderatorWallets,
           prices,
           mustClaimToView: true,
-          enableCustomMessagePage: shouldEnableCustomMessagePage,
+          enableCustomMessagePage: shouldEnableCustomMessagePage(prices),
           hideDownload,
           hideAudio: listingDraft.hideAudio,
           isAdultOnly: listingDraft.isAdultOnly,

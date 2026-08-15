@@ -20,7 +20,6 @@ export function useBookListingSettings(options: {
   const isPreviewEnabled = ref(false)
   const previewPercentage = ref(PREVIEW_PERCENTAGE_DEFAULT)
   const mustClaimToView = ref(true)
-  const enableCustomMessagePage = ref(true)
   const descriptionFull = ref<string | undefined>('')
   const tableOfContents = ref('')
   const moderatorWallets = ref<string[]>([])
@@ -60,7 +59,6 @@ export function useBookListingSettings(options: {
     // Existing listings without the field are treated as preview-disabled.
     isPreviewEnabled.value = classListingInfo.isPreviewEnabled ?? false
     previewPercentage.value = clampPreviewPercentage(classListingInfo.previewPercentage ?? PREVIEW_PERCENTAGE_DEFAULT)
-    enableCustomMessagePage.value = classListingInfo.enableCustomMessagePage ?? true
     tableOfContents.value = classListingInfo.tableOfContents ?? ''
     descriptionFull.value = classListingInfo.descriptionFull ?? ''
     listingSnapshot.value = currentListingSnapshot()
@@ -105,8 +103,9 @@ export function useBookListingSettings(options: {
     }
   }
 
-  // Echoes back loaded-but-uneditable fields (mustClaimToView,
-  // connectedWallets, enableCustomMessagePage) so the API keeps them.
+  // Echoes back loaded-but-uneditable fields (mustClaimToView, connectedWallets)
+  // so the API keeps them. enableCustomMessagePage is omitted on purpose: the API
+  // turns it on by itself (signature upload), so echoing a stale value clears it.
   function buildSettingsPayload() {
     return {
       moderatorWallets: moderatorWallets.value,
@@ -122,7 +121,6 @@ export function useBookListingSettings(options: {
       // Toggling the field off sets this to undefined; send '' so the listing
       // value is cleared instead of omitted (which would keep the old value).
       descriptionFull: descriptionFull.value ?? '',
-      enableCustomMessagePage: enableCustomMessagePage.value,
     }
   }
 

@@ -21,6 +21,15 @@ export function hasListedEdition(prices: { isUnlisted?: boolean }[] | undefined)
   return !!prices?.length && prices.some(p => !p.isUnlisted)
 }
 
+// An author's message only reaches the reader through the custom message page:
+// a manual edition is signed one by one, an auto one carries a preset memo.
+// Whitespace is not a memo — the flag is one-way, so it must not flip on blanks.
+export function shouldEnableCustomMessagePage(
+  prices: { isAutoDeliver?: boolean, autoMemo?: string }[],
+): boolean {
+  return prices.some(p => !p.isAutoDeliver || !!p.autoMemo?.trim())
+}
+
 type TranslateFn = (key: string, params?: Record<string, unknown>) => string
 
 // Single source for a blank edition price row; callers override only the
