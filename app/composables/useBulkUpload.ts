@@ -3,6 +3,7 @@ import { BookUploadStatus } from '~/types/bulk-upload'
 import type { BookPriceInDecimalByCurrency } from '~/types'
 import type { PublishFileRecordWithBlob } from '~/types/publish'
 import { createBookTokenMetadataBuilder, shouldHideDownload } from '~/utils/iscn'
+import { shouldEnableCustomMessagePage } from '~/utils/listing'
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import { getApiErrorMessage, isBatchFatalApiError } from '~/utils/apiError'
@@ -306,7 +307,7 @@ export function useBulkUpload() {
       moderatorWallets: ['0xa037Feb6508A8C2F93bb19f6721730C45921f2D0'],
       prices: [price],
       mustClaimToView: true,
-      enableCustomMessagePage: !!book.autoMemo,
+      enableCustomMessagePage: shouldEnableCustomMessagePage([price]),
       // Only the CSV flag exists here — it is also the flag the upload ran under.
       hideDownload: shouldHideDownload({ encryptEbook: book.enableDRM }),
       hideAudio: !book.enableTTS,
