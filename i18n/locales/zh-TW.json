@@ -917,7 +917,6 @@
   "status_page.discard_changes": "放棄",
   "status_page.discard_confirm": "放棄所有未儲存的變更？",
   "status_page.email_placeholder": "abc{at}example.com",
-  "status_page.follows_the_file": "跟隨書檔",
   "status_page.last_saved_at": "最後儲存 {time}",
   "status_page.mark_complete": "標記為完成",
   "status_page.no_orders": "還沒有訂單。",
