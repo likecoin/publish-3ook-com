@@ -6,17 +6,6 @@
     </NuxtLayout>
 
     <UModal
-      :open="isRestoringSession"
-      :dismissible="false"
-    >
-      <template #content>
-        <div class="p-4 flex flex-col items-center gap-2">
-          <span>{{ $t('app.restoring_session') }}</span>
-          <UProgress animation="carousel" />
-        </div>
-      </template>
-    </UModal>
-    <UModal
       v-model:open="isAuthenticating"
       :dismissible="false"
       class="max-w-[200px]!"
@@ -49,7 +38,7 @@ const { isShowMaintenancePage } = useMaintenanceMode()
 const bookstoreApiStore = useBookstoreApiStore()
 
 const { restoreAuthSession, fetchBookListing, clearSession } = bookstoreApiStore
-const { wallet, intercomToken, isAuthenticated } = storeToRefs(bookstoreApiStore)
+const { wallet, intercomToken, isAuthenticated, isRestoringSession } = storeToRefs(bookstoreApiStore)
 const { isAuthenticating, loginStatus, authenticateByConnectorId, authenticateBySignature } = useAuth()
 const userStore = useUserStore()
 const { userLikerInfo } = storeToRefs(userStore)
@@ -73,8 +62,6 @@ watch(() => userLikerInfo.value?.user, (likerId) => {
     intercomToken: intercomToken.value,
   })
 })
-
-const isRestoringSession = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -114,7 +101,6 @@ useSeoMeta({
 })
 
 onMounted(async () => {
-  isRestoringSession.value = true
   try {
     await restoreAuthSession()
     if (isAuthenticated.value && wallet.value) {
@@ -125,9 +111,6 @@ onMounted(async () => {
     console.error(error)
     showErrorToast(`${(error as Error).toString()}, please re-login`, { duration: 0 })
     clearSession()
-  }
-  finally {
-    isRestoringSession.value = false
   }
 
   if (isAuthenticated.value) {
@@ -167,5 +150,7 @@ onMounted(async () => {
     }
     router.replace({ query })
   }
+
+  isRestoringSession.value = false
 })
 </script>

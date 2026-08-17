@@ -33,7 +33,7 @@
   "account_register_error_email_already_used_with_evm_wallet": "{email} 已綁定至 {evmWallet}，無法用作註冊新帳戶，請改以該錢包登入。",
   "account_register_error_email_already_used_with_like_wallet": "{email} 已綁定至 {likeWallet}，無法用作註冊新帳戶，請先遷移你的帳戶。",
   "app.relogin_suffix": "，請重新登入",
-  "app.restoring_session": "讀取登入狀態...",
+  "app.restoring_session": "讀取登入狀態⋯⋯",
   "app.site_description": "在 3ook.com 出版你的作品，直接觸及讀者，享受實時報表、每日結算、聯盟推廣等功能。",
   "app.site_title": "publish.3ook.com",
   "app.testnet": "測試網路",
