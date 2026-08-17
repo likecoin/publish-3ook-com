@@ -79,7 +79,7 @@
 <script setup lang="ts">
 import { copyToClipboard } from '~/utils'
 import type { PriceFormItem } from '~/types/publish'
-import { getBookListingStatus, isEditionDraftSoldOut } from '~/utils/listing'
+import { getBookListingStatus, isEditionDraftSoldOut } from '~/utils/listing-status'
 
 const { t: $t } = useI18n()
 
