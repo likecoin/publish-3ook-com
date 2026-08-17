@@ -145,5 +145,5 @@ export function useSiteMenuItems() {
     ]),
   )
 
-  return { groups, navigationItems }
+  return { navigationItems }
 }
