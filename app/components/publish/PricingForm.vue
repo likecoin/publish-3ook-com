@@ -117,7 +117,7 @@
                   >
                     <UFormField :label="$t('nft_book_form.stock')">
                       <UInput
-                        v-model="p.stock"
+                        v-model.number="p.stock"
                         type="number"
                         step="1"
                         :min="1"
