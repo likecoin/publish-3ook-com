@@ -519,6 +519,7 @@
   "my_books.status_draft": "Draft",
   "my_books.status_listed": "On sale",
   "my_books.status_pending_review": "In review",
+  "my_books.status_sold_out": "Sold out",
   "my_books.status_unlisted": "Unlisted",
   "my_books.total_books": "{count} books",
   "my_books.unlisted_editions": "{count} of {total} editions unlisted",

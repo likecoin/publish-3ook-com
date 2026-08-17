@@ -163,7 +163,7 @@ import { useObjectUrl } from '@vueuse/core'
 import type { BookListingStatus } from '~/types'
 import type { PublishSession } from '~/types/publish'
 import { PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
-import { formatPriceUSDLabel, getBookListingStatus, hasListedEdition, getLowestPriceUSD } from '~/utils/listing'
+import { formatPriceUSDLabel, getBookListingStatus, hasListedEdition, isBookSoldOut, getLowestPriceUSD } from '~/utils/listing'
 import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 import {
   PUBLISH_RESUME_QUERY,
@@ -196,8 +196,9 @@ const { fetchBookListing, fetchModeratedBookList } = bookstoreApiStore
 const STATUS_SORT_ORDER: Record<BookListingStatus, number> = {
   draft: -1,
   pending_review: 0,
-  listed: 1,
-  unlisted: 2,
+  sold_out: 1,
+  listed: 2,
+  unlisted: 3,
 }
 
 // The draft row fills what the local session knows and leaves the rest
@@ -273,7 +274,11 @@ const bookRows = computed<BookTableRow[]>(() => (isShowingModeratedList.value ? 
     // full size for a 40px-wide box.
     coverSrc: b.thumbnailUrl ? getImageResizeURL(parseImageURLFromMetadata(b.thumbnailUrl), { width: 100 }) : undefined,
     priceInUSD: b.minPrice ?? prices[0]?.price,
-    status: getBookListingStatus({ ...b, hasListedEdition: hasListedEdition(prices) }),
+    status: getBookListingStatus({
+      ...b,
+      hasListedEdition: hasListedEdition(prices),
+      isSoldOut: isBookSoldOut(prices),
+    }),
     editionCount: prices.length,
     unlistedEditionCount: prices.filter(p => p.isUnlisted).length,
     pendingAction: b.pendingNFTCount,

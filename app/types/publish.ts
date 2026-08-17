@@ -23,7 +23,7 @@ export type PublishFileRecordWithBlob = PublishFileRecord & { fileBlob?: Blob }
 export interface PriceFormItem {
   index?: string
   price: string
-  deliveryMethod: string
+  deliveryMethod: 'auto' | 'manual'
   autoMemo: string
   stock: number
   name: string

@@ -79,7 +79,7 @@
 <script setup lang="ts">
 import { copyToClipboard } from '~/utils'
 import type { PriceFormItem } from '~/types/publish'
-import { getBookListingStatus } from '~/utils/listing'
+import { getBookListingStatus, isEditionDraftSoldOut } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 
@@ -104,6 +104,7 @@ const listingStatus = computed(() => getBookListingStatus({
   isPendingReview,
   isHidden: isHiddenByPlatform,
   hasListedEdition: listedCount.value > 0,
+  isSoldOut: isEditionDraftSoldOut(prices.value),
 }))
 
 // Moderation and platform hiding are not the author's to undo here. A non-owner
