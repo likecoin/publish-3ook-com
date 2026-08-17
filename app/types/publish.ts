@@ -25,7 +25,9 @@ export interface PriceFormItem {
   price: string
   deliveryMethod: 'auto' | 'manual'
   autoMemo: string
-  stock: number
+  // A number input hands back the raw string when it can't parse one, so a
+  // field the author clears mid-edit arrives here as ''. Readers coerce.
+  stock: number | string
   name: string
   description: string
   isAllowCustomPrice: boolean
