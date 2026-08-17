@@ -5,19 +5,10 @@
        may do with the file is a term of the sale, not a property of the list. -->
   <UCard>
     <template #header>
-      <div class="flex items-center gap-2">
-        <h3
-          class="font-bold font-mono"
-          v-text="$t('upload_form.drm_section_title')"
-        />
-        <UBadge
-          color="neutral"
-          variant="subtle"
-          size="sm"
-          icon="i-heroicons-arrow-path"
-          :label="$t('status_page.follows_the_file')"
-        />
-      </div>
+      <h3
+        class="font-bold font-mono"
+        v-text="$t('upload_form.drm_section_title')"
+      />
     </template>
     <PublishFileProtectionField
       :model-value="isEncrypted"

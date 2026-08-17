@@ -917,7 +917,6 @@
   "status_page.discard_changes": "Discard",
   "status_page.discard_confirm": "Discard all unsaved changes?",
   "status_page.email_placeholder": "abc{at}example.com",
-  "status_page.follows_the_file": "Follows the book file",
   "status_page.last_saved_at": "last saved {time}",
   "status_page.mark_complete": "Mark Complete",
   "status_page.no_orders": "No orders yet.",
