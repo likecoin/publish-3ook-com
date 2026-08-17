@@ -1,25 +1,25 @@
 <template>
-  <PageContainer>
-    <PageHeader />
-
-    <PageBody class="space-y-8">
-      <h2 class="lg:mt-10 text-3xl font-bold">
-        {{ $t('welcome.title') }}
-      </h2>
-
-      <SiteMenu />
-    </PageBody>
-  </PageContainer>
+  <AboutPage />
 </template>
 
 <script setup lang="ts">
+definePageMeta({ requiresAuth: false })
+
 const { t: $t } = useI18n()
 const localeRoute = useLocaleRoute()
 const bookstoreApiStore = useBookstoreApiStore()
 
-watch(() => bookstoreApiStore.isAuthenticated, (isAuth) => {
-  if (isAuth) {
-    navigateTo(localeRoute({ name: 'my-books' }), { replace: true })
-  }
-}, { immediate: true })
+useSeoMeta({
+  title: $t('about.page_title'),
+})
+
+// Bounce to my-books only when the site is entered at '/' (isHydrating);
+// in-app navigation keeps the home page accessible after login.
+if (useNuxtApp().isHydrating) {
+  watch(() => bookstoreApiStore.isAuthenticated, (isAuth) => {
+    if (isAuth) {
+      navigateTo(localeRoute({ name: 'my-books' }), { replace: true })
+    }
+  }, { immediate: true })
+}
 </script>

@@ -29,7 +29,8 @@ export function useSiteMenuItems() {
       {
         label: $t('menu.about'),
         icon: 'i-heroicons-information-circle',
-        to: localeRoute({ name: 'about' }),
+        to: localeRoute({ name: 'index' }),
+        exact: true,
       },
       {
         label: $t('menu.publisher_guide'),
