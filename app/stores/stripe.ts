@@ -29,11 +29,19 @@ export const useStripeStore = defineStore('stripe-connect', () => {
     if (!stripeConnectStatusWalletMap.value[wallet]) {
       stripeConnectStatusWalletMap.value[wallet] = getStripeConnectStatusDefault()
     }
-    const data = await apiFetch<StripeConnectStatus>('/likernft/book/user/connect/status', {
-      query: {
-        wallet,
-      },
-    })
+    let data: StripeConnectStatus | undefined
+    try {
+      data = await apiFetch<StripeConnectStatus>('/likernft/book/user/connect/status', {
+        query: {
+          wallet,
+        },
+      })
+    }
+    catch (error) {
+      // Older API deployments 404 for wallets that never set up Stripe Connect
+      // treat that as the default "not set up" status.
+      if (getApiErrorCode(error) !== 'USER_NOT_FOUND') { throw error }
+    }
     if (!data) {
       return stripeConnectStatusWalletMap.value[wallet]
     }
