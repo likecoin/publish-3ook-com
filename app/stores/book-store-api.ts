@@ -6,6 +6,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
   const sessionWallet = ref('')
   const intercomToken = ref('')
   const isShowLoginPanel = ref(false)
+  const isRestoringSession = ref(true)
 
   const listingList = ref([] as BookListingItem[])
   const moderatedBookList = ref([] as BookListingItem[])
@@ -181,6 +182,7 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     isAuthenticated,
     canEditProfile,
     isShowLoginPanel,
+    isRestoringSession,
     clearSession,
     openLoginPanel,
     closeLoginPanel,
