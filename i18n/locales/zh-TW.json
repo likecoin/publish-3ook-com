@@ -519,6 +519,7 @@
   "my_books.status_draft": "草稿",
   "my_books.status_listed": "銷售中",
   "my_books.status_pending_review": "審核中",
+  "my_books.status_sold_out": "售罄",
   "my_books.status_unlisted": "已下架",
   "my_books.total_books": "共 {count} 本",
   "my_books.unlisted_editions": "{total} 個版本中 {count} 個已下架",
