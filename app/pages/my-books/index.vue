@@ -163,7 +163,8 @@ import { useObjectUrl } from '@vueuse/core'
 import type { BookListingStatus } from '~/types'
 import type { PublishSession } from '~/types/publish'
 import { PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
-import { formatPriceUSDLabel, getBookListingStatus, hasListedEdition, isBookSoldOut, getLowestPriceUSD } from '~/utils/listing'
+import { formatPriceUSDLabel, getLowestPriceUSD } from '~/utils/listing'
+import { getBookListingStatus, hasListedEdition, isBookSoldOut } from '~/utils/listing-status'
 import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 import {
   PUBLISH_RESUME_QUERY,
