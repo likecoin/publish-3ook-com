@@ -34,7 +34,7 @@ export const useUserStore = defineStore('user', () => {
       return user
     }
     catch (e: unknown) {
-      if ((e as Error).message !== 'USER_NOT_FOUND') {
+      if (getApiErrorCode(e) !== 'USER_NOT_FOUND') {
         // eslint-disable-next-line no-console
         console.error(e)
       }
