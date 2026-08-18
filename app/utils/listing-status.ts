@@ -22,6 +22,13 @@ export function hasListedEdition(prices: { isUnlisted?: boolean }[] | undefined)
   return !!prices?.length && prices.some(p => !p.isUnlisted)
 }
 
+// The draft-shape counterpart of hasListedEdition(), which reads the API's
+// `isUnlisted`. Kept apart rather than unified: the two shapes spell the same
+// fact with opposite polarity, and one function taking either would hide that.
+export function hasListedEditionDraft(prices: PriceFormItem[]): boolean {
+  return prices.some(p => p.isListed)
+}
+
 // Sold out only counts the editions a reader can still see: with none listed the
 // book is already 已下架. `isSoldOut` is the API's verdict and the source of
 // truth, never true for an auto-delivered edition since those mint on demand.
