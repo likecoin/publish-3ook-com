@@ -21,10 +21,12 @@ export const useGasBalanceCheck = () => {
   const showGasFeeError = (walletAddress: string, currentBalance: bigint, neededBalance: bigint) => {
     const currentBalanceFormatted = formatEther(currentBalance)
     const neededBalanceFormatted = formatEther(neededBalance)
+    const chainName = config.chains[0]?.name || ''
     toast.add({
       icon: 'i-heroicons-exclamation-circle',
       title: $t('errors.insufficient_gas_fee'),
       description: $t('errors.insufficient_gas_fee_description', {
+        chainName,
         currentBalance: currentBalanceFormatted,
         neededBalance: neededBalanceFormatted,
       }),
@@ -37,6 +39,7 @@ export const useGasBalanceCheck = () => {
             if (window.Intercom) {
               window.Intercom('showNewMessage', $t('errors.insufficient_gas_fee_support_message', {
                 walletAddress,
+                chainName,
                 currentBalance: currentBalanceFormatted,
                 neededBalance: neededBalanceFormatted,
               }))
