@@ -14,6 +14,7 @@
       v-model:is-preview-enabled="isPreviewEnabled"
       v-model:preview-percentage="previewPercentage"
       :is-free-book="isFreeBook"
+      :show-plus-reading="false"
     />
   </UCard>
 </template>
