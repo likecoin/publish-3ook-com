@@ -1,12 +1,22 @@
 <template>
-  <!-- What a reader meets on the storefront. The lowest price leads because
-       that is the figure the storefront leads with. -->
+  <!-- What a reader meets on the storefront, and the consequence of the two
+       channel switches before the save that applies them. The panes mirror
+       /store/{id} and /library/{id}, one page component there too. -->
   <UCard>
     <template #header>
-      <h3
-        class="font-bold font-mono"
-        v-text="$t('publish_review.reader_preview_title')"
-      />
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h3
+          class="font-bold font-mono"
+          v-text="$t('publish_review.reader_preview_title')"
+        />
+        <UTabs
+          v-if="showChannelTabs"
+          v-model="channel"
+          size="xs"
+          :content="false"
+          :items="channelItems"
+        />
+      </div>
     </template>
     <div class="flex gap-4">
       <BookCoverThumbnail
@@ -45,12 +55,24 @@
         </div>
       </div>
     </div>
+
+    <!-- The consequence of the two channel switches, before the save that
+         applies them. Nothing else on the page shows it. -->
+    <UAlert
+      v-if="channelNotice"
+      class="mt-4"
+      :color="channelNotice.color"
+      variant="subtle"
+      icon="i-heroicons-information-circle"
+      :description="channelNotice.description"
+    />
   </UCard>
 </template>
 
 <script setup lang="ts">
 import type { PriceFormItem } from '~/types/publish'
 import { getLowestPriceUSD, formatPriceUSDLabel } from '~/utils/listing'
+import { hasListedEditionDraft } from '~/utils/listing-status'
 
 const { t: $t } = useI18n()
 
@@ -64,6 +86,8 @@ const {
   previewPercentage,
   isDownloadable,
   isPlusReadingEnabled,
+  showChannelTabs = false,
+  isAudioAllowed = false,
 } = defineProps<{
   prices: PriceFormItem[]
   title: string
@@ -74,17 +98,51 @@ const {
   previewPercentage: number
   isDownloadable: boolean
   isPlusReadingEnabled: boolean
+  // The wizard has no channel to switch away from yet, so it omits this and
+  // gets the single storefront pane it always had.
+  showChannelTabs?: boolean
+  isAudioAllowed?: boolean
 }>()
 
-const lowestPriceUSD = computed(() => getLowestPriceUSD(prices))
+type ReaderChannel = 'store' | 'library'
 
-const readerPrice = computed(() => (
-  lowestPriceUSD.value === null ? '' : formatPriceUSDLabel(lowestPriceUSD.value, $t)
-))
+const channel = ref<ReaderChannel>('store')
+
+const channelItems = computed<{ value: ReaderChannel, label: string }[]>(() => [
+  { value: 'store', label: $t('status_page.reader_view_channel_store') },
+  { value: 'library', label: $t('status_page.reader_view_channel_library') },
+])
+
+const isLibraryChannel = computed(() => showChannelTabs && channel.value === 'library')
+
+const hasListedEdition = computed(() => hasListedEditionDraft(prices))
+
+// The figure the storefront leads with, so only editions a reader can actually
+// buy count — an unlisted cheaper one would advertise a price that is not for
+// sale. Null once nothing is listed, which is what leaves the price blank.
+const lowestListedPriceUSD = computed(() =>
+  getLowestPriceUSD(prices.filter(price => price.isListed)))
+
+const readerPrice = computed(() => {
+  if (isLibraryChannel.value) { return $t('status_page.reader_view_library_price') }
+  // Without the channel panes there is no notice to explain a blank price, so
+  // the wizard keeps showing the draft's lowest as it always did.
+  if (!showChannelTabs) {
+    const lowest = getLowestPriceUSD(prices)
+    return lowest === null ? '' : formatPriceUSDLabel(lowest, $t)
+  }
+  if (lowestListedPriceUSD.value === null) { return '' }
+  return formatPriceUSDLabel(lowestListedPriceUSD.value, $t)
+})
 
 // Only promises a reader can see on the listing itself.
 const readerBadges = computed(() => {
   const badges: string[] = []
+  if (isLibraryChannel.value) {
+    badges.push($t('status_page.reader_view_badge_revenue_share'))
+    if (isAudioAllowed) { badges.push($t('status_page.reader_view_badge_tts')) }
+    return badges
+  }
   if (isPreviewEnabled) {
     badges.push($t('publish_review.reader_preview_percent', {
       percent: previewPercentage,
@@ -100,5 +158,28 @@ const readerBadges = computed(() => {
     badges.push($t('publish_review.reader_editions', { count: prices.length }))
   }
   return badges
+})
+
+// Free borrowing for a non-Plus reader needs a *listed* price-0 edition, so a
+// book that has one only unlisted cuts them off while Plus members keep
+// borrowing. Mirrors the storefront's own getHasFreeEdition rule.
+const isFreeBorrowCut = computed(() => (
+  getLowestPriceUSD(prices) === 0 && lowestListedPriceUSD.value !== 0
+))
+
+const channelNotice = computed(() => {
+  if (!showChannelTabs) { return null }
+  if (!isLibraryChannel.value) {
+    return hasListedEdition.value
+      ? null
+      : { color: 'neutral' as const, description: $t('status_page.reader_view_store_empty') }
+  }
+  if (!isPlusReadingEnabled) {
+    return { color: 'neutral' as const, description: $t('status_page.reader_view_library_empty') }
+  }
+  if (isFreeBorrowCut.value) {
+    return { color: 'warning' as const, description: $t('status_page.reader_view_library_free_borrow_cut') }
+  }
+  return null
 })
 </script>
