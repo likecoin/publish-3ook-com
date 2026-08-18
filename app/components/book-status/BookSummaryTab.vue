@@ -49,7 +49,7 @@
       :title="iscnFormData.title"
       :subtitle="iscnFormData.alternativeHeadline"
       :author-name="iscnFormData.author.name"
-      :cover-image-src="iscnFormData.coverUrl"
+      :cover-image-src="coverImageSrc"
       :is-preview-enabled="classListingInfo.isPreviewEnabled ?? false"
       :preview-percentage="classListingInfo.previewPercentage ?? PREVIEW_PERCENTAGE_DEFAULT"
       :is-downloadable="!(classListingInfo.hideDownload ?? false)"
@@ -83,6 +83,7 @@ import type { ISCNFormData } from '~/types/iscn'
 import type { BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import type { PriceFormItem } from '~/types/publish'
 import { mapListingPriceToFormItem, getSoldCount } from '~/utils/listing'
+import { parseImageURLFromMetadata } from '~/utils'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
@@ -109,6 +110,11 @@ const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 
 const priceFormItems = computed(() =>
   (classListingInfo.prices || []).map(mapListingPriceToFormItem))
+
+// The chain metadata stores the cover as `ar://` / `ipfs://`, which no browser
+// can fetch, so the gateway rewrite has to happen before it reaches an <img>.
+const coverImageSrc = computed(() =>
+  parseImageURLFromMetadata(iscnFormData.value.coverUrl))
 
 // Cached after any other tab loaded it; the summary reads, never writes.
 watch(() => classId, async () => {
