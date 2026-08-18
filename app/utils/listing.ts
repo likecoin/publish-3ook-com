@@ -42,15 +42,27 @@ export function getListingPriceName(name: ClassListingPrice['name']): string {
   return name || ''
 }
 
-export function getPriceItemUSDValue(p: PriceFormItem): number {
-  return p.isCustomPricing ? Number(p.priceUSDInput) : Number(p.price)
+function isBlank(value: unknown): boolean {
+  return String(value ?? '').trim() === ''
 }
 
-// The cheapest way in, which is the figure a storefront leads with. Editions
-// seeded but never priced still carry -1, so they are excluded rather than
-// shown as the lowest — leaving null for an all-unpriced draft.
+function isRealPrice(value: number): boolean {
+  return Number.isFinite(value) && value >= 0
+}
+
+// A blank price is "not chosen yet", not zero — Number('') is 0, and 0 is a
+// real price here (free, which also opts the book into Plus). NaN keeps an
+// untouched field failing validation instead of publishing as free.
+export function getPriceItemUSDValue(p: PriceFormItem): number {
+  const raw = p.isCustomPricing ? p.priceUSDInput : p.price
+  return isBlank(raw) ? Number.NaN : Number(raw)
+}
+
+// The cheapest way in, which is the figure a storefront leads with. An edition
+// never priced carries no number at all, so it is excluded rather than shown as
+// the lowest — leaving null for an all-unpriced draft.
 export function getLowestPriceUSD(prices: PriceFormItem[]): number | null {
-  const values = prices.map(getPriceItemUSDValue).filter(value => Number.isFinite(value) && value >= 0)
+  const values = prices.map(getPriceItemUSDValue).filter(isRealPrice)
   return values.length ? Math.min(...values) : null
 }
 
@@ -60,8 +72,11 @@ export function getSoldCount(prices: ClassListingPrice[] | undefined): number {
   return (prices || []).reduce((total, price) => total + (price.sold || 0), 0)
 }
 
-// Zero is a real price the storefront labels, not a number to render.
+// Zero is a real price the storefront labels, not a number to render. An edition
+// never priced reaches here unmapped off the API as -1, so it reads as a dash
+// rather than as US$-1.
 export function formatPriceUSDLabel(usd: number, t: TranslateFn): string {
+  if (!isRealPrice(usd)) { return '-' }
   return usd === 0 ? t('publish_review.free') : `US$${usd}`
 }
 
@@ -103,7 +118,9 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
   const overrideHKD = price.priceInDecimalByCurrency?.hkd
   const overrideTWD = price.priceInDecimalByCurrency?.twd
   const hasCustomPricing = typeof overrideHKD === 'number' || typeof overrideTWD === 'number'
-  const tierPriceStr = price.price?.toString() || ''
+  // -1 is how the API marks an edition that was never priced; the form says
+  // that with a blank select rather than a number no one would type.
+  const tierPriceStr = Number(price.price) === -1 ? '' : price.price?.toString() || ''
   return {
     index: price.index?.toString(),
     price: tierPriceStr,
@@ -155,11 +172,7 @@ export function validatePriceFormItems(
       taken.add(trimmedName)
     }
     if (p.isCustomPricing) {
-      const isMissing = (
-        String(p.priceUSDInput).trim() === ''
-        || String(p.priceHKDInput).trim() === ''
-        || String(p.priceTWDInput).trim() === ''
-      )
+      const isMissing = isBlank(p.priceUSDInput) || isBlank(p.priceHKDInput) || isBlank(p.priceTWDInput)
       if (isMissing) {
         errors.push({
           name: priceFieldName,
@@ -169,7 +182,7 @@ export function validatePriceFormItems(
       }
       for (const [currency, input] of [['HKD', p.priceHKDInput], ['TWD', p.priceTWDInput]] as const) {
         const value = Number(input)
-        if (!Number.isFinite(value) || value < 0) {
+        if (!isRealPrice(value)) {
           errors.push({
             name: priceFieldName,
             message: t('errors.invalid_price_override', { currency }),
@@ -178,7 +191,15 @@ export function validatePriceFormItems(
       }
     }
     const usdValue = getPriceItemUSDValue(p)
-    if (!Number.isFinite(usdValue) || (usdValue !== 0 && usdValue < MINIMAL_PRICE)) {
+    // A price left unchosen is its own mistake: "at least 0.99 or free" reads
+    // as a correction to a number the author never entered.
+    if (!p.isCustomPricing && Number.isNaN(usdValue)) {
+      errors.push({
+        name: priceFieldName,
+        message: t('errors.price_required'),
+      })
+    }
+    else if (!Number.isFinite(usdValue) || (usdValue !== 0 && usdValue < MINIMAL_PRICE)) {
       errors.push({
         name: priceFieldName,
         message: t('errors.price_validation', { minPrice: MINIMAL_PRICE }),

@@ -76,6 +76,7 @@
 
 <script setup lang="ts">
 import type { BookRecord } from '~/types'
+import { formatPriceUSDLabel } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 
@@ -165,7 +166,7 @@ const tableRows = computed(() => bookList.value.map((b) => {
     className,
     image: image ? getImageResizeURL(parseImageURLFromMetadata(image)) : undefined,
     author,
-    priceInUSD: `US$${b.minPrice || b.prices?.[0]?.price || 0}`,
+    priceInUSD: formatPriceUSDLabel(Number(b.minPrice ?? b.prices?.[0]?.price), $t),
     url: `${BOOK3_URL}/store/${b.classId}?from=${channelId.value}&utm_source=bookpress&utm_medium=list_${selectedTabItemKey.value}`,
   }
 }))

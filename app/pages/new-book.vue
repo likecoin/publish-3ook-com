@@ -307,8 +307,8 @@ const coverImageSrc = computed(() =>
 
 function createDefaultListingDraft(): PublishListingDraft {
   return {
-    // Seed an invalid price so an untouched field can't be accidentally saved.
-    prices: [createDefaultPriceFormItem({ price: '-1', name: $t('prices.standard_edition') })],
+    // Seed no price, so an untouched field can't be accidentally saved.
+    prices: [createDefaultPriceFormItem({ price: '', name: $t('prices.standard_edition') })],
     isAllowCustomPrice: true,
     isAdultOnly: false,
     hideAudio: false,
@@ -391,7 +391,12 @@ function resumeDraft() {
     hydrateCoverPreview()
     encryptEbook.value = session.encryptEbook
     iscnFormData.value = session.iscnFormData
-    listingDraft.value = { ...createDefaultListingDraft(), ...session.listingDraft }
+    const draft = { ...createDefaultListingDraft(), ...session.listingDraft }
+    // Drafts saved before the price select had a placeholder carry the old -1
+    // sentinel; blank is how "not chosen" is spelled now, and only blank opens
+    // the select on its placeholder.
+    draft.prices = draft.prices.map(p => (Number(p.price) === -1 ? { ...p, price: '' } : p))
+    listingDraft.value = draft
     classId.value = session.classId || ''
     mintTxHash.value = session.mintTxHash || ''
     skipMint.value = session.skipMint ?? false
