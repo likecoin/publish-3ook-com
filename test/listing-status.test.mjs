@@ -5,9 +5,20 @@ import assert from 'node:assert/strict'
 import {
   getBookListingStatus,
   hasListedEdition,
+  hasListedEditionDraft,
   isBookSoldOut,
   isEditionDraftSoldOut,
 } from '../app/utils/listing-status.ts'
+
+// The draft shape spells the same fact with the opposite polarity, so the two
+// must not be swapped for each other: `{}` is listed to one and hidden to the other.
+test('hasListedEditionDraft reads the draft flag, not the API one', () => {
+  assert.equal(hasListedEditionDraft([]), false)
+  assert.equal(hasListedEditionDraft([{ isListed: false }]), false)
+  assert.equal(hasListedEditionDraft([{ isListed: false }, { isListed: true }]), true)
+  assert.equal(hasListedEditionDraft([{}]), false)
+  assert.equal(hasListedEdition([{}]), true)
+})
 
 test('hasListedEdition needs at least one edition a reader can see', () => {
   assert.equal(hasListedEdition(undefined), false)
