@@ -18,6 +18,9 @@ export interface BookEditChangeEntry {
   // Saving this entry signs an on-chain transaction; the bar announces it so
   // the wallet prompt on save is expected, not a surprise.
   needsWallet?: boolean
+  // Filled in from the bookstore listing rather than edited by the author, so
+  // the leave guards can ignore it and the label can say where it came from.
+  source?: 'store'
 }
 
 export interface BookEditEditionChange {
@@ -93,11 +96,21 @@ const EDITION_FIELD_LABEL_KEYS: Record<string, string> = {
   isListed: 'nft_book_form.edition_visibility',
 }
 
+// What a pending entry is: filled in from the bookstore listing, signed on
+// chain, or typed by the author. Shared so the bar and the summary list agree.
+export function getBookEditChangeIcon(entry: BookEditChangeEntry): string | undefined {
+  if (entry.source === 'store') { return 'i-heroicons-building-storefront' }
+  return entry.needsWallet ? 'i-heroicons-wallet' : undefined
+}
+
 export function useBookEditChanges(options: {
   chainChangedFields: () => string[]
   settingsChangedKeys: () => string[]
   editionChanges: () => BookEditEditionChange[]
   signatureChanged: () => boolean
+  // Chain fields holding a value taken from the bookstore listing; see
+  // utils/store-metadata-drift.ts.
+  chainStoreSourcedFields?: () => string[]
 }) {
   const { t } = useI18n()
 
@@ -114,15 +127,21 @@ export function useBookEditChanges(options: {
       entries.push(entry)
     }
 
+    const storeSourced = new Set(options.chainStoreSourcedFields?.() ?? [])
     options.chainChangedFields().forEach((field) => {
       const labelKey = CHAIN_FIELD_LABEL_KEYS[field]
+      const label = labelKey ? t(labelKey) : field
+      const isStoreSourced = storeSourced.has(field)
       push({
         key: `chain.${field}`,
-        label: labelKey ? t(labelKey) : field,
+        // Labeled where it came from wherever the entry is listed, so nobody
+        // has to work out why a page they only opened has changes pending.
+        label: isStoreSourced ? t('status_page.pending_change_from_store', { field: label }) : label,
         tab: FILES_TAB_CHAIN_KEYS.has(field) ? 'files' : 'details',
         group: 'chain',
         audience: READER_FACING_CHAIN_KEYS.has(field) ? 'readers' : 'storefront',
         needsWallet: true,
+        source: isStoreSourced ? 'store' : undefined,
       })
     })
 
@@ -168,6 +187,9 @@ export function useBookEditChanges(options: {
   })
 
   const changeCount = computed(() => changes.value.length)
+  // The edits the author actually made. The leave guards read this: warning
+  // about values the store proposed teaches people to click through the dialog.
+  const authorChangeCount = computed(() => changes.value.filter(entry => !entry.source).length)
   const needsWalletSignature = computed(() => changes.value.some(entry => entry.needsWallet))
 
   // The widest audience any pending change reaches: one save commits them all,
@@ -180,6 +202,7 @@ export function useBookEditChanges(options: {
   return {
     changes,
     changeCount,
+    authorChangeCount,
     changeAudience,
     needsWalletSignature,
   }

@@ -2,6 +2,7 @@ import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
 import type { ClassMetadata, ISCNFormData, ISCNRegisterPayload } from '~/types/iscn'
 import { formatISCNTxPayload, buildBookClassMetadata } from '~/utils/iscn'
+import { parseBookKeywords } from '~/utils/store-metadata-drift'
 import { getFileTypeFromMime } from '~/composables/useISCN'
 
 // Loads on-chain class metadata into the shared ISCNForm shape and saves
@@ -60,15 +61,9 @@ export function useNFTClassUpdater() {
     else if (metadata.sameAs && Array.isArray(metadata.sameAs)) {
       downloadableUrls = metadata.sameAs.map(parseDownloadableUrl)
     }
-    const tags: string[] = []
-    if (metadata.keywords) {
-      if (Array.isArray(metadata.keywords)) {
-        tags.push(...metadata.keywords)
-      }
-      else {
-        tags.push(...metadata.keywords.split(',').map((k: string) => k.trim()).filter((k: string) => k))
-      }
-    }
+    // Shared with the bookstore-drift comparison, which reads the tags this
+    // produces: parsed the same way, they dedupe the same way.
+    const tags = parseBookKeywords(metadata.keywords)
     return {
       ...metadata,
       type: metadata['@type'] || 'Book',

@@ -20,6 +20,9 @@
       :content-excerpt="contentExcerpt"
       :table-of-contents="tableOfContents"
       :description-full="descriptionFull"
+      :store-sourced-fields="storeSourcedFields"
+      :store-conflicts="storeConflicts"
+      @apply-store-value="(field: StoreMetadataDriftField) => emit('applyStoreValue', field)"
     />
 
     <IscnIdentifierFields
@@ -57,6 +60,7 @@ import { useEventListener } from '@vueuse/core'
 import type { FormError } from '#ui/types'
 import type { ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
+import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 
 import {
   licenseOptions,
@@ -81,12 +85,21 @@ const props = withDefaults(defineProps<{
   // Fields the host filled in from an uploaded file, so they read as something
   // to check rather than as the author's own entry.
   prefilledFields?: ISCNPrefillableField[]
+  // Fields currently holding a value the host took from the bookstore listing,
+  // and the ones the store disagrees with rather than fills in. Both are empty
+  // in the wizard: a book being published has no listing to differ from.
+  storeSourcedFields?: StoreMetadataDriftField[]
+  storeConflicts?: StoreMetadataConflict[]
 }>(), {
   guardUnsavedChanges: true,
   contentExcerpt: '',
   tableOfContents: '',
   prefilledFields: () => [],
+  storeSourcedFields: () => [],
+  storeConflicts: () => [],
 })
+
+const emit = defineEmits<{ applyStoreValue: [field: StoreMetadataDriftField] }>()
 
 const formData = defineModel<ISCNFormData>({ required: true })
 
@@ -124,8 +137,11 @@ onBeforeRouteLeave(() => {
   }
 })
 
-function resetSnapshot() {
-  initialFormDataSnapshot.value = JSON.stringify(formData.value)
+// Hosts that fill fields in from somewhere else pass the baseline explicitly, so
+// what counts as changed stays what they decide rather than whatever the form
+// happens to hold when this runs.
+function resetSnapshot(snapshot?: string) {
+  initialFormDataSnapshot.value = snapshot ?? JSON.stringify(formData.value)
   // Saved keywords are the author's own now, so drop the review-me hint.
   hasSuggested.value = false
 }

@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import type { DropdownMenuItem } from '#ui/types'
-import type { BookEditChangeAudience, BookEditChangeEntry } from '~/composables/useBookEditChanges'
+import { getBookEditChangeIcon, type BookEditChangeAudience, type BookEditChangeEntry } from '~/composables/useBookEditChanges'
 
 const { t: $t, locale } = useI18n()
 
@@ -120,10 +120,12 @@ const savedLabel = computed(() => {
 })
 
 // Each entry jumps to the tab that owns the field; the wallet icon marks the
-// ones whose save will ask for a signature.
+// ones whose save will ask for a signature, and the storefront icon the ones
+// filled in from the bookstore listing (the hint above still announces the
+// signature those need).
 const dropdownItems = computed<DropdownMenuItem[]>(() => changes.map(entry => ({
   label: entry.label,
-  icon: entry.needsWallet ? 'i-heroicons-wallet' : undefined,
+  icon: getBookEditChangeIcon(entry),
   onSelect: () => emit('jump', entry.tab),
 })))
 </script>
