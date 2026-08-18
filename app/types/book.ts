@@ -9,8 +9,14 @@ export type BookListingStatus = 'listed' | 'sold_out' | 'unlisted' | 'pending_re
 
 // The status page's tabs, in display order. Also the values accepted in its
 // `?tab=` query, so an unknown value can fall back instead of hiding every pane.
-export const BOOK_STATUS_TABS = ['files', 'details', 'pricing', 'summary', 'sales'] as const
+// The values are the pre-reshuffle ones on purpose: 'summary' now labels 書籍狀態
+// and 'pricing' 訂價與設定, but renaming them would break every bookmarked link.
+export const BOOK_STATUS_TABS = ['summary', 'details', 'pricing', 'sales'] as const
 export type BookStatusTab = typeof BOOK_STATUS_TABS[number]
+
+// 書檔 was folded into 書籍資料; its links keep working. A Map, not an object:
+// a `?tab=` of `constructor` would otherwise resolve off the prototype chain.
+export const RETIRED_BOOK_STATUS_TABS = new Map<string, BookStatusTab>([['files', 'details']])
 
 export interface ClassListingPrice {
   index: number

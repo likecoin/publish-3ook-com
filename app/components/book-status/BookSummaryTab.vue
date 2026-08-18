@@ -45,34 +45,26 @@
       :is-hidden-by-platform="classListingInfo.isHidden ?? false"
     />
 
+    <BookStatusBookLendingStateCard
+      v-model="isPlusReadingEnabled"
+      :can-edit="canEdit"
+      :is-free-book="isFreeBook"
+    />
+
+    <!-- Fed the edit draft, not the saved listing, so the two radios above show
+         their effect before the save that applies it. -->
     <PublishReviewReaderPreviewCard
-      :prices="priceFormItems"
+      show-channel-tabs
+      :prices="editedPrices"
       :title="iscnFormData.title"
       :subtitle="iscnFormData.alternativeHeadline"
       :author-name="iscnFormData.author.name"
       :cover-image-src="coverImageSrc"
-      :is-preview-enabled="classListingInfo.isPreviewEnabled ?? false"
-      :preview-percentage="classListingInfo.previewPercentage ?? PREVIEW_PERCENTAGE_DEFAULT"
-      :is-downloadable="!(classListingInfo.hideDownload ?? false)"
-      :is-plus-reading-enabled="classListingInfo.isPlusReadingEnabled ?? false"
-    />
-
-    <PublishReviewRevenueCard :prices="priceFormItems" />
-
-    <PublishReviewMetadataCard
-      :iscn-form-data="iscnFormData"
-      :description-full="classListingInfo.descriptionFull"
-      editable
-      @edit="emit('goToTab', 'details')"
-    />
-
-    <PublishReviewPricingCard
-      :prices="priceFormItems"
-      :is-plus-reading-enabled="classListingInfo.isPlusReadingEnabled ?? false"
-      :hide-audio="classListingInfo.hideAudio ?? false"
-      :is-adult-only="classListingInfo.isAdultOnly ?? false"
-      editable
-      @edit="emit('goToTab', 'pricing')"
+      :is-preview-enabled="isPreviewEnabled"
+      :preview-percentage="previewPercentage"
+      :is-downloadable="!hideDownload"
+      :is-audio-allowed="!hideAudio"
+      :is-plus-reading-enabled="isPlusReadingEnabled"
     />
   </div>
 </template>
@@ -80,22 +72,25 @@
 <script setup lang="ts">
 import type { ClassListingData } from '~/types'
 import type { BookStatusTab } from '~/types/book'
+import type { BookListingSettingsContext } from '~/composables/useBookListingSettings'
 import type { ISCNFormData } from '~/types/iscn'
 import { getBookEditChangeIcon, type BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import type { PriceFormItem } from '~/types/publish'
-import { mapListingPriceToFormItem, getSoldCount } from '~/utils/listing'
+import { getSoldCount } from '~/utils/listing'
 import { parseImageURLFromMetadata } from '~/utils'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { getStoreMetadataDrift } from '~/utils/store-metadata-drift'
-import { PREVIEW_PERCENTAGE_DEFAULT, BOOK_CATEGORY_VALUES, MAX_BOOK_KEYWORDS } from '~/constant'
+import { BOOK_CATEGORY_VALUES, MAX_BOOK_KEYWORDS } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId, classListingInfo, storeUrl, canEdit = false, pendingChanges = [], hasStoreMetadataMismatch = false } = defineProps<{
+const { classId, classListingInfo, storeUrl, settings, isFreeBook = false, canEdit = false, pendingChanges = [], hasStoreMetadataMismatch = false } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
   storeUrl: string
+  settings: BookListingSettingsContext
+  isFreeBook?: boolean
   canEdit?: boolean
   pendingChanges?: BookEditChangeEntry[]
   // Passed down rather than recomputed here: the details tab owns the drift, so
@@ -123,8 +118,13 @@ const editedPrices = defineModel<PriceFormItem[]>('prices', { required: true })
 
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 
-const priceFormItems = computed(() =>
-  (classListingInfo.prices || []).map(mapListingPriceToFormItem))
+const {
+  isPlusReadingEnabled,
+  isPreviewEnabled,
+  previewPercentage,
+  hideDownload,
+  hideAudio,
+} = settings
 
 // The chain metadata stores the cover as `ar://` / `ipfs://`, which no browser
 // can fetch, so the gateway rewrite has to happen before it reaches an <img>.

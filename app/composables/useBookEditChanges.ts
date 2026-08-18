@@ -2,6 +2,8 @@
 // page's tabs. It owns no form state: each domain keeps its own snapshot, and
 // this turns their changed-key lists into one deduped ledger for the bar.
 
+import type { BookStatusTab } from '~/types/book'
+
 export type BookEditChangeGroup = 'chain' | 'settings' | 'signature' | `price:${number}`
 
 // Who a saved change reaches. Authors ask this before every save, so the bar
@@ -12,7 +14,7 @@ export interface BookEditChangeEntry {
   key: string
   label: string
   // The tab that owns the field, so the bar can jump to it.
-  tab: 'files' | 'details' | 'pricing'
+  tab: BookStatusTab
   group: BookEditChangeGroup
   audience: BookEditChangeAudience
   // Saving this entry signs an on-chain transaction; the bar announces it so
@@ -60,13 +62,15 @@ const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
   moderatorWallets: 'form.share_sales_data',
 }
 
-// descriptionFull / TOC / moderators are edited on the details tab even though
-// they save through the settings POST.
-const DETAILS_TAB_SETTING_KEYS = new Set(['descriptionFull', 'tableOfContents', 'moderatorWallets'])
-
-// The cover is chain metadata, but the only control that changes it is 書檔's
-// dropzone, so that is where its entry has to jump.
-const FILES_TAB_CHAIN_KEYS = new Set(['coverUrl'])
+// Where each setting is edited, which is not where it is saved: all of these go
+// through the same settings POST. Anything unlisted is a term of the sale.
+const SETTINGS_FIELD_TABS: Record<string, BookStatusTab> = {
+  isPlusReadingEnabled: 'summary',
+  descriptionFull: 'details',
+  tableOfContents: 'details',
+  hideDownload: 'details',
+  moderatorWallets: 'sales',
+}
 
 // The file itself and what may be done with it are the only edits that reach
 // someone who already paid; everything else is either the next sale's terms or
@@ -137,7 +141,7 @@ export function useBookEditChanges(options: {
         // Labeled where it came from wherever the entry is listed, so nobody
         // has to work out why a page they only opened has changes pending.
         label: isStoreSourced ? t('status_page.pending_change_from_store', { field: label }) : label,
-        tab: FILES_TAB_CHAIN_KEYS.has(field) ? 'files' : 'details',
+        tab: 'details',
         group: 'chain',
         audience: READER_FACING_CHAIN_KEYS.has(field) ? 'readers' : 'storefront',
         needsWallet: true,
@@ -150,7 +154,7 @@ export function useBookEditChanges(options: {
       push({
         key: `settings.${field}`,
         label: labelKey ? t(labelKey) : field,
-        tab: DETAILS_TAB_SETTING_KEYS.has(field) ? 'details' : 'pricing',
+        tab: SETTINGS_FIELD_TABS[field] ?? 'pricing',
         group: 'settings',
         audience: getSettingAudience(field),
       })
