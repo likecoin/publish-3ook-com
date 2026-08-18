@@ -69,6 +69,13 @@ export function useBookListingSettings(options: {
     initListingFieldsFromInfo()
   }, { immediate: true })
 
+  // The load above already forces it, but pricing an edition down to free
+  // mid-session has to force it too. The server has no equivalent default — it
+  // writes whatever we send — so this is the only thing that opts a free book in.
+  watch(() => options.isFreeBook.value, (isFree) => {
+    if (isFree) { isPlusReadingEnabled.value = true }
+  })
+
   // Derived from the key list so what the pending-changes bar counts and what
   // save decides to POST can never disagree.
   function isListingSettingsDirty(): boolean {
