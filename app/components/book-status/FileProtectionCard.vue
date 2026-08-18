@@ -1,8 +1,6 @@
 <template>
-  <!-- Protection tier: read-only here because it is not a separate choice —
-       it follows whatever the book file was uploaded as, so 書檔's replacement
-       flow is where it changes. It sits with 訂價與銷售 because what a buyer
-       may do with the file is a term of the sale, not a property of the list. -->
+  <!-- Read-only because it is not a separate choice: it follows whatever the
+       book file was uploaded as, so replacing the file is what changes it. -->
   <UCard>
     <template #header>
       <h3

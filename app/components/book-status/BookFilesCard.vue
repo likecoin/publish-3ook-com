@@ -77,7 +77,7 @@
             v-if="displayedFileRows.length"
             class="w-full space-y-2"
           >
-            <!-- Keyed by index, like the drawer's own rows: a URL is editable
+            <!-- Keyed by index, like 技術資料's own rows: a URL is editable
                  there, so keying by it would rebuild the row on every keystroke
                  and collide the moment two rows read the same. -->
             <li
@@ -178,63 +178,17 @@
       </template>
     </UModal>
 
-    <!-- Collapsed: identifiers are what an author needs when something has
-         gone wrong and support asks for them, never while publishing. -->
-    <UCard v-if="!isLoading">
-      <UCollapsible v-model:open="isTechnicalOpen">
-        <UButton
-          variant="link"
-          color="neutral"
-          class="px-0"
-          :label="$t('status_page.technical_details')"
-          :trailing-icon="isTechnicalOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-        />
-        <template #content>
-          <dl class="grid grid-cols-[minmax(96px,auto)_1fr] gap-x-4 gap-y-2 pt-4 text-sm">
-            <template
-              v-for="row in technicalRows"
-              :key="row.label"
-            >
-              <dt
-                class="text-muted"
-                v-text="row.label"
-              />
-              <dd class="flex items-start gap-2 min-w-0">
-                <span
-                  class="font-mono text-xs break-all whitespace-pre-line text-highlighted"
-                  v-text="row.value || '—'"
-                />
-                <UButton
-                  v-if="row.value"
-                  icon="i-heroicons-document-duplicate"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  class="shrink-0"
-                  :aria-label="$t('common.copy')"
-                  @click="copyToClipboard(row.value)"
-                />
-              </dd>
-            </template>
-          </dl>
-
-          <!-- The escape hatch the replacement flow cannot serve: a URL that
-               has to be repaired by hand when support asks for it. -->
-          <IscnFileLinksFields
-            v-if="canEdit && fileLinks"
-            class="pt-4"
-            :links="fileLinks"
-          />
-        </template>
-      </UCollapsible>
-    </UCard>
+    <slot
+      v-if="!isLoading"
+      name="after-files"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
 import type { FileRecord } from '~/types'
-import { copyToClipboard, formatBytes, parseImageURLFromMetadata } from '~/utils'
+import { formatBytes, parseImageURLFromMetadata } from '~/utils'
 import { isContentFingerprintEncrypted } from '~/utils/iscn'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
@@ -253,12 +207,13 @@ const { classId, canEdit = false, coverError = '', fileLinksError = '', soldCoun
   canEdit?: boolean
   // The save's complaint about the cover, shown where the cover is fixed.
   coverError?: string
-  // Same, for a book left with no content URL — 技術資料 below is the fix.
+  // Same, for a book left with no content URL — 技術資料 at the foot of the
+  // tab is the fix.
   fileLinksError?: string
   // How many copies a replacement would reach; named in the confirm dialog.
   soldCount?: number
   // The chain form's own file arrays, so the list shows what will be saved
-  // rather than what was last fetched, and 技術資料 can edit them in place.
+  // rather than what was last fetched.
   fileLinks?: IscnFileLinksContext | null
 }>()
 
@@ -271,7 +226,6 @@ const isLoading = ref(false)
 const coverUrl = ref('')
 const fileRows = ref<{ url: string, type: string, fileName: string }[]>([])
 const contentFingerprints = ref<string[]>([])
-const isTechnicalOpen = ref(false)
 
 const isReplaceModalOpen = ref(false)
 const uploadFormRef = ref<{ onSubmit: () => Promise<void> } | null>(null)
@@ -281,12 +235,6 @@ const encryptEbook = ref(false)
 // Remounts the upload form on close, so a second replacement starts from an
 // empty list instead of re-uploading the file the first one already handled.
 const replaceFormKey = ref(0)
-
-// The rows that fix this live in the drawer, which is collapsed by default —
-// an error pointing at something the author cannot see is only half a message.
-watch(() => fileLinksError, (message) => {
-  if (message) { isTechnicalOpen.value = true }
-})
 
 watch(isReplaceModalOpen, (isOpen) => {
   if (!isOpen) {
@@ -342,22 +290,6 @@ const pendingCoverMeta = computed(() => {
     formatBytes(picked.file.size),
   ].join(' · ')
 })
-
-// The file and fingerprint rows are read-only here only for a viewer who has no
-// editable copy below; showing both to an owner would be the same data twice.
-const technicalRows = computed(() => [
-  { label: $t('status_page.technical_class_id'), value: classId },
-  { label: $t('form.cover_image'), value: coverUrl.value },
-  ...(canEdit && fileLinks
-    ? []
-    : [
-        {
-          label: $t('publish_review.files_title'),
-          value: fileRows.value.map(file => [file.fileName, file.url].filter(Boolean).join(' — ')).join('\n'),
-        },
-        { label: $t('iscn_form.content_fingerprint'), value: contentFingerprints.value.join('\n') },
-      ]),
-])
 
 watch(() => classId, async () => {
   if (!classId) { return }
