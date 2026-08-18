@@ -304,7 +304,6 @@ export function useBulkUpload() {
     await newBookListing(book.classId, {
       defaultPaymentCurrency: 'USD',
       connectedWallets: null,
-      moderatorWallets: ['0xa037Feb6508A8C2F93bb19f6721730C45921f2D0'],
       prices: [price],
       mustClaimToView: true,
       enableCustomMessagePage: shouldEnableCustomMessagePage([price]),
