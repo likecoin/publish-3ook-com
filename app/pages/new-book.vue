@@ -319,7 +319,9 @@ function createDefaultListingDraft(): PublishListingDraft {
     previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
     tableOfContents: '',
     descriptionFull: '',
-    moderatorWallets: ['0xa037Feb6508A8C2F93bb19f6721730C45921f2D0'],
+    // No moderator wallet by default: a moderator is owner-equivalent on the
+    // book, so who gets that access is the author's call.
+    moderatorWallets: [],
     connectedWallets: null,
   }
 }
