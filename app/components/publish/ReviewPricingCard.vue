@@ -93,9 +93,7 @@ const settingsRows = computed(() => [
   },
   {
     label: $t('nft_book_form.ai_audio'),
-    value: hideAudio
-      ? $t('nft_book_form.ai_audio_forbid')
-      : $t('nft_book_form.ai_audio_allow'),
+    value: hideAudio ? $t('common.no') : $t('common.yes'),
   },
   {
     label: $t('nft_book_form.accept_tipping'),

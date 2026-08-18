@@ -1,95 +1,48 @@
 <template>
-  <UFormField class="flex items-center">
-    <UTooltip
-      class="flex items-center gap-2"
-      :text="$t('nft_book_form.is_adult_only_tooltip')"
+  <div class="flex flex-col gap-4">
+    <BookSettingsToggleRow
+      v-model="isAdultOnly"
+      name="isAdultOnly"
+      :label="$t('nft_book_form.is_adult_only')"
+      :description="$t('nft_book_form.is_adult_only_hint')"
+    />
+
+    <BookSettingsToggleRow
+      v-model="isAudioAllowed"
+      name="isAudioAllowed"
+      :label="$t('nft_book_form.ai_audio')"
+      :description="$t('nft_book_form.ai_audio_hint')"
+    />
+
+    <UFormField
+      v-if="showPlusReading"
+      :label="$t('nft_book_form.plus_reading')"
     >
-      <UCheckbox
-        v-model="isAdultOnly"
-        name="isAdultOnly"
-        :label="$t('nft_book_form.is_adult_only')"
+      <URadioGroup
+        v-model="isPlusReadingEnabledRadio"
+        :disabled="isFreeBook"
+        :items="[
+          { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
+          { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
+        ]"
+        orientation="vertical"
       />
-
-      <UIcon name="i-heroicons-question-mark-circle" />
-    </UTooltip>
-  </UFormField>
-
-  <UFormField :label="$t('nft_book_form.ai_audio')">
-    <URadioGroup
-      v-model="hideAudioRadio"
-      :items="[
-        { label: $t('nft_book_form.ai_audio_allow'), value: 'allow' },
-        { label: $t('nft_book_form.ai_audio_forbid'), value: 'forbid' },
-      ]"
-      orientation="vertical"
-    />
-  </UFormField>
-
-  <UFormField :label="$t('nft_book_form.plus_reading')">
-    <URadioGroup
-      v-model="isPlusReadingEnabledRadio"
-      :disabled="isFreeBook"
-      :items="[
-        { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
-        { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
-      ]"
-      orientation="vertical"
-    />
-    <p
-      v-if="isFreeBook"
-      class="text-muted text-[12px] mt-1"
-      v-text="$t('nft_book_form.plus_reading_free_forced')"
-    />
-  </UFormField>
-
-  <UCard
-    class="max-w-2xl"
-    :ui="{ header: ['flex justify-between items-center gap-4'] }"
-  >
-    <template #header>
-      <div class="flex flex-col gap-0.5">
-        <div class="flex items-center gap-1">
-          <UIcon
-            class="size-5"
-            :name="(
-              isPreviewEnabled
-                ? 'i-material-symbols-visibility-outline-rounded'
-                : 'i-material-symbols-visibility-off-outline-rounded'
-            )"
-          />
-          <div
-            class="text-highlighted font-semibold"
-            v-text="$t('nft_book_form.free_preview')"
-          />
-        </div>
-        <div
-          class="text-sm text-muted"
-          v-text="(
-            isPreviewEnabled
-              ? $t('nft_book_form.free_preview_description_enabled')
-              : $t('nft_book_form.free_preview_description_disabled')
-          )"
-        />
-      </div>
-
-      <USwitch
-        v-model="isPreviewEnabled"
-        :aria-label="$t('nft_book_form.free_preview')"
-        :label="(
-          isPreviewEnabled
-            ? $t('nft_book_form.free_preview_enable')
-            : $t('nft_book_form.free_preview_disable')
-        )"
-        :ui="{
-          root: 'flex-row-reverse gap-2',
-          wrapper: 'ms-0',
-        }"
+      <p
+        v-if="isFreeBook"
+        class="text-muted text-[12px] mt-1"
+        v-text="$t('nft_book_form.plus_reading_free_forced')"
       />
-    </template>
+    </UFormField>
 
-    <template
-      v-if="isPreviewEnabled"
-      #default
+    <BookSettingsToggleRow
+      v-model="isPreviewEnabled"
+      name="isPreviewEnabled"
+      :label="$t('nft_book_form.free_preview')"
+      :description="(
+        isPreviewEnabled
+          ? $t('nft_book_form.free_preview_description_enabled')
+          : $t('nft_book_form.free_preview_description_disabled')
+      )"
     >
       <UFormField
         :label="$t('nft_book_form.preview_percentage')"
@@ -135,8 +88,8 @@
           </UInput>
         </div>
       </UFormField>
-    </template>
-  </UCard>
+    </BookSettingsToggleRow>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -151,13 +104,18 @@ const isPlusReadingEnabled = defineModel<boolean>('isPlusReadingEnabled', { requ
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })
 const previewPercentage = defineModel<number>('previewPercentage', { required: true })
 
-const { isFreeBook = false } = defineProps<{
+const { isFreeBook = false, showPlusReading = true } = defineProps<{
   isFreeBook?: boolean
+  // The status page moves 上架圖書館 to its own card on 書籍狀態; the wizard,
+  // which has no such tab, keeps it here.
+  showPlusReading?: boolean
 }>()
 
-const hideAudioRadio = computed({
-  get: () => (hideAudio.value ? 'forbid' : 'allow'),
-  set: (val: string) => { hideAudio.value = val === 'forbid' },
+// The stored flag is the prohibition, the control is the permission. Inverting
+// here is what lets the row default to on without changing the stored default.
+const isAudioAllowed = computed({
+  get: () => !hideAudio.value,
+  set: (value: boolean) => { hideAudio.value = !value },
 })
 
 const isPlusReadingEnabledRadio = computed({
@@ -188,7 +146,9 @@ function commitPreviewPercentage() {
   previewPercentageDraft.value = String(committed)
 }
 
-// Free books always opt into Plus all-you-can-read; force the flag on.
+// Free books always opt into Plus all-you-can-read; force the flag on. The
+// status page forces the same value from useBookListingSettings, so this is a
+// no-op there and the only owner in the wizard, which has no composable.
 watch(() => isFreeBook, (isFree) => {
   if (isFree) { isPlusReadingEnabled.value = true }
 }, { immediate: true })
