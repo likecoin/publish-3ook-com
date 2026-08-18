@@ -8,6 +8,7 @@
       <UFormField
         :label="$t('form.genre')"
         class="w-fit shrink-0"
+        :help="storeHint('genre')"
       >
         <!-- Filtering is over the translated label, which is what the author
              reads: 「文學」, not the stored Literary Collections. -->
@@ -46,6 +47,18 @@
           :label="$t('iscn_form.use_suggested_genre', { genre: suggestedGenreLabel })"
           @click="applySuggestedGenre"
         />
+        <!-- The store holds a different genre from the chain. Offered rather
+             than filled in: overwriting a category the author did pick with one
+             only as fresh as the last store refresh is theirs to decide. -->
+        <UButton
+          v-if="storeGenreConflictLabel"
+          class="mt-2"
+          size="xs"
+          variant="soft"
+          icon="i-heroicons-building-storefront"
+          :label="$t('iscn_form.use_store_genre', { genre: storeGenreConflictLabel })"
+          @click="emit('applyStoreValue', 'genre')"
+        />
       </UFormField>
       <UButton
         icon="i-heroicons-sparkles"
@@ -71,7 +84,7 @@
       :label="$t('form.keywords')"
       class="text-left"
       :hint="`${formData.tags.length}/${MAX_BOOK_KEYWORDS}`"
-      :help="hasSuggested ? $t('iscn_form.ai_keywords_hint') : prefilledHint('tags')"
+      :help="storeHint('tags') || (hasSuggested ? $t('iscn_form.ai_keywords_hint') : prefilledHint('tags'))"
     >
       <UInputTags
         v-model="formData.tags"
@@ -85,8 +98,9 @@
 <script setup lang="ts">
 import type { ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
+import { mergeBookKeywords, type StoreMetadataConflict, type StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 
-import { MAX_BOOK_KEYWORDS, BOOK_CATEGORIES } from '~/constant/index'
+import { MAX_BOOK_KEYWORDS, BOOK_CATEGORIES, BOOK_CATEGORY_VALUES } from '~/constant/index'
 
 const { t: $t } = useI18n()
 
@@ -97,6 +111,8 @@ const {
   contentExcerpt = '',
   tableOfContents = '',
   descriptionFull = '',
+  storeSourcedFields = [],
+  storeConflicts = [],
 } = defineProps<{
   prefilledFields?: ISCNPrefillableField[]
   contentExcerpt?: string
@@ -104,13 +120,25 @@ const {
   // The author writes the full description first and may leave the short one
   // empty, so the suggestion reads whichever they actually filled in.
   descriptionFull?: string
+  // Genre and keywords are the two fields the bookstore backfills wrote, so the
+  // drift hints land here rather than in any other field group.
+  storeSourcedFields?: StoreMetadataDriftField[]
+  storeConflicts?: StoreMetadataConflict[]
 }>()
+
+const emit = defineEmits<{ applyStoreValue: [field: StoreMetadataDriftField] }>()
 
 const formData = defineModel<ISCNFormData>({ required: true })
 
 const hasSuggested = defineModel<boolean>('hasSuggested', { default: false })
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
+
+// Same job as prefilledHint, for a value the host filled in from the bookstore
+// listing rather than from an uploaded file.
+function storeHint(field: StoreMetadataDriftField): string | undefined {
+  return storeSourcedFields.includes(field) ? $t('iscn_form.from_store_data') : undefined
+}
 
 // Reka UI's SelectItem rejects an empty-string value (it is reserved for the
 // cleared state), so the reset option uses a sentinel mapped back to '' below.
@@ -122,6 +150,17 @@ const bookCategoryOptions = [
     value: cat.value as string,
   })),
 ]
+
+function getGenreLabel(genre: string) {
+  return bookCategoryOptions.find(option => option.value === genre)?.label || genre
+}
+
+// Only set while the store's genre differs from the chain's; the button it
+// renders is the only way that value is ever applied.
+const storeGenreConflictLabel = computed(() => {
+  const conflict = storeConflicts.find(entry => entry.field === 'genre')
+  return conflict ? getGenreLabel(conflict.storeValue) : ''
+})
 
 // Bridge the empty stored genre to the dropdown's non-empty sentinel option.
 const genreModel = computed({
@@ -167,10 +206,7 @@ const canSuggestMetadata = computed(() => {
   return !!formData.value.title && !!effectiveDescription.value
 })
 
-const suggestedGenreLabel = computed(() => {
-  const option = bookCategoryOptions.find(opt => opt.value === suggestedGenre.value)
-  return option?.label || suggestedGenre.value
-})
+const suggestedGenreLabel = computed(() => getGenreLabel(suggestedGenre.value))
 
 async function handleSuggestMetadata() {
   if (isSuggesting.value) { return }
@@ -185,26 +221,16 @@ async function handleSuggestMetadata() {
       existingKeywords: formData.value.tags,
     })
 
-    // Merge instead of replace so author-entered keywords are never lost;
-    // NFKC-fold keys so backend-normalized suggestions dedupe against
-    // width/case variants the author typed.
-    const tagKey = (tag: string) => tag.normalize('NFKC').trim().toLowerCase()
+    // The same merge the bookstore-drift staging runs: keywords the author did
+    // not type are appended, deduped and capped, never replacing theirs.
     const existingTags = formData.value.tags
-    const seen = new Set(existingTags.map(tagKey))
-    const mergedTags = [...existingTags]
-    for (const keyword of result.keywords) {
-      // Suggestions stop at the cap rather than displacing author-entered tags.
-      if (mergedTags.length >= MAX_BOOK_KEYWORDS) { break }
-      if (seen.has(tagKey(keyword))) { continue }
-      seen.add(tagKey(keyword))
-      mergedTags.push(keyword)
-    }
+    const mergedTags = mergeBookKeywords(existingTags, result.keywords, MAX_BOOK_KEYWORDS)
     formData.value.tags = mergedTags
     // A full list adds nothing, so the provenance hint would be a lie.
     if (mergedTags.length > existingTags.length) { hasSuggested.value = true }
 
     // Guards against cross-repo drift of the duplicated category list.
-    const isGenreValid = BOOK_CATEGORIES.some(cat => cat.value === result.genre)
+    const isGenreValid = BOOK_CATEGORY_VALUES.includes(result.genre)
     // Logged before the early return below so a rejected genre still counts as
     // a suggestion; an empty genre with keywords is a partial success, not none.
     const isGenreAutoApplied = isGenreValid && !formData.value.genre

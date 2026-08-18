@@ -38,6 +38,17 @@ export interface EditionTableRow extends Omit<ClassListingPrice, 'stock'> {
 export interface ClassListingData {
   ownerWallet?: string
   prices: ClassListingPrice[]
+  // The listing's copy of the on-chain metadata, synced chain → store on every
+  // refresh. Backfills wrote genre and keywords here directly, so these can
+  // hold enrichment the chain never got — see utils/store-metadata-drift.ts.
+  name?: string
+  description?: string
+  keywords?: string[]
+  genre?: string
+  isbn?: string
+  inLanguage?: string
+  thumbnailUrl?: string
+  usageInfo?: string
   moderatorWallets?: string[]
   connectedWallets?: Record<string, number>
   mustClaimToView?: boolean

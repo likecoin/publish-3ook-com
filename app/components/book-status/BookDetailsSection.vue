@@ -49,11 +49,32 @@
       v-else
       class="flex flex-col gap-6 text-left"
     >
+      <!-- Backfills wrote genre and keywords into the bookstore listing, which
+           no signature reaches the chain from. Filled in here so the author's
+           next save carries them, said out loud so the save is not a surprise. -->
+      <UAlert
+        v-if="storeSourcedFields.length"
+        color="info"
+        variant="subtle"
+        icon="i-heroicons-building-storefront"
+        :title="$t('status_page.store_metadata_staged_title')"
+        :description="$t('status_page.store_metadata_staged_description')"
+        :actions="[{
+          label: $t('status_page.store_metadata_staged_dismiss'),
+          color: 'neutral',
+          variant: 'outline',
+          onClick: dismissStoreMetadata,
+        }]"
+      />
+
       <ISCNForm
         ref="iscnFormRef"
         v-model="iscnFormData"
         v-model:description-full="descriptionFull"
         :guard-unsaved-changes="false"
+        :store-sourced-fields="storeSourcedFields"
+        :store-conflicts="storeConflicts"
+        @apply-store-value="applyStoreValue"
       />
 
       <BookTableOfContentsField v-model="tableOfContents" />
@@ -126,7 +147,12 @@ import type { BookListingSettingsContext } from '~/composables/useBookListingSet
 import { shouldHideDownload, createEmptyISCNFormData } from '~/utils/iscn'
 import { mergeIscnFileLinks, type IscnFileLinks, type IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import { resolveShortDescription } from '~/utils/description'
-import { MAX_DESCRIPTION_LENGTH } from '~/constant'
+import {
+  getStoreMetadataDrift,
+  getStoreSourcedFields,
+  type StoreMetadataDriftField,
+} from '~/utils/store-metadata-drift'
+import { MAX_DESCRIPTION_LENGTH, MAX_BOOK_KEYWORDS, BOOK_CATEGORY_VALUES } from '~/constant'
 
 const { t: $t } = useI18n()
 
@@ -209,7 +235,100 @@ const readOnlyRows = computed(() => [
   },
 ])
 
+// Values written in from the bookstore listing, and the chain values they
+// replaced, so 「不要套用」can put those back without touching anything else.
+type StoreMetadataFieldValues = Partial<Record<StoreMetadataDriftField, string | string[]>>
+const stagedStoreMetadata = ref<StoreMetadataFieldValues>({})
+const chainBaselineForStagedFields = ref<StoreMetadataFieldValues>({})
+const isStoreMetadataDismissed = ref(false)
+// The form as the chain has it, taken before anything is staged over it. Handed
+// to the form as its baseline, so a filled-in value counts as a change no matter
+// when the form mounts.
+const chainFormSnapshot = ref('')
+
+// Recomputed from the live form, so a conflict the author resolves — by hand or
+// with the apply button — stops being one without anything to keep in step.
+const storeDrift = computed(() => getStoreMetadataDrift({
+  listing: classListingInfo,
+  formData: iscnFormData.value,
+  genreVocabulary: BOOK_CATEGORY_VALUES,
+  maxKeywords: MAX_BOOK_KEYWORDS,
+}))
+
+// Moderators reach this page read-only: they can neither apply a store value nor
+// sign the tx that would save it, so there is nothing to tell them about.
+const storeConflicts = computed(() => (
+  isStoreMetadataDismissed.value || !userIsOwner.value ? [] : storeDrift.value.conflicts
+))
+
+// Provenance is derived: edit a staged field by hand and it becomes an ordinary
+// pending change rather than one attributed to the store.
+const storeSourcedFields = computed(() => getStoreSourcedFields(stagedStoreMetadata.value, iscnFormData.value))
+
+// Staged against the chain baseline, which is what turns these into entries in
+// the page's pending-changes ledger rather than an invisible edit.
+function applyStoreMetadata() {
+  stagedStoreMetadata.value = {}
+  chainBaselineForStagedFields.value = {}
+  if (isStoreMetadataDismissed.value || !userIsOwner.value) { return }
+  const { staged } = storeDrift.value
+  for (const field of Object.keys(staged) as StoreMetadataDriftField[]) {
+    stageStoreValue(field, staged[field])
+  }
+}
+
+function stageStoreValue(field: StoreMetadataDriftField, value: string | string[] | undefined) {
+  if (value === undefined) { return }
+  // Copied on both sides: the keywords field edits its array in place, which
+  // would otherwise move the staged value and the chain baseline with it — and
+  // then a keyword the author added would still read as the store's.
+  chainBaselineForStagedFields.value[field] = copyFieldValue(iscnFormData.value[field])
+  stagedStoreMetadata.value[field] = copyFieldValue(value)
+  writeFormField(field, copyFieldValue(value))
+}
+
+function copyFieldValue(value: string | string[]) {
+  return Array.isArray(value) ? [...value] : value
+}
+
+// Per field rather than an indexed write: the two staged fields hold different
+// types, and matching them here is what keeps the staging maps cast-free. Total
+// on purpose — a missing value clears the field rather than silently doing
+// nothing, which would leave a staged value in place while claiming it was undone.
+function writeFormField(field: StoreMetadataDriftField, value: string | string[] | undefined) {
+  if (field === 'tags') { iscnFormData.value.tags = Array.isArray(value) ? value : [] }
+  else { iscnFormData.value.genre = typeof value === 'string' ? value : '' }
+}
+
+// The conflict cases: the author asked for the store's value, so it is staged
+// like the filled-in ones and carries the same provenance.
+function applyStoreValue(field: StoreMetadataDriftField) {
+  const conflict = storeConflicts.value.find(entry => entry.field === field)
+  if (conflict) { stageStoreValue(field, conflict.storeValue) }
+}
+
+// Puts the chain values back under every field still holding a staged one.
+function unstageStoreMetadata() {
+  for (const field of storeSourcedFields.value) {
+    writeFormField(field, chainBaselineForStagedFields.value[field])
+  }
+  stagedStoreMetadata.value = {}
+  chainBaselineForStagedFields.value = {}
+}
+
+// 「不要套用」: unstage and stop re-offering until the page reloads. Nothing
+// persists it — there is no backend field for 「the author declined the store's
+// genre」, and a stored refusal would outlive the value it refused.
+function dismissStoreMetadata() {
+  isStoreMetadataDismissed.value = true
+  unstageStoreMetadata()
+}
+
 async function loadChainMetadata() {
+  // Cleared up front: a failed load leaves the old form in place, and provenance
+  // pointing at values from a book that is no longer on screen.
+  stagedStoreMetadata.value = {}
+  chainBaselineForStagedFields.value = {}
   try {
     isISCNLoading.value = true
     const loaded = await loadClassMetadataIntoForm(classId)
@@ -217,10 +336,12 @@ async function loadChainMetadata() {
       iscnFormData.value = loaded.formData
       iscnChainData.value = loaded.chainData
     }
+    await nextTick()
+    chainFormSnapshot.value = JSON.stringify(iscnFormData.value)
+    applyStoreMetadata()
     // The form is mounted before the async load lands, so its own mount-time
     // snapshot would be of the empty seed and count everything as changed.
-    await nextTick()
-    iscnFormRef.value?.resetSnapshot()
+    iscnFormRef.value?.resetSnapshot(chainFormSnapshot.value)
   }
   catch (error) {
     // eslint-disable-next-line no-console
@@ -233,16 +354,27 @@ async function loadChainMetadata() {
 
 watch(() => classId, () => {
   if (classId) {
+    // A refusal belongs to the book it was made on, not to the next one.
+    isStoreMetadataDismissed.value = false
     loadChainMetadata()
   }
 }, { immediate: true })
 
-// The owner branch (and with it the form ref) can mount after the metadata
-// already loaded; retake the baseline then too.
+// The owner branch (and with it the form ref) mounts once ownership resolves,
+// which can be after the metadata loaded. The baseline is the chain snapshot
+// either way, so no ordering between this and the form's own reset matters.
 watch(iscnFormRef, (form) => {
-  if (form && !isISCNLoading.value) {
-    nextTick(() => form.resetSnapshot())
-  }
+  if (!form || isISCNLoading.value) { return }
+  nextTick(() => {
+    form.resetSnapshot(chainFormSnapshot.value)
+    // Ownership resolving is also what unblocks staging, so stage now — but only
+    // while the form still holds exactly what was loaded, never over an edit.
+    // An empty snapshot means the load failed, and there is nothing to stage
+    // against; the form would call that unchanged.
+    if (chainFormSnapshot.value && !form.hasUnsavedChanges) {
+      applyStoreMetadata()
+    }
+  })
 })
 
 const coverUrl = computed(() => iscnFormData.value.coverUrl)
@@ -295,12 +427,27 @@ async function saveChain(): Promise<boolean> {
   if (!(await iscnFormRef.value?.validate())) {
     return false
   }
+  const savedStoreSourcedFields = storeSourcedFields.value
   const { metadata } = await saveClassMetadata(classId, payload.value)
   useLogEvent('iscn_metadata_updated', { class_id: classId })
+  // How often the store's backfilled metadata actually reaches the chain, which
+  // is the only measure of whether this closes the drift.
+  if (savedStoreSourcedFields.length) {
+    useLogEvent('book_store_metadata_drift_applied', {
+      class_id: classId,
+      fields: savedStoreSourcedFields.join(','),
+    })
+  }
+  // On chain now, so no longer the store's proposal.
+  stagedStoreMetadata.value = {}
+  chainBaselineForStagedFields.value = {}
   // Same point the wizard records it: a genre written on chain, not one
   // browsed past. A settings-only save never reaches here.
   rememberRecentGenre(wallet.value || '', iscnFormData.value.genre)
-  iscnFormRef.value?.resetSnapshot()
+  // What was just signed is the chain truth now, for this snapshot as much as
+  // for the form's baseline — a later remount must not restore the pre-save one.
+  chainFormSnapshot.value = JSON.stringify(iscnFormData.value)
+  iscnFormRef.value?.resetSnapshot(chainFormSnapshot.value)
   // Fingerprints may have switched between encrypted and open; keep the
   // listing's hideDownload in sync.
   const contentFingerprints = metadata.contentFingerprints as string[] | undefined
@@ -318,7 +465,9 @@ async function saveChain(): Promise<boolean> {
 
 // Discard the chain half: reload from (cached) metadata and retake the
 // baseline. The listing half is restored by the page from its own snapshot.
+// Discarding covers the store's proposals too, or the bar could never go clean.
 async function discardChain() {
+  isStoreMetadataDismissed.value = true
   await loadChainMetadata()
   moderatorWalletInput.value = ''
 }
@@ -326,6 +475,8 @@ async function discardChain() {
 defineExpose({
   isChainDirty,
   changedFields,
+  storeSourcedFields,
+  storeConflicts,
   pendingModeratorInput,
   coverUrl,
   setCoverUrl,
