@@ -42,8 +42,9 @@
               size="lg"
             />
             <p
+              v-if="pendingCover"
               class="text-xs text-muted break-all max-w-[120px]"
-              v-text="coverMeta"
+              v-text="pendingCoverMeta"
             />
             <UButton
               v-if="canEdit"
@@ -330,18 +331,16 @@ const coverDropzoneClass = computed(() => canEdit && [
   isDraggingCover.value ? 'border-primary bg-primary/5' : 'border-default',
 ])
 
-// Only what we actually know: a replacement carries its own name, dimensions
-// and size; a cover already on chain is just an id.
-const coverMeta = computed(() => {
+// A cover already on chain is just a storage id, which 技術資料 carries; only a
+// replacement has anything a person can read under the picture.
+const pendingCoverMeta = computed(() => {
   const picked = pendingCover.value
-  if (picked) {
-    return [
-      picked.file.name,
-      `${picked.width} × ${picked.height}`,
-      formatBytes(picked.file.size),
-    ].join(' · ')
-  }
-  return coverUrl.value || '—'
+  if (!picked) { return '' }
+  return [
+    picked.file.name,
+    `${picked.width} × ${picked.height}`,
+    formatBytes(picked.file.size),
+  ].join(' · ')
 })
 
 // The file and fingerprint rows are read-only here only for a viewer who has no

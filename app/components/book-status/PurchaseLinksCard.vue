@@ -160,6 +160,7 @@
 
 <script setup lang="ts">
 import { downloadFile, getPurchaseLink } from '~/utils'
+import { formatPriceUSDLabel } from '~/utils/listing'
 import type { ClassListingPrice } from '~/types'
 
 const { t: $t } = useI18n()
@@ -178,7 +179,7 @@ const priceIndex = ref(0)
 const useLikerLandPurchaseLink = ref(true)
 
 const priceIndexOptions = computed(() => prices.map((p: ClassListingPrice, index: number) => ({
-  label: `${typeof p.name === 'object' ? (p.name.en || '') : p.name} - $${p.price}`,
+  label: `${typeof p.name === 'object' ? (p.name.en || '') : p.name} - ${formatPriceUSDLabel(Number(p.price), $t)}`,
   value: index,
   disabled: index === priceIndex.value,
 })) || [])

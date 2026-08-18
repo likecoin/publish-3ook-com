@@ -16,6 +16,7 @@
         v-model="price.price"
         class="w-full"
         :items="USD_PRICING_OPTIONS"
+        :placeholder="$t('nft_book_form.price_placeholder')"
         value-key="value"
       />
       <div
@@ -81,7 +82,7 @@ const shouldShowCustomPricingUI = computed(() => (
 ))
 
 function onCustomPricingToggle(enabled: boolean) {
-  if (enabled && price.value.priceUSDInput === '' && price.value.price && price.value.price !== '-1') {
+  if (enabled && price.value.priceUSDInput === '' && price.value.price) {
     price.value.priceUSDInput = price.value.price
   }
 }

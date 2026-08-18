@@ -86,7 +86,7 @@
       </template>
       <template #price-cell="{ row }">
         <span class="text-right">
-          {{ row.original.price }}
+          {{ formatPriceUSDLabel(Number(row.original.price), $t) }}
         </span>
       </template>
     </UTable>
@@ -151,7 +151,7 @@
 <script setup lang="ts">
 import type { ClassListingPrice, EditionTableRow } from '~/types'
 import type { PriceFormItem } from '~/types/publish'
-import { getListingPriceName, mapListingPriceToFormItem } from '~/utils/listing'
+import { getListingPriceName, mapListingPriceToFormItem, formatPriceUSDLabel } from '~/utils/listing'
 import { MAX_EDITION_COUNT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -195,8 +195,8 @@ const seedPricing = computed<Partial<PriceFormItem>>(() => {
   const { price, isCustomPricing, priceUSDInput, priceHKDInput, priceTWDInput }
     = mapListingPriceToFormItem(first)
   return {
-    // -1 is how an unpriced edition is marked, so it seeds nothing.
-    ...(price && price !== '-1' ? { price } : {}),
+    // An unpriced edition comes back blank, so it seeds nothing.
+    ...(price ? { price } : {}),
     isCustomPricing,
     priceUSDInput,
     priceHKDInput,
