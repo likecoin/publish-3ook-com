@@ -78,68 +78,11 @@
       />
 
       <BookTableOfContentsField v-model="tableOfContents" />
-
-      <!-- Share sales data (moderator wallets) -->
-      <UCard
-        :ui="{
-          header: 'flex justify-between items-center',
-          body: 'space-y-8 p-0 sm:p-0',
-        }"
-      >
-        <template #header>
-          <h4
-            class="text-sm font-bold font-mono"
-            v-text="$t('form.share_sales_data')"
-          />
-          <div class="flex gap-2">
-            <UInput
-              v-model="moderatorWalletInput"
-              class="font-mono"
-              placeholder="0x..."
-            />
-            <UButton
-              :label="$t('common.add')"
-              :variant="moderatorWalletInput ? 'outline' : 'solid'"
-              :color="moderatorWalletInput ? 'primary' : 'neutral'"
-              :disabled="!moderatorWalletInput"
-              @click="addModeratorWallet"
-            />
-          </div>
-        </template>
-        <UTable
-          :columns="moderatorWalletsTableColumns"
-          :data="moderatorWalletsTableRows"
-        >
-          <template #wallet-cell="{ row }">
-            <UTooltip :text="row.original.wallet">
-              <UButton
-                class="font-mono"
-                :label="row.original.shortenWallet"
-                :to="row.original.walletLink"
-                variant="link"
-
-                size="xs"
-              />
-            </UTooltip>
-          </template>
-          <template #remove-cell="{ row }">
-            <div class="flex justify-end items-center">
-              <UButton
-                icon="i-heroicons-x-mark"
-                variant="soft"
-                color="error"
-                @click="() => { moderatorWallets.splice(row.original.index, 1) }"
-              />
-            </div>
-          </template>
-        </UTable>
-      </UCard>
     </div>
   </UCard>
 </template>
 
 <script setup lang="ts">
-import { getPortfolioURL } from '~/utils'
 import type { ClassListingData } from '~/types'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
 import type ISCNForm from '~/components/ISCNForm.vue'
@@ -187,32 +130,9 @@ const {
   hideDownload,
   descriptionFull,
   tableOfContents,
-  moderatorWallets,
 } = settings
-const moderatorWalletInput = ref('')
 
 const userIsOwner = computed(() => sessionWallet.value && classListingInfo.ownerWallet === sessionWallet.value)
-
-const moderatorWalletsTableColumns = computed(() => {
-  const columns = [{ accessorKey: 'wallet', header: $t('table.wallet') }]
-
-  if (userIsOwner.value) {
-    columns.push(
-      { accessorKey: 'remove', header: '' },
-    )
-  }
-
-  return columns
-})
-
-const moderatorWalletsTableRows = computed(() => moderatorWallets.value.map((wallet, index) => {
-  return {
-    index,
-    wallet,
-    shortenWallet: shortenWalletAddress(wallet),
-    walletLink: getPortfolioURL(wallet),
-  }
-}))
 
 const readOnlyRows = computed(() => [
   { label: $t('common.title'), value: iscnFormData.value.title },
@@ -228,11 +148,6 @@ const readOnlyRows = computed(() => [
   { label: $t('iscn_form.license'), value: iscnFormData.value.license },
   { label: $t('form.cover_image'), value: iscnFormData.value.coverUrl, mono: true },
   { label: $t('form.table_of_content'), value: tableOfContents.value },
-  {
-    label: $t('form.share_sales_data'),
-    value: moderatorWallets.value.map(shortenWalletAddress).join('\n'),
-    mono: true,
-  },
 ])
 
 // Values written in from the bookstore listing, and the chain values they
@@ -402,15 +317,8 @@ const fileLinks: IscnFileLinksContext = {
   contentFingerprints: computed(() => iscnFormData.value.contentFingerprints),
 }
 
-function addModeratorWallet() {
-  if (!moderatorWalletInput.value) { return }
-  moderatorWallets.value.push(moderatorWalletInput.value)
-  moderatorWalletInput.value = ''
-}
-
 const isChainDirty = computed(() => !!iscnFormRef.value?.hasUnsavedChanges)
 const changedFields = computed<string[]>(() => iscnFormRef.value?.changedFields ?? [])
-const pendingModeratorInput = computed(() => !!moderatorWalletInput.value)
 
 // The chain half of a save: validates, signs the class update tx, and keeps
 // hideDownload in sync with the saved fingerprints (which can re-dirty the
@@ -469,7 +377,6 @@ async function saveChain(): Promise<boolean> {
 async function discardChain() {
   isStoreMetadataDismissed.value = true
   await loadChainMetadata()
-  moderatorWalletInput.value = ''
 }
 
 defineExpose({
@@ -477,7 +384,6 @@ defineExpose({
   changedFields,
   storeSourcedFields,
   storeConflicts,
-  pendingModeratorInput,
   coverUrl,
   setCoverUrl,
   fileLinks,
