@@ -43,7 +43,8 @@ export interface ClassListingData {
   // hold enrichment the chain never got — see utils/store-metadata-drift.ts.
   name?: string
   description?: string
-  keywords?: string[]
+  // Older listings and chain metadata alike can hold a comma-separated string.
+  keywords?: string | string[]
   genre?: string
   isbn?: string
   inLanguage?: string

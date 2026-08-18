@@ -71,7 +71,8 @@ export function getStoreMetadataDrift({
   // The same merge the AI suggestion runs, so a keyword arriving from the store
   // dedupes against what the author typed exactly as a suggested one does.
   const chainKeywords = parseBookKeywords(formData.tags)
-  const union = mergeBookKeywords(chainKeywords, listing.keywords ?? [], maxKeywords)
+  const storeKeywords = parseBookKeywords(listing.keywords)
+  const union = mergeBookKeywords(chainKeywords, storeKeywords, maxKeywords)
   if (union.length > chainKeywords.length) {
     staged.tags = union
   }

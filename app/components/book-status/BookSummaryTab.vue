@@ -17,7 +17,7 @@
           <UButton
             variant="link"
             color="neutral"
-            :icon="entry.needsWallet ? 'i-heroicons-wallet' : 'i-heroicons-pencil-square'"
+            :icon="getBookEditChangeIcon(entry) || 'i-heroicons-pencil-square'"
             :label="entry.label"
             @click="emit('goToTab', entry.tab)"
           />
@@ -26,9 +26,10 @@
     </UCard>
 
     <BookStatusBookTodoCard
-      :genre="iscnFormData.genre"
+      :genre="iscnFormData.genre || storeGenre"
       :isbn="iscnFormData.isbn"
       :pending-nft-count="classListingInfo.pendingNFTCount"
+      :has-store-metadata-mismatch="hasStoreMetadataMismatch"
       @go-to-tab="(tab: BookStatusTab) => emit('goToTab', tab)"
     />
 
@@ -80,25 +81,39 @@
 import type { ClassListingData } from '~/types'
 import type { BookStatusTab } from '~/types/book'
 import type { ISCNFormData } from '~/types/iscn'
-import type { BookEditChangeEntry } from '~/composables/useBookEditChanges'
+import { getBookEditChangeIcon, type BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import type { PriceFormItem } from '~/types/publish'
 import { mapListingPriceToFormItem, getSoldCount } from '~/utils/listing'
 import { parseImageURLFromMetadata } from '~/utils'
 import { createEmptyISCNFormData } from '~/utils/iscn'
-import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
+import { getStoreMetadataDrift } from '~/utils/store-metadata-drift'
+import { PREVIEW_PERCENTAGE_DEFAULT, BOOK_CATEGORY_VALUES, MAX_BOOK_KEYWORDS } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId, classListingInfo, storeUrl, canEdit = false, pendingChanges = [] } = defineProps<{
+const { classId, classListingInfo, storeUrl, canEdit = false, pendingChanges = [], hasStoreMetadataMismatch = false } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
   storeUrl: string
   canEdit?: boolean
   pendingChanges?: BookEditChangeEntry[]
+  // Passed down rather than recomputed here: the details tab owns the drift, so
+  // a conflict the author resolves there stops being a todo immediately.
+  hasStoreMetadataMismatch?: boolean
 }>()
 
 const soldCount = computed(() => getSoldCount(classListingInfo.prices))
+
+// Asked of the drift rules rather than re-derived: only a category they would
+// actually offer counts as having one, or 尚未設定分類 and the details form
+// would disagree about the same book.
+const storeGenre = computed(() => getStoreMetadataDrift({
+  listing: classListingInfo,
+  formData: iscnFormData.value,
+  genreVocabulary: BOOK_CATEGORY_VALUES,
+  maxKeywords: MAX_BOOK_KEYWORDS,
+}).staged.genre || '')
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 
