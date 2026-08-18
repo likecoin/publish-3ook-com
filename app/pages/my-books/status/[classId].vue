@@ -120,6 +120,7 @@
           :store-url="affiliationLink"
           :can-edit="userIsOwner"
           :pending-changes="changes"
+          :has-store-metadata-mismatch="hasStoreMetadataMismatch"
           @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
         />
       </div>
@@ -161,6 +162,7 @@ import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue, getSoldCount } from '~/utils/listing'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
+import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
 
 const { t: $t } = useI18n()
@@ -193,6 +195,8 @@ const stockBalance = ref(-99)
 interface BookDetailsSectionApi {
   isChainDirty: boolean
   changedFields: string[]
+  storeSourcedFields: StoreMetadataDriftField[]
+  storeConflicts: StoreMetadataConflict[]
   pendingModeratorInput: boolean
   coverUrl: string
   setCoverUrl: (coverUrl: string) => void
@@ -205,6 +209,10 @@ interface BookDetailsSectionApi {
 // fileLinks into the plain arrays they are not — and then FileLinksFields'
 // contentFingerprints.value.push() has no .value to push through.
 const detailsSectionRef = shallowRef<BookDetailsSectionApi | null>(null)
+
+// The bookstore holds metadata that disagrees with the chain rather than merely
+// filling a gap; only the author can pick a side, so 狀態與摘要 lists it as a todo.
+const hasStoreMetadataMismatch = computed(() => !!detailsSectionRef.value?.storeConflicts.length)
 
 // 書檔 shows and hand-edits the chain form's file rows; 書籍資料 owns them.
 const chainFileLinks = computed(() => detailsSectionRef.value?.fileLinks ?? null)
@@ -263,8 +271,9 @@ function getEditionChanges(): BookEditEditionChange[] {
 }
 
 // The pending-changes ledger the bar, the tab badge and the summary tab share.
-const { changes, changeCount, changeAudience, needsWalletSignature } = useBookEditChanges({
+const { changes, changeCount, authorChangeCount, changeAudience, needsWalletSignature } = useBookEditChanges({
   chainChangedFields: () => detailsSectionRef.value?.changedFields ?? [],
+  chainStoreSourcedFields: () => detailsSectionRef.value?.storeSourcedFields ?? [],
   settingsChangedKeys: () => listingSettings.changedSettingKeys(),
   editionChanges: getEditionChanges,
   signatureChanged: () => !!signatureImage.value,
@@ -534,15 +543,17 @@ async function discardAllChanges() {
 }
 
 // Unsaved edits guard the page as a whole; the forms' own guards are off.
+// Counted without the store-sourced ones: nagging about values the author never
+// entered would train them to click through the dialog.
 useEventListener('beforeunload', (event: BeforeUnloadEvent) => {
-  if (changeCount.value > 0) {
+  if (authorChangeCount.value > 0) {
     event.preventDefault()
     event.returnValue = ''
   }
 })
 
 onBeforeRouteLeave(() => {
-  if (changeCount.value > 0) {
+  if (authorChangeCount.value > 0) {
     return window.confirm($t('unsaved_changes_warning'))
   }
   return true

@@ -56,10 +56,14 @@ const {
   genre = '',
   isbn = '',
   pendingNFTCount = 0,
+  hasStoreMetadataMismatch = false,
 } = defineProps<{
   genre?: string
   isbn?: string
   pendingNFTCount?: number
+  // The bookstore listing holds metadata that disagrees with the chain, which
+  // only the owner can resolve — see utils/store-metadata-drift.ts.
+  hasStoreMetadataMismatch?: boolean
 }>()
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
@@ -79,6 +83,13 @@ const items = computed<BookTodoItem[]>(() => {
   }
   if (!isbn) {
     list.push({ key: 'isbn', label: $t('status_page.todo_no_isbn'), tab: 'details' })
+  }
+  if (hasStoreMetadataMismatch) {
+    list.push({
+      key: 'store-metadata',
+      label: $t('status_page.todo_store_metadata_mismatch'),
+      tab: 'details',
+    })
   }
   if (pendingNFTCount > 0) {
     list.push({
