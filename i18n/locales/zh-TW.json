@@ -967,7 +967,7 @@
   "status_page.technical_details": "技術資料",
   "status_page.todo_fix": "去處理",
   "status_page.todo_no_genre": "還沒有分類，讀者在書店比較難找到這本書",
-  "status_page.todo_no_isbn": "還沒有 ISBN，通路上架時可能會被退回",
+  "status_page.todo_no_isbn": "填上 ISBN，將有助進入傳統圖書分銷體系",
   "status_page.todo_pending_send": "有 {count} 筆等你發書",
   "status_page.todo_store_metadata_mismatch": "書店的分類與鏈上資料不一致",
   "status_page.todo_title": "需要處理",
