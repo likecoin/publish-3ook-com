@@ -246,7 +246,8 @@
           />
 
           <!-- Live free-preview cut readout: the straddled chapter is included
-               in full, so the actual range can exceed the nominal %. -->
+               in full where that stays under the ceiling, so the actual range
+               can exceed the nominal %; past it the chapter ships part-way. -->
           <div
             v-if="mode === 'new' && previewCut"
             class="p-3 border border-default rounded-lg bg-elevated text-sm"
@@ -260,7 +261,9 @@
                 <li
                   v-for="item in previewCut.includedItems"
                   :key="item.href"
-                  v-text="item.label"
+                  v-text="item.isPartial
+                    ? $t('nft_book_form.preview_partial_item', { label: item.label })
+                    : item.label"
                 />
               </ul>
               <p
@@ -414,18 +417,13 @@ const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p)
 
 // Actual preview outcome of the "generous" chapter cut, recomputed live as the
 // percentage input changes. null hides the readout (disabled or no EPUB).
-// FIRST_ITEM_TOO_LARGE is the only refusal an author can act on, so it is the
-// only one with its own message.
+// Every remaining refusal is about the file being unusable rather than about
+// how it is chaptered, so there is nothing chapter-specific left to advise.
 const previewCut = computed(() => {
   if (!settings.value.isPreviewEnabled || !epubSpineItems?.length) { return null }
   const cut = computePreviewCut(epubSpineItems, settings.value.previewPercentage)
   if (!cut.ok) {
-    return {
-      ...cut,
-      message: cut.reason === 'FIRST_ITEM_TOO_LARGE'
-        ? $t('nft_book_form.preview_unavailable_first_item_too_large')
-        : $t('nft_book_form.preview_unavailable'),
-    }
+    return { ...cut, message: $t('nft_book_form.preview_unavailable') }
   }
   return {
     ...cut,

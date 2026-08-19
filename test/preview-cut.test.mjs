@@ -17,7 +17,7 @@ import {
 
 // Bump alongside the fixture's `version` when the rules change, so this copy
 // goes stale loudly instead of silently drifting from the ebook-cors server.
-const EXPECTED_FIXTURE_VERSION = 1
+const EXPECTED_FIXTURE_VERSION = 2
 
 const fixture = JSON.parse(fs.readFileSync(path.join(
   fileURLToPath(import.meta.url),
@@ -40,6 +40,9 @@ function assertPlan(actual, expected, name) {
     return
   }
   assert.equal(actual.includedCount, expected.includedCount, `${name}: includedCount`)
+  // Normalised both sides: PDF plans have no partial-page cut, and asserting
+  // that unconditionally pins them to never growing one.
+  assert.deepEqual(actual.partial ?? null, expected.partial ?? null, `${name}: partial`)
   assertPercentage(actual.effectivePercentage, expected.effectivePercentage, `${name}: effectivePercentage`)
 }
 
