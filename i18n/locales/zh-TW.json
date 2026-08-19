@@ -953,6 +953,7 @@
   "status_page.tab_summary": "狀態與摘要",
   "status_page.technical_class_id": "書籍 ID",
   "status_page.technical_details": "技術資料",
+  "status_page.todo_dismiss": "略過這項提示",
   "status_page.todo_fix": "去處理",
   "status_page.todo_no_genre": "還沒有分類，讀者在書店比較難找到這本書",
   "status_page.todo_no_isbn": "填上 ISBN，將有助進入傳統圖書分銷體系",

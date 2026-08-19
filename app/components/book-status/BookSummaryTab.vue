@@ -26,6 +26,7 @@
     </UCard>
 
     <BookStatusBookTodoCard
+      :class-id="classId"
       :genre="iscnFormData.genre || storeGenre"
       :isbn="iscnFormData.isbn"
       :pending-nft-count="classListingInfo.pendingNFTCount"
