@@ -1,6 +1,6 @@
 {
   "$comment": "Golden fixture pinning the preview-cut rules. Source of truth lives in likecoin-cloud-functions (ebook-cors/preview/fixtures/); nft-book-press holds a byte-identical copy at test/fixtures/. Each repo runs its own copy of the rules against it (npm test), so a rule that changes on one side and not the other fails the other side's suite. Change the rules => bump `version`, update the cases, and copy this file across.",
-  "version": 1,
+  "version": 2,
   "constants": {
     "minPercentage": 1,
     "maxPercentage": 50,
@@ -24,55 +24,61 @@
       "name": "chapter boundary lands exactly on the mark",
       "sizes": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 10 }
+      "expected": { "ok": true, "includedCount": 1, "partial": null, "effectivePercentage": 10 }
     },
     {
       "name": "many small chapters cut close to the mark",
       "sizes": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 3, "effectivePercentage": 10 }
+      "expected": { "ok": true, "includedCount": 3, "partial": null, "effectivePercentage": 10 }
     },
     {
       "name": "straddling chapter is included whole while it stays under the ceiling",
       "sizes": [8, 8, 8, 8, 8, 8, 8, 8, 8, 28],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 2, "effectivePercentage": 16 }
+      "expected": { "ok": true, "includedCount": 2, "partial": null, "effectivePercentage": 16 }
     },
     {
-      "name": "straddling chapter is dropped once it breaks the ceiling",
+      "name": "straddling chapter is cut down once it breaks the ceiling",
       "sizes": [5, 25, 70],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 5 }
+      "expected": { "ok": true, "includedCount": 1, "partial": { "index": 1, "targetBytes": 5 }, "effectivePercentage": 10 }
     },
     {
-      "name": "one huge chapter cannot drag most of the book into the preview",
+      "name": "one huge chapter is cut down rather than dragging the book into the preview",
       "sizes": [1, 98, 1],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 1 }
+      "expected": { "ok": true, "includedCount": 1, "partial": { "index": 1, "targetBytes": 9 }, "effectivePercentage": 10 }
     },
     {
-      "name": "a cut covering every item falls back to all but the last",
+      "name": "a cut covering every item cuts the last one down instead",
       "sizes": [2, 98],
       "percentage": 10,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 2 }
+      "expected": { "ok": true, "includedCount": 1, "partial": { "index": 1, "targetBytes": 8 }, "effectivePercentage": 10 }
     },
     {
       "name": "the first item is exempt from the ceiling",
       "sizes": [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
       "percentage": 1,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 5 }
+      "expected": { "ok": true, "includedCount": 1, "partial": null, "effectivePercentage": 5 }
     },
     {
-      "name": "the maximum percentage still drops the last item",
+      "name": "the maximum percentage still cuts the last item down",
       "sizes": [40, 60],
       "percentage": 50,
-      "expected": { "ok": true, "includedCount": 1, "effectivePercentage": 40 }
+      "expected": { "ok": true, "includedCount": 1, "partial": { "index": 1, "targetBytes": 10 }, "effectivePercentage": 50 }
     },
     {
-      "name": "a first item bigger than half the book is unpreviewable",
+      "name": "a first item bigger than half the book is cut down, not refused",
       "sizes": [60, 40],
       "percentage": 10,
-      "expected": { "ok": false, "reason": "FIRST_ITEM_TOO_LARGE" }
+      "expected": { "ok": true, "includedCount": 0, "partial": { "index": 0, "targetBytes": 10 }, "effectivePercentage": 10 }
+    },
+    {
+      "name": "a book whose body is one document still previews part of it",
+      "sizes": [705, 486, 868, 298411, 10428, 2266, 2709],
+      "percentage": 5,
+      "expected": { "ok": true, "includedCount": 3, "partial": { "index": 3, "targetBytes": 13735 }, "effectivePercentage": 5.0001108040256685 }
     },
     {
       "name": "a single-document spine is unpreviewable",
