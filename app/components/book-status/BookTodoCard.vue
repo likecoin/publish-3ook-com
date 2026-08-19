@@ -1,5 +1,5 @@
 <template>
-  <UCard v-if="items.length">
+  <UCard v-if="visibleItems.length">
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon
@@ -14,13 +14,13 @@
           color="warning"
           variant="subtle"
           size="sm"
-          :label="String(items.length)"
+          :label="String(visibleItems.length)"
         />
       </div>
     </template>
     <ul class="space-y-1">
       <li
-        v-for="item in items"
+        v-for="item in visibleItems"
         :key="item.key"
         class="flex items-baseline justify-between gap-4"
       >
@@ -28,36 +28,57 @@
           class="text-sm text-highlighted"
           v-text="item.label"
         />
-        <UButton
-          variant="link"
-          color="primary"
-          size="sm"
-          class="shrink-0"
-          :label="$t('status_page.todo_fix')"
-          @click="emit('goToTab', item.tab)"
-        />
+        <div class="flex items-center gap-1 shrink-0">
+          <UButton
+            variant="link"
+            color="primary"
+            size="sm"
+            :label="$t('status_page.todo_fix')"
+            @click="emit('goToTab', item.tab)"
+          />
+          <UButton
+            v-if="isDismissible(item.key)"
+            variant="link"
+            color="neutral"
+            size="sm"
+            icon="i-heroicons-x-mark"
+            :aria-label="$t('status_page.todo_dismiss')"
+            @click="dismiss(item.key)"
+          />
+        </div>
       </li>
     </ul>
   </UCard>
 </template>
 
 <script setup lang="ts">
+import { useLocalStorage } from '@vueuse/core'
 import type { BookStatusTab } from '~/types/book'
 
+// Also the persisted dismissal format, so a rename has to be a deliberate one.
+type BookTodoKey = 'genre' | 'isbn' | 'store-metadata' | 'pending-send'
+
 interface BookTodoItem {
-  key: string
+  key: BookTodoKey
   label: string
   tab: BookStatusTab
 }
 
+// Genre and ISBN are advice, not work: a book can ship without either, so an
+// author who has decided against one can put the nudge away for good. The rest
+// is outstanding work and stays until it is resolved.
+const DISMISSIBLE_TODO_KEYS: ReadonlySet<BookTodoKey> = new Set(['genre', 'isbn'])
+
 const { t: $t } = useI18n()
 
 const {
+  classId,
   genre = '',
   isbn = '',
   pendingNFTCount = 0,
   hasStoreMetadataMismatch = false,
 } = defineProps<{
+  classId: string
   genre?: string
   isbn?: string
   pendingNFTCount?: number
@@ -100,4 +121,21 @@ const items = computed<BookTodoItem[]>(() => {
   }
   return list
 })
+
+// Per book: skipping the ISBN on one title says nothing about the next.
+const dismissedKeys = useLocalStorage<BookTodoKey[]>(
+  () => `publish_book_todo_dismissed:${classId}`, [])
+
+function isDismissible(key: BookTodoKey) {
+  return DISMISSIBLE_TODO_KEYS.has(key)
+}
+
+function dismiss(key: BookTodoKey) {
+  dismissedKeys.value = [...dismissedKeys.value, key]
+}
+
+// The dismissible check also keeps a stale stored key from ever suppressing an
+// entry that has since stopped being advice.
+const visibleItems = computed(() => items.value
+  .filter(item => !(isDismissible(item.key) && dismissedKeys.value.includes(item.key))))
 </script>
