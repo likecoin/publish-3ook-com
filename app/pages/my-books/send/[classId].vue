@@ -461,11 +461,13 @@ async function onSendNFTStart() {
           },
         })
 
+      // Back to the sales tab where the action started from, not the status page's default tab
       await navigateTo(localeRoute({
         name: 'my-books-status-classId',
         params: {
           classId: classId.value,
         },
+        query: { tab: 'sales' },
       }))
     }
   }
