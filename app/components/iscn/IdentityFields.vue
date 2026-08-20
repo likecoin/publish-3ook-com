@@ -48,7 +48,7 @@
     class="flex-1 text-left"
     :hint="`${formData.description.length}/${MAX_DESCRIPTION_LENGTH}`"
     :help="$t('iscn_form.description_short_help')"
-    :ui="{ label: 'w-full flex items-center justify-between gap-4' }"
+    :ui="{ label: 'w-full flex items-center gap-2' }"
   >
     <template #label>
       <span v-text="$t('iscn_form.description_short')" />
@@ -56,24 +56,42 @@
         v-model="isShortDescriptionAuto"
         size="xs"
         :label="$t('iscn_form.description_short_auto')"
-        :ui="{ root: 'flex-row-reverse gap-2', wrapper: 'ms-0' }"
+        :ui="{ root: 'flex-row-reverse gap-1 py-0.5 px-2 border border-accented rounded-md', wrapper: 'ms-0' }"
       />
     </template>
-    <!-- Derived by default, and shown as text so the author can read what will
-         be stored. Both live books have the two fields byte-identical, which is
-         what a plain textarea prefilled from the long one produces. -->
-    <p
-      v-if="isShortDescriptionAuto"
-      class="rounded-lg border border-default bg-elevated/60 px-3 py-2 text-sm whitespace-pre-wrap"
-      :class="derivedShortDescription ? 'text-highlighted' : 'text-dimmed'"
-      v-text="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
-    />
+    <!-- Read-only while it follows the description, so the author sees what will be stored.
+         The trailing button is how they take it over. -->
     <UTextarea
-      v-else
+      ref="shortDescriptionInput"
       v-model="formData.description"
-      :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
       autoresize
-    />
+      :readonly="isShortDescriptionAuto"
+      :variant="isShortDescriptionAuto ? 'subtle' : 'outline'"
+      :placeholder="derivedShortDescription || $t('iscn_form.enter_iscn_description_short')"
+    >
+      <template #trailing>
+        <UTooltip :text="isShortDescriptionAuto ? $t('common.edit') : $t('iscn_form.description_short_auto')">
+          <UButton
+            v-if="isShortDescriptionAuto"
+            icon="i-heroicons-pencil-square"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            :aria-label="$t('common.edit')"
+            @click="editShortDescription"
+          />
+          <UButton
+            v-else
+            icon="i-heroicons-sparkles"
+            color="primary"
+            variant="ghost"
+            size="xs"
+            :aria-label="$t('iscn_form.description_short_auto')"
+            @click="() => { isShortDescriptionAuto = true }"
+          />
+        </UTooltip>
+      </template>
+    </UTextarea>
   </UFormField>
 </template>
 
@@ -117,6 +135,12 @@ const isShortDescriptionAuto = computed({
     if (value) { formData.value.description = derivedShortDescription.value }
   },
 })
+
+const shortDescriptionInput = useTemplateRef<{ textareaRef?: HTMLTextAreaElement }>('shortDescriptionInput')
+function editShortDescription() {
+  isShortDescriptionAuto.value = false
+  shortDescriptionInput.value?.textareaRef?.focus()
+}
 
 // Keeps the derived line current while it is the one in force; writing it into
 // the field rather than leaving it empty is what stops a stale copy surviving
