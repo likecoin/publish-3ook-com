@@ -100,6 +100,9 @@ const fullLogoTransform = computed(() => {
 })
 
 const height = computed(() => {
+  // The SVG attribute takes a length, so 'auto' has to be left off entirely and
+  // sized by the class instead; the viewBox keeps the aspect ratio either way.
+  if (props.height === 'auto') return undefined
   return typeof props.height === 'number' ? `${props.height}px` : props.height
 })
 </script>
