@@ -43,15 +43,20 @@ Start here. With the dev server up:
 node .claude/skills/run-publish-3ook-com/driver.mjs smoke
 ```
 
-Loads `/`, `/about`, `/latest-books`, then clicks the login CTA and asserts the
-wallet-selection dialog opens. Verified output:
+Loads `/`, `/about`, `/latest-books`, then clicks the 立即出版 CTA and
+asserts the wallet-selection dialog opens. Verified output:
 
 ```
-PASS /  title="publish.3ook.com"  shot=.../shots/index.png
-PASS /about  title="關於 publish.3ook.com - publish.3ook.com"  shot=.../shots/about.png
+PASS /  title="關於 publish.3ook.com - publish.3ook.com"  shot=.../shots/index.png
+PASS /about  title="publish.3ook.com"  shot=.../shots/about.png
 PASS /latest-books  title="publish.3ook.com"  shot=.../shots/latest-books.png
 PASS interaction: login panel opened  shot=.../shots/login-panel.png
 ```
+
+The `/` and `/about` titles look swapped but are not. `/` renders
+`AboutPage.vue` and sets `about.page_title`. `/about` renders the same
+component but only to client-redirect to `/`, and the title keeps the SSR
+default instead of picking up `/`'s — long-standing, not a Nuxt-version thing.
 
 Exit code is non-zero if any step fails. A healthy run takes ~15s; if the dev
 server is down every step burns its own 30s hydration timeout, so a total
@@ -69,7 +74,7 @@ node .claude/skills/run-publish-3ook-com/driver.mjs eval /about 'document.title'
 For a multi-step flow, pipe commands into the REPL:
 
 ```bash
-printf 'goto /about\nclick 登入 / 註冊\ntext\nshot login-panel.png\nquit\n' \
+printf 'goto /about\nclick 立即出版\ntext\nshot login-panel.png\nquit\n' \
   | node .claude/skills/run-publish-3ook-com/driver.mjs repl
 ```
 
@@ -85,12 +90,12 @@ centre, not `el.click()` — see Gotchas.
 All three were run and pass on this branch:
 
 ```bash
-yarn test        # node --test, 32 assertions on the preview-cut rules
+yarn test        # node --test, unit tests over app/utils/
 yarn typecheck   # must report 0 errors
 yarn lint
 ```
 
-CI runs `yarn lint` → `yarn typecheck` → `yarn generate`.
+CI runs `yarn lint` → `yarn typecheck` → `yarn test` → `yarn generate`.
 
 ## Gotchas
 
@@ -107,14 +112,16 @@ CI runs `yarn lint` → `yarn typecheck` → `yarn generate`.
   to be. `goto` waits 800ms past hydration for this.
 - **Auth-gated routes do not redirect.** `/my-books` stays at `/my-books` and
   renders the unauthenticated landing content. Never assert on
-  `location.pathname` to decide whether auth worked — check for the presence of
-  the 登入 / 註冊 CTA instead.
+  `location.pathname` to decide whether auth worked. The 立即出版 CTA is no
+  help either — `AboutPage.vue` renders the same label either way. Check
+  what it does: logged out it opens the login dialog, logged in it routes
+  to `/new-book`.
 - **Authenticated pages cannot be driven headlessly.** There is no persisted
   JWT to seed; the session comes from a live Magic Link / wagmi handshake
   needing email OTP or a real wallet. `/my-books`, `/new-book`,
   `/purchase-link`, `/sales-report`, `/settings` require the human path below.
 - **Default locale is zh-TW**, so `click` targets are Chinese text
-  (`登入 / 註冊`, not `Login`).
+  (`立即出版`, not `Publish now`).
 - **`Page.loadEventFired` is useless here.** It fires long before Vue mounts;
   `goto` polls `#__nuxt` for non-empty `innerText` instead.
 - The Nuxt DevTools bar and Vue tracer overlay render over the page. `goto`
@@ -132,7 +139,7 @@ minting. Ctrl-C to stop.
 |---|---|
 | `No Chrome binary found. Set CHROME_BIN.` | Set `CHROME_BIN` to your Chrome/Chromium executable. |
 | `Timed out waiting for Nuxt to hydrate` | Dev server isn't up, or Vite is mid re-optimize. Check the `yarn dev` log and retry. |
-| `[exception] Failed to fetch dynamically imported module: .../entry.js` in smoke output | Transient — Vite re-optimized deps and forced a reload. Re-run `smoke`. |
+| `[exception] Failed to fetch dynamically imported module: .../entry.js` in smoke output | Transient — Vite re-optimized deps and forced a reload; the first run after a cold dev server usually hits it, often surfacing as `FAIL interaction`. Re-run `smoke`. |
 | Build or generate hangs | Missing `NODE_OPTIONS=--max_old_space_size=8192`. |
 | `click` reports `not found: <text>` | The locale is zh-TW; the visible label is Chinese. Dump candidates with `eval [...document.querySelectorAll('button')].map(b=>b.innerText)`. |
 | Port 9222 already in use | A previous run left Chrome alive: `pkill -f remote-debugging-port=9222`, or set `CDP_PORT`. |

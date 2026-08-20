@@ -248,9 +248,11 @@ async function main() {
 
       // Interaction check: the login panel is the only flow reachable without
       // a wallet, so it is what proves the app is actually driveable.
+      // The CTA label is the i18n key 'about.cta_button'.
       try {
         await goto(page, base + '/about')
-        await click(page, '登入 / 註冊')
+        const clicked = await click(page, '立即出版')
+        if (clicked.startsWith('not found')) throw new Error(clicked)
         const dialogs = await evalJs(page, 'document.querySelectorAll("[role=dialog]").length')
         const file = await shot(page, 'login-panel.png')
         if (!dialogs) throw new Error('login panel did not open')
