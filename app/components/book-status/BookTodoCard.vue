@@ -94,7 +94,7 @@ const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 // table, which only the upload session has, and 版本不一致 is stated by the
 // sale-state card above, beside the control that resolves it.
 //
-// 短簡介與簡介相同 is gone for good: it is what deriving the catalog line
+// 短簡介與描述相同 is gone for good: it is what deriving the catalog line
 // produces whenever the description fits under the cap, so it flags the
 // intended default rather than a mistake.
 const items = computed<BookTodoItem[]>(() => {
