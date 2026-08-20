@@ -20,9 +20,7 @@
         <UButton
           :avatar="{ src: userLikerInfo?.avatar, loading: 'lazy' }"
           :label="collapsed ? undefined : displayName"
-          :to="accountUrl"
-          target="_blank"
-          rel="noopener noreferrer"
+          :to="localeRoute({ name: 'settings' })"
           color="neutral"
           variant="ghost"
           size="md"
@@ -55,7 +53,7 @@ const { t: $t } = useI18n()
 
 const { collapsed = false } = defineProps<{ collapsed?: boolean }>()
 
-const { BOOK3_URL } = useRuntimeConfig().public
+const localeRoute = useLocaleRoute()
 
 const store = useWalletStore()
 const { wallet } = storeToRefs(store)
@@ -66,7 +64,6 @@ const userStore = useUserStore()
 const { userLikerInfo, isFetchingUserLikerInfo } = storeToRefs(userStore)
 
 const displayName = computed(() => userLikerInfo.value?.displayName || userLikerInfo.value?.user || wallet.value)
-const accountUrl = computed(() => `${BOOK3_URL}/account`)
 
 onMounted(async () => {
   if (bookstoreApiStore.isAuthenticated) {
