@@ -1,4 +1,4 @@
-import { parse as csvParse } from 'csv-parse/sync'
+import { parse as csvParse } from 'csv-parse/browser/esm/sync'
 import type { BulkUploadBook, BulkUploadCSVRow, BulkUploadValidationError } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import {

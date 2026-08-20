@@ -1,4 +1,4 @@
-import { parse as csvParse } from 'csv-parse/sync'
+import { parse as csvParse } from 'csv-parse/browser/esm/sync'
 
 const CSV_HEADER = 'key,url'
 

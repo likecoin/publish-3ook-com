@@ -356,7 +356,7 @@ export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedPr
 }
 
 export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> {
-  const { stringify: csvStringify } = await import('csv-stringify/sync')
+  const { stringify: csvStringify } = await import('csv-stringify/browser/esm/sync')
   const { saveAs } = await import('file-saver')
 
   const rows = books.map(book => [
