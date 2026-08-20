@@ -479,7 +479,7 @@
 </template>
 
 <script setup lang="ts">
-import { stringify as csvStringify } from 'csv-stringify/sync'
+import { stringify as csvStringify } from 'csv-stringify/browser/esm/sync'
 import { UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'

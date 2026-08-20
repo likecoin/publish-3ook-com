@@ -159,7 +159,8 @@
 </template>
 
 <script setup lang="ts">
-import { downloadFile, getPurchaseLink } from '~/utils'
+import { downloadFile } from '~/utils/csv'
+import { getPurchaseLink } from '~/utils'
 import { formatPriceUSDLabel } from '~/utils/listing'
 import type { ClassListingPrice } from '~/types'
 
