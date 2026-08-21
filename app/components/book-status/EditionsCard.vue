@@ -114,11 +114,12 @@
       </div>
     </template>
 
-    <!-- A dialog rather than a child route: cancelling has to leave the page
-         exactly as it was, and a route made 取消 a navigation. -->
+    <!-- A dialog, not a child route: 取消 has to leave the page as it was.
+         Not dismissible either — Esc or a backdrop click would lose the form. -->
     <UModal
       v-model:open="showAddEditionModal"
       :title="$t('form.add_edition')"
+      :dismissible="false"
       class="sm:max-w-7xl"
       :ui="{ body: 'p-4 sm:p-6' }"
     >

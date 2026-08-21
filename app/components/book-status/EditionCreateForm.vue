@@ -46,7 +46,7 @@
     <UModal
       :open="!!isLoading"
       :dismissible="false"
-      class="p-4 gap-2"
+      :close="false"
     >
       <template #body>
         <div class="space-y-3">

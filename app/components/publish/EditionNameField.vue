@@ -5,10 +5,17 @@
   >
     <template #label>
       {{ $t('nft_book_form.product_name') }}
-      <ToolTips :image-style="{ width: '250px' }">
+      <ToolTips>
         <template #image>
           <img
+            v-if="locale === 'en'"
             src="~/assets/images/hint/editionInfo-en.png"
+            class="object-cover"
+            alt=""
+          >
+          <img
+            v-else
+            src="~/assets/images/hint/editionInfo-zh.png"
             class="object-cover"
             alt=""
           >
@@ -26,7 +33,7 @@
 <script setup lang="ts">
 import type { PriceFormItem } from '~/types/publish'
 
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 
 const { placeholder = '' } = defineProps<{
   index: number
