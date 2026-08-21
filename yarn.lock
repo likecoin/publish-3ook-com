@@ -2398,17 +2398,14 @@
   dependencies:
     jszip "^3.10.1"
 
-"@likecoin/epubcheck-ts@^0.6.2":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.6.2.tgz#7de21b9b36e4a792fe6577b150b8099e674c62e9"
-  integrity sha512-dKZ6g6kzQYJELiqneuJJ2+d16ocbjW2GepxdJSBMVZjYpYKKpYPVTALV68CswXhMUPtzpVrIyJ2IVD+bilGsEQ==
+"@likecoin/epubcheck-ts@^0.6.5":
+  version "0.6.5"
+  resolved "https://registry.yarnpkg.com/@likecoin/epubcheck-ts/-/epubcheck-ts-0.6.5.tgz#9e1300e214fdf3e7a00cd11ceae1838c60387b38"
+  integrity sha512-E/p01rmjLDcuy5/p+L5RuatbkEPBnmkAB9rYe2yaxTqytcM9gfqBQjf3ESNqk4avDyMBvie0UPKoadjoIm5kuQ==
   dependencies:
     css-tree "^3.0.1"
     fflate "^0.8.2"
-    fontoxpath "^3.33.1"
     libxml2-wasm "^0.6.0"
-    slimdom "^4.3.5"
-    slimdom-sax-parser "^1.5.3"
 
 "@likecoin/qr-code-styling@^1.6.6":
   version "1.6.6"
@@ -9498,14 +9495,6 @@ fontless@^0.2.1:
     unifont "^0.7.4"
     unstorage "^1.17.1"
 
-fontoxpath@^3.33.1:
-  version "3.34.0"
-  resolved "https://registry.npmjs.org/fontoxpath/-/fontoxpath-3.34.0.tgz"
-  integrity sha512-7FgBQRohn4WR/2eVdYqZtKBFZkJNaiP4kGdfqS6bAg465og05ixGA2OgfMdxsO1mnX67+64JX/8JKclVqS+bzA==
-  dependencies:
-    prsc "4.0.0"
-    xspattern "^3.1.0"
-
 for-each@^0.3.5:
   version "0.3.5"
   resolved "https://registry.npmjs.org/for-each/-/for-each-0.3.5.tgz"
@@ -12605,11 +12594,6 @@ proxy-from-env@^2.1.0:
   resolved "https://registry.yarnpkg.com/proxy-from-env/-/proxy-from-env-2.1.0.tgz#a7487568adad577cfaaa7e88c49cab3ab3081aba"
   integrity sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==
 
-prsc@4.0.0:
-  version "4.0.0"
-  resolved "https://registry.npmjs.org/prsc/-/prsc-4.0.0.tgz"
-  integrity sha512-OmXQ2v76RlXNx/gqv7+oB6jyKnudJ/rsMfAIVexhbDFxXAJPoWKMxJkZU2ohlu4miCiSQCG+horf2DV4/kNc1Q==
-
 punycode.js@^2.3.1:
   version "2.3.1"
   resolved "https://registry.npmjs.org/punycode.js/-/punycode.js-2.3.1.tgz"
@@ -13026,13 +13010,6 @@ sax@^1.5.0:
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.6.0.tgz#da59637629307b97e7c4cb28e080a7bc38560d5b"
   integrity sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==
 
-saxes@6.0.0:
-  version "6.0.0"
-  resolved "https://registry.npmjs.org/saxes/-/saxes-6.0.0.tgz"
-  integrity sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==
-  dependencies:
-    xmlchars "^2.2.0"
-
 scrypt-js@3.0.1:
   version "3.0.1"
   resolved "https://registry.npmjs.org/scrypt-js/-/scrypt-js-3.0.1.tgz"
@@ -13249,24 +13226,6 @@ slash@^5.1.0:
   version "5.1.0"
   resolved "https://registry.npmjs.org/slash/-/slash-5.1.0.tgz"
   integrity sha512-ZA6oR3T/pEyuqwMgAKT0/hAv8oAXckzbkmR0UkUosQ+Mc4RxGoJkRmwHgHufaenlyAgE1Mxgpdcrf75y6XcnDg==
-
-slimdom-sax-parser@^1.5.3:
-  version "1.5.3"
-  resolved "https://registry.npmjs.org/slimdom-sax-parser/-/slimdom-sax-parser-1.5.3.tgz"
-  integrity sha512-h47aSAas1l8tFew1bY/Af/IVyOy4jcHzj+MoJU/cf+/ZSqKrAe8TspMlbBVaKc6FsSffJqhSJRmvyeOketI4Tg==
-  dependencies:
-    saxes "6.0.0"
-    slimdom "3.0.1"
-
-slimdom@3.0.1:
-  version "3.0.1"
-  resolved "https://registry.npmjs.org/slimdom/-/slimdom-3.0.1.tgz"
-  integrity sha512-20Ql+QmLrZOonYMLSsSJz20RwipzqAJ64DkN7UiV0QP/enyyV+MpQJU7Ucb3N9F4dKDO26FsTsP5QWK4Mbqn1A==
-
-slimdom@^4.3.5:
-  version "4.3.5"
-  resolved "https://registry.npmjs.org/slimdom/-/slimdom-4.3.5.tgz"
-  integrity sha512-MoxdfngDk7nf8Vun0xB2AYBiHv3Qlua3Frf12n8ZLmXtfZoapfAQOKLSMCsemSyEU1UIyd503LJfYKJE+dxDTg==
 
 slow-redact@^0.3.0:
   version "0.3.2"
@@ -14592,11 +14551,6 @@ which@^6.0.1:
   dependencies:
     isexe "^4.0.0"
 
-whynot@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/whynot/-/whynot-5.0.0.tgz"
-  integrity sha512-cGGfDPYYqoHoMWqXVc3G+N74u1FhFhrBa+pOO906b9ktRc/JFUdwroTkfPqjKzyoCLVcKr6yy6bYIcWT7jTg2A==
-
 word-wrap@^1.2.5:
   version "1.2.5"
   resolved "https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz"
@@ -14675,18 +14629,6 @@ xml-name-validator@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmjs.org/xml-name-validator/-/xml-name-validator-4.0.0.tgz"
   integrity sha512-ICP2e+jsHvAj2E2lIHxa5tjXRlKDJo4IdvPvCXbXQGdzSfmSpNVyIKMvoZHjDY9DP0zV17iI85o90vRFXNccRw==
-
-xmlchars@^2.2.0:
-  version "2.2.0"
-  resolved "https://registry.npmjs.org/xmlchars/-/xmlchars-2.2.0.tgz"
-  integrity sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==
-
-xspattern@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.npmjs.org/xspattern/-/xspattern-3.1.0.tgz"
-  integrity sha512-rxtOX8ORJizRqswIdZ72G3thKrHd0Q+TvyUCMByc5VdjDz1nkuZKfPXM3xGdrGi0fwEy+DDJN7DqtAZ06Re4bA==
-  dependencies:
-    whynot "^5.0.0"
 
 xss@^1.0.15:
   version "1.0.15"
