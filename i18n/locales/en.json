@@ -1038,6 +1038,7 @@
   "table.status": "Status",
   "table.stock": "Stock",
   "table.stock_balance": "Stock Balance {count}",
+  "table.stock_owed": "Need {count} more",
   "table.total_usd": "Sales (USD, excl. FX)",
   "table.unassigned_stock": "Unassigned Stock",
   "table.value": "Value",
