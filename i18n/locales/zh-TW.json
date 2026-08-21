@@ -1038,6 +1038,7 @@
   "table.status": "狀態",
   "table.stock": "庫存",
   "table.stock_balance": "剩餘： {count}",
+  "table.stock_owed": "需印鑄： {count}",
   "table.total_usd": "銷售額（美元，忽略匯率）",
   "table.unassigned_stock": "未分配庫存",
   "table.value": "值",

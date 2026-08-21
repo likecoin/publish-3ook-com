@@ -95,7 +95,7 @@
     <p
       v-if="prices.length <= 1 && hasManualEdition"
       class="p-4 text-sm text-muted"
-      v-text="$t('table.stock_balance', { count: stockBalance })"
+      v-text="stockBalanceLabel"
     />
 
     <template #footer>
@@ -153,7 +153,7 @@
 import type { ClassListingPrice, EditionTableRow } from '~/types'
 import type { PriceFormItem } from '~/types/publish'
 import { getListingPriceName, mapListingPriceToFormItem, formatPriceUSDLabel } from '~/utils/listing'
-import { MAX_EDITION_COUNT } from '~/constant'
+import { MAX_EDITION_COUNT, STOCK_BALANCE_UNKNOWN } from '~/constant'
 
 const { t: $t } = useI18n()
 
@@ -222,6 +222,15 @@ const editionsTableColumns = computed(() => [
   { accessorKey: 'price', header: $t('table.price_usd'), class: 'w-[120px]' },
 ])
 
+const stockBalanceLabel = computed(() => {
+  if (stockBalance === STOCK_BALANCE_UNKNOWN) {
+    return $t('table.stock_balance', { count: '—' })
+  }
+  return stockBalance < 0
+    ? $t('table.stock_owed', { count: -stockBalance })
+    : $t('table.stock_balance', { count: stockBalance })
+})
+
 const hasManualEdition = computed(() => prices.value.some(price => !price.isAutoDeliver))
 
 const editionsTableRows = computed(() => {
@@ -236,7 +245,7 @@ const editionsTableRows = computed(() => {
     rows.push({
       name: '',
       isAutoDeliver: false,
-      stock: $t('table.stock_balance', { count: stockBalance }),
+      stock: stockBalanceLabel.value,
       price: '',
       isStockBalancePlaceholderRow: true,
       originalIndex: -1,
