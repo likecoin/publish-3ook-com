@@ -175,7 +175,7 @@ import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDV
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
-import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
+import { PREVIEW_PERCENTAGE_DEFAULT, STOCK_BALANCE_UNKNOWN } from '~/constant'
 
 const { t: $t } = useI18n()
 
@@ -201,7 +201,7 @@ const isLoading = ref(false)
 const classId = ref<string>(route.params.classId as string)
 const classListingInfo = ref<ClassListingData>({} as ClassListingData)
 const prices = ref<ClassListingPrice[]>([])
-const stockBalance = ref(-99)
+const stockBalance = ref(STOCK_BALANCE_UNKNOWN)
 
 // What BookDetailsSection exposes to the save orchestration.
 interface BookDetailsSectionApi {
@@ -367,7 +367,7 @@ watch(sessionWallet, async (newWallet) => {
     await calculateStock()
   }
   else {
-    stockBalance.value = -99
+    stockBalance.value = STOCK_BALANCE_UNKNOWN
   }
 })
 
