@@ -99,30 +99,21 @@
             :cover-image-src="coverImageSrc"
             @edit="goToStep"
           />
-          <UCard
-            v-if="isPublishing || hasPublishStarted"
-            ref="publishProgressRef"
-            tabindex="-1"
+          <UModal
+            v-model:open="isPublishProgressOpen"
+            :title="$t('publish_wizard.publishing_title')"
+            :description="isPublishing ? $t('publish_wizard.publishing_do_not_close') : undefined"
+            :dismissible="!isPublishing"
+            :close="!isPublishing"
           >
-            <template #header>
-              <div class="flex justify-between items-center">
-                <h3
-                  class="font-bold font-mono"
-                  v-text="$t('publish_wizard.publishing_title')"
-                />
-                <p
-                  v-if="isPublishing"
-                  class="text-xs text-muted"
-                  v-text="$t('publish_wizard.publishing_do_not_close')"
-                />
-              </div>
+            <template #body>
+              <PublishProgressChecklist
+                :status="lastStepStatus"
+                :is-failed="isPublishFailed"
+                :error-message="publishError"
+              />
             </template>
-            <PublishProgressChecklist
-              :status="lastStepStatus"
-              :is-failed="isPublishFailed"
-              :error-message="publishError"
-            />
-          </UCard>
+          </UModal>
         </div>
 
         <!-- Navigation Buttons -->
@@ -237,7 +228,6 @@ const uploadFormRef = ref()
 const detailsFormRef = ref()
 const pricingFormRef = ref()
 const stepTopRef = ref<HTMLElement | null>(null)
-const publishProgressRef = ref()
 
 // Collected draft state; persisted to localStorage so an accidental tab close
 // or browser quit keeps everything except the raw file blobs.
@@ -263,6 +253,7 @@ const skipMint = ref(false)
 const lastStepStatus = ref<BookUploadStatus>(BookUploadStatus.PENDING)
 const isPublishFailed = ref(false)
 const hasPublishStarted = ref(false)
+const isPublishProgressOpen = ref(false)
 const publishError = ref('')
 
 // Gate persistence until the resume-or-fresh decision is made, so the watcher
@@ -408,6 +399,7 @@ function resumeDraft() {
       lastStepStatus.value = session.status
       hasPublishStarted.value = true
       isPublishFailed.value = !!session.error
+      isPublishProgressOpen.value = true
     }
     maxVisitedStepIndex.value = STEP_KEYS.length - 1
     const resumedStep = STEP_KEYS.find(key => key === session.wizardStep)
@@ -723,9 +715,7 @@ async function handlePublish() {
   hasPublishStarted.value = true
   publishError.value = ''
   persistDraft()
-  // The checklist is appended below a long review summary, so it lands off
-  // screen; without this the Publish click looks like it did nothing.
-  await revealElement(publishProgressRef)
+  isPublishProgressOpen.value = true
 
   const input: PublishBookInput = {
     fileRecords: fileRecords.value.map(record => ({
@@ -804,9 +794,8 @@ async function handlePublish() {
       error: publishError.value,
       class_id: classId.value || undefined,
     })
-    // Bring the failure back into view for an author who scrolled away while
-    // the publish was running.
-    await revealElement(publishProgressRef)
+    // Reopen for an author who closed the dialog while it was still running.
+    isPublishProgressOpen.value = true
   }
 }
 </script>
