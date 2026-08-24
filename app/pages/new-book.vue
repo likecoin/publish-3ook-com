@@ -1,5 +1,17 @@
 <template>
-  <PageBody class="flex flex-col items-stretch grow space-y-4">
+  <!-- overflow-y-visible! undoes the `overflow-y-auto` <NuxtPage> puts on every
+       page root, which would pin the sticky bar below in place. -->
+  <PageBody class="flex flex-col items-stretch grow space-y-4 overflow-y-visible!">
+    <PublishWizardNavBar
+      :next-label="primaryActionLabel"
+      :can-go-back="currentStepIndex > 0"
+      :is-next-disabled="shouldDisableNext"
+      :is-busy="isPublishing"
+      :last-saved-at="lastSavedAt"
+      @back="goToPreviousStep"
+      @next="handlePrimaryAction"
+    />
+
     <div
       ref="stepTopRef"
       class="w-full"
@@ -150,33 +162,6 @@
             </template>
           </UModal>
         </div>
-
-        <!-- Navigation Buttons -->
-        <div class="flex gap-2 justify-center mt-4">
-          <UButton
-            v-if="currentStepIndex > 0"
-            variant="outline"
-            color="neutral"
-            :disabled="isPublishing"
-            :label="$t('publish_wizard.back')"
-            @click="goToPreviousStep"
-          />
-          <UButton
-            v-if="step !== 'review'"
-            :disabled="shouldDisableNext"
-            :label="$t('publish_wizard.next')"
-            @click="goToNextStep"
-          />
-          <UButton
-            v-else
-            :loading="isPublishing"
-            :disabled="isPublishing"
-            :label="isPublishFailed
-              ? $t('publish_wizard.retry_publish')
-              : $t('publish_button.publish_now')"
-            @click="handlePublish"
-          />
-        </div>
       </div>
     </div>
 
@@ -294,6 +279,9 @@ const publishError = ref('')
 // Gate persistence until the resume-or-fresh decision is made, so the watcher
 // can't overwrite an existing draft with empty initial state.
 const isDraftReady = ref(false)
+// Only this visit's writes, so a resumed draft does not claim a save time from
+// a session that is over.
+const lastSavedAt = ref<number | null>(null)
 const showResumePrompt = ref(false)
 const pendingSession = ref<PublishSession | null>(null)
 
@@ -317,6 +305,23 @@ const restoredFileBlobs = ref<Map<string, Blob>>(new Map())
 
 function restoredBlobFor(record: { fileSHA256?: string }): Blob | undefined {
   return record.fileSHA256 ? restoredFileBlobs.value.get(record.fileSHA256) : undefined
+}
+
+// One button, whose meaning is the step it is on: every step but the last moves
+// on, the last one publishes.
+const primaryActionLabel = computed(() => {
+  if (step.value !== 'review') { return $t('publish_wizard.next') }
+  return isPublishFailed.value
+    ? $t('publish_wizard.retry_publish')
+    : $t('publish_button.publish_now')
+})
+
+function handlePrimaryAction() {
+  if (step.value === 'review') {
+    handlePublish()
+    return
+  }
+  goToNextStep()
 }
 
 // A draft interrupted before its upload step needs the files picked again,
@@ -552,6 +557,7 @@ function persistDraft() {
   if (!isDraftReady.value) { return }
   savePublishSession(serializeDraft())
   persistDraftFiles()
+  lastSavedAt.value = Date.now()
 }
 
 watchDebounced(

@@ -12,6 +12,7 @@
       :is-preview-enabled="listingDraft.isPreviewEnabled"
       :preview-percentage="listingDraft.previewPercentage"
       :is-downloadable="!encryptEbook"
+      :is-audio-allowed="!listingDraft.hideAudio"
       :is-plus-reading-enabled="listingDraft.isPlusReadingEnabled"
     />
 
