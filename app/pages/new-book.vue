@@ -27,39 +27,61 @@
         </button>
       </div>
 
-      <!-- Step Content -->
-      <div class="mt-6 p-4 border border-default rounded-lg bg-elevated flex flex-col gap-[24px]">
+      <!-- Step content. Cards on the page background, one titled section each,
+           at the same rhythm as the book page's tab panes: the two screens are
+           the same book, so they are read the same way. -->
+      <div class="mt-4 space-y-10">
         <!-- One dropzone for everything: the cover is a file like the others,
              and dropping an image is what changes it. -->
-        <UploadForm
-          v-if="step === 'files'"
-          ref="uploadFormRef"
-          v-model:encrypt-ebook="encryptEbook"
-          collect-only
-          :show-drm-option="false"
-          :initial-file-records="fileRecords"
-          @file-ready="handleFileReady"
-          @submit="handleFilesCollected"
-        />
-        <div
-          v-else-if="step === 'details'"
-          class="text-left flex flex-col gap-6"
-        >
-          <ISCNForm
-            ref="detailsFormRef"
-            v-model="iscnFormData"
-            v-model:description-full="listingDraft.descriptionFull"
-            :guard-unsaved-changes="false"
-            :prefilled-fields="prefilledFields"
-            :content-excerpt="epubMetadata?.contentExcerpt"
-            :table-of-contents="listingDraft.tableOfContents"
+        <UCard v-if="step === 'files'">
+          <template #header>
+            <h3
+              class="font-bold font-mono"
+              v-text="$t('publish_review.files_title')"
+            />
+          </template>
+          <UploadForm
+            ref="uploadFormRef"
+            v-model:encrypt-ebook="encryptEbook"
+            collect-only
+            :show-drm-option="false"
+            :initial-file-records="fileRecords"
+            @file-ready="handleFileReady"
+            @submit="handleFilesCollected"
           />
+        </UCard>
 
-          <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
-        </div>
+        <!-- Same card as the book page's 書籍資料, holding the same two
+             components, so the fields keep their surroundings between
+             publishing a book and editing it. -->
+        <UCard
+          v-else-if="step === 'details'"
+          :ui="{ body: 'p-4' }"
+        >
+          <template #header>
+            <h3
+              class="font-bold font-mono"
+              v-text="$t('status_page.book_details_title')"
+            />
+          </template>
+          <div class="text-left flex flex-col gap-6">
+            <ISCNForm
+              ref="detailsFormRef"
+              v-model="iscnFormData"
+              v-model:description-full="listingDraft.descriptionFull"
+              :guard-unsaved-changes="false"
+              :prefilled-fields="prefilledFields"
+              :content-excerpt="epubMetadata?.contentExcerpt"
+              :table-of-contents="listingDraft.tableOfContents"
+            />
+
+            <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
+          </div>
+        </UCard>
+
         <div
           v-else-if="step === 'pricing'"
-          class="flex flex-col gap-[24px]"
+          class="space-y-10"
         >
           <!-- Ahead of pricing: how readers get the file, then what they pay
                for it. The tier stays changeable after publishing; what does not
@@ -102,7 +124,7 @@
         </div>
         <div
           v-else-if="step === 'review'"
-          class="flex flex-col gap-[24px]"
+          class="space-y-10"
         >
           <PublishReviewStep
             :file-records="fileRecords"
