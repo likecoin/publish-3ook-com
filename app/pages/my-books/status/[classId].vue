@@ -58,11 +58,7 @@
           :file-links="chainFileLinks"
           @cover-replaced="handleCoverReplaced"
           @files-replaced="handleFilesReplaced"
-        >
-          <template #after-files>
-            <BookStatusFileProtectionCard :is-encrypted="listingSettings.hideDownload.value" />
-          </template>
-        </BookStatusBookFilesCard>
+        />
         <BookStatusBookDetailsSection
           ref="detailsSectionRef"
           :class-id="classId"
@@ -85,6 +81,10 @@
         v-show="selectedTabItemIndex === 'pricing'"
         class="space-y-10 mt-4"
       >
+        <!-- Beside the price, as in the wizard: what a buyer may do with the
+             file is a term of the sale. Locked here — the upload decided it. -->
+        <BookStatusFileProtectionCard :model-value="listingSettings.hideDownload.value" />
+
         <BookStatusEditionsCard
           v-model:prices="prices"
           :class-id="classId"
@@ -101,13 +101,11 @@
           ref="managePricingFormRef"
           v-model:prices="editedPrices"
           v-model:signature-image="signatureImage"
-          mode="manage"
           :has-existing-signature-image="hasExistingSignatureImage"
         />
         <BookStatusBookListingSettingsCard
           v-if="userIsOwner"
           :settings="listingSettings"
-          :is-free-book="isFreeBook"
         />
       </div>
 
@@ -170,7 +168,7 @@ import type { ClassListingData, ClassListingPrice } from '~/types'
 import { BOOK_STATUS_TABS, RETIRED_BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
 import type { PriceFormItem } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
-import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue, getSoldCount } from '~/utils/listing'
+import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
@@ -242,7 +240,7 @@ const hasExistingSignatureImage = computed(() => !!classListingInfo.value.enable
 // on in the same save, rather than only after the post-save refetch. The draft
 // is empty until the listing loads, so the persisted prices seed it.
 const isFreeBook = computed(() => (editedPrices.value.length
-  ? editedPrices.value.some(p => getPriceItemUSDValue(p) === 0)
+  ? hasFreeEditionDraft(editedPrices.value)
   : (classListingInfo.value.prices || []).some(p => Number(p.price) === 0)))
 
 // One settings instance for the whole page: the /settings POST echoes every

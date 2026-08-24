@@ -1,18 +1,19 @@
 <template>
   <!-- The same bar as the book page's, at the top and present at every step:
-       書籍資料 is long enough that a bottom bar puts the way on below the fold,
-       which is the finding that moved the other one up here. It also says the
-       draft is saved, which the wizard was doing silently. -->
+       書籍資料 is long enough that a bottom bar puts the way on below the fold. -->
   <div class="sticky top-0 z-20 -mx-2 px-2 py-2 bg-default/95 backdrop-blur">
     <div class="flex items-center justify-between gap-4 rounded-lg border border-default bg-elevated/60 px-3 py-2">
-      <p class="flex items-center gap-1.5 text-sm text-muted truncate">
+      <p
+        v-if="savedLabel"
+        class="flex items-center gap-1.5 text-sm text-muted truncate"
+      >
         <UIcon
           name="i-heroicons-check-circle"
           class="text-success shrink-0"
         />
         <span v-text="savedLabel" />
       </p>
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex items-center gap-2 shrink-0 ml-auto">
         <UButton
           v-if="canGoBack"
           variant="outline"
@@ -54,14 +55,11 @@ const emit = defineEmits<{
   next: []
 }>()
 
-// Only this visit's saves have a time to show; before the first one the line
-// still says the draft is kept, without claiming a timestamp it does not have.
+// Silent until something has actually been written: an untouched step 1 has no
+// draft, and being trusted about that is what this line is for.
 const savedLabel = computed(() => {
-  if (!lastSavedAt) { return $t('publish_wizard.draft_saved') }
-  const time = new Date(lastSavedAt).toLocaleTimeString(locale.value, {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  if (!lastSavedAt) { return '' }
+  const time = formatSavedAtTime(lastSavedAt, locale.value)
   return `${$t('publish_wizard.draft_saved')} · ${$t('status_page.last_saved_at', { time })}`
 })
 </script>

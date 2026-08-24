@@ -1,11 +1,12 @@
 <template>
-  <!-- Cover left, the book files beside it — the same anatomy as the book page's
-       書檔 card, so a cover reads as a picture in both places rather than as a
-       row in a list of filenames. -->
+  <!-- Cover left, book files beside it — the book page's 書檔 anatomy, so a
+       cover reads as a picture in both places. -->
   <div class="flex gap-6 w-full">
+    <!-- w-40, not w-fit: the caption and the cover hint below wrap inside this
+         column, and at the thumbnail's own 120px they wrap to one word a line. -->
     <div
       v-if="coverEntry"
-      class="shrink-0 flex flex-col items-start gap-2"
+      class="w-40 shrink-0 flex flex-col items-start gap-2"
     >
       <BookCoverThumbnail
         :src="coverEntry.record.fileData"
@@ -22,12 +23,12 @@
           : $t('upload_form.file_cover') }}
       </UBadge>
       <p
-        class="text-xs text-muted break-all max-w-[120px]"
-        v-text="`${coverEntry.record.fileName} · ${fileSizeLabel(coverEntry.record)}`"
+        class="text-xs text-muted break-all"
+        v-text="`${coverEntry.record.fileName} · ${formatBytes(coverEntry.record.fileSize || 0)}`"
       />
       <p
         v-if="ownsCover"
-        class="text-xs text-muted max-w-[120px]"
+        class="text-xs text-muted"
         v-text="coverHint(coverEntry.record)"
       />
       <div class="flex items-center gap-1">
@@ -79,7 +80,7 @@
             </p>
             <p
               class="text-muted text-sm"
-              v-text="fileSizeLabel(record)"
+              v-text="formatBytes(record.fileSize || 0)"
             />
             <button
               v-if="needsFileReselect(record)"
@@ -152,6 +153,7 @@
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
 import { needsFileReselect, isRecordUploaded, isGeneratedCoverRecord, isManualCoverRecord, isCoverRecord } from '~/utils/arweave'
+import { formatBytes } from '~/utils'
 
 const { t: $t } = useI18n()
 
@@ -178,9 +180,6 @@ const coverHint = (record: FileRecord) =>
     ? $t('publish_cover.replaced_hint')
     : $t('publish_cover.hint')
 
-const fileSizeLabel = (record: FileRecord) =>
-  `${Math.round((record.fileSize || 0) * 0.001)} KB`
-
 // Both covers are kept — 復原 needs the ebook's own — but only one of them is
 // this book's cover, so the superseded row is hidden. Indices are carried
 // along: delete and reselect address the unfiltered array.
@@ -191,8 +190,8 @@ const displayedRecords = computed(() => {
     .filter(({ record }) => !(hasManualCover && isGeneratedCoverRecord(record)))
 })
 
-// The cover is shown as a picture beside the list, so it leaves the list. At
-// most one survives the filter above, which is what makes this a single entry.
+// At most one cover survives the filter above, which is what makes this a
+// single entry rather than a list.
 const coverEntry = computed(() =>
   displayedRecords.value.find(({ record }) => isCoverRecord(record)))
 const bookFileEntries = computed(() =>

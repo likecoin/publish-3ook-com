@@ -17,7 +17,7 @@
       ref="pricingFormRef"
       v-model:prices="prices"
       v-model:signature-image="signatureImage"
-      mode="edit"
+      is-adding-edition
       :display-edit-index="displayEditIndex"
       :has-existing-signature-image="hasExistingSignatureImage"
       :name-placeholder="$t('nft_book_form.new_edition_name_placeholder')"

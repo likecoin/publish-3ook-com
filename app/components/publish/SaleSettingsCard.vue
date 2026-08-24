@@ -1,8 +1,7 @@
 <template>
-  <!-- The wizard's half of the book page's 販售與內容設定 card: same title, same
-       fields, always open. It sits beside the edition form rather than inside
-       it, so both flows put class-level settings in one place of their own. -->
-  <UCard :ui="{ body: 'p-4' }">
+  <!-- The wizard's half of the book page's 販售與內容設定 card, plus the two
+       things only an unpublished book can show. -->
+  <UCard :ui="{ body: 'p-4 flex flex-col gap-4' }">
     <template #header>
       <h3
         class="font-bold font-mono"
@@ -10,110 +9,101 @@
       />
     </template>
 
-    <div class="flex flex-col gap-4">
-      <!-- 上架圖書館 has a card of its own, as on the book page: it is a
-           channel with consequences, not a checkbox among content flags. The
-           free-book rule still lives in here, and still fires with the radio
-           hidden. -->
-      <BookSettingsFields
-        v-model:is-adult-only="settings.isAdultOnly"
-        v-model:hide-audio="settings.hideAudio"
-        v-model:is-plus-reading-enabled="settings.isPlusReadingEnabled"
-        v-model:is-preview-enabled="settings.isPreviewEnabled"
-        v-model:preview-percentage="settings.previewPercentage"
-        :is-free-book="isFreeBook"
-        :show-plus-reading="false"
-      />
+    <BookSettingsFields
+      v-model:is-adult-only="settings.isAdultOnly"
+      v-model:hide-audio="settings.hideAudio"
+      v-model:is-preview-enabled="settings.isPreviewEnabled"
+      v-model:preview-percentage="settings.previewPercentage"
+    />
 
-      <!-- Live free-preview cut readout: the straddled chapter is included in
-           full where that stays under the ceiling, so the actual range can
-           exceed the nominal %; past it the chapter ships part-way. -->
-      <div
-        v-if="previewCut"
-        class="p-3 border border-default rounded-lg bg-elevated text-sm"
-      >
-        <template v-if="previewCut.ok">
-          <p
-            class="font-medium"
-            v-text="$t('nft_book_form.preview_actual_range')"
-          />
-          <ul class="mt-1 list-disc list-inside text-muted">
-            <li
-              v-for="item in previewCut.includedItems"
-              :key="item.href"
-              v-text="item.isPartial
-                ? $t('nft_book_form.preview_partial_item', { label: item.label })
-                : item.label"
-            />
-          </ul>
-          <p
-            class="mt-1 text-muted"
-            v-text="$t('nft_book_form.preview_actual_percent', { percent: previewCut.effectivePercentageRounded })"
-          />
-        </template>
-
-        <!-- The server refuses these files: a reader would get a 403. -->
+    <!-- Live free-preview cut readout: the straddled chapter is included in
+         full where that stays under the ceiling, so the actual range can
+         exceed the nominal %; past it the chapter ships part-way. -->
+    <div
+      v-if="previewCut"
+      class="p-3 border border-default rounded-lg bg-elevated text-sm"
+    >
+      <template v-if="previewCut.ok">
         <p
-          v-else
-          class="text-error"
-          v-text="previewCut.message"
+          class="font-medium"
+          v-text="$t('nft_book_form.preview_actual_range')"
+        />
+        <ul class="mt-1 list-disc list-inside text-muted">
+          <li
+            v-for="item in previewCut.includedItems"
+            :key="item.href"
+            v-text="item.isPartial
+              ? $t('nft_book_form.preview_partial_item', { label: item.label })
+              : item.label"
+          />
+        </ul>
+        <p
+          class="mt-1 text-muted"
+          v-text="$t('nft_book_form.preview_actual_percent', { percent: previewCut.effectivePercentageRounded })"
+        />
+      </template>
+
+      <!-- The server refuses these files: a reader would get a 403. -->
+      <p
+        v-else
+        class="text-error"
+        v-text="previewCut.message"
+      />
+    </div>
+
+    <!-- Stripe connect list -->
+    <UFormField :label="$t('nft_book_form.stripe_connect_wallets')">
+      <div
+        v-for="(stripeWallet) in stripeConnectWallets"
+        :key="stripeWallet"
+        class="flex items-center justify-between p-3 bg-elevated rounded-lg"
+      >
+        <div class="flex items-center gap-2">
+          <UIcon
+            name="i-heroicons-wallet"
+            class="text-muted"
+          />
+          <span
+            class="font-mono text-sm"
+            v-text="stripeWallet"
+          />
+          <UBadge
+            v-if="stripeWallet === sessionWallet"
+            variant="soft"
+            color="success"
+            size="xs"
+          >
+            {{ $t('nft_book_form.current_wallet') }}
+          </UBadge>
+        </div>
+      </div>
+      <div
+        v-if="stripeConnectWallets.length === 0 && sessionWalletStripeStatus?.isReady"
+        class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
+      >
+        {{ $t('nft_book_form.no_wallets') }}
+        <UButton
+          variant="outline"
+          color="primary"
+          size="xs"
+          :label="$t('nft_book_form.link_wallet')"
+          @click="settings.connectedWallets = { [sessionWallet]: 100 }"
         />
       </div>
-
-      <!-- Stripe connect list -->
-      <UFormField :label="$t('nft_book_form.stripe_connect_wallets')">
-        <div
-          v-for="(stripeWallet) in stripeConnectWallets"
-          :key="stripeWallet"
-          class="flex items-center justify-between p-3 bg-elevated rounded-lg"
-        >
-          <div class="flex items-center gap-2">
-            <UIcon
-              name="i-heroicons-wallet"
-              class="text-muted"
-            />
-            <span
-              class="font-mono text-sm"
-              v-text="stripeWallet"
-            />
-            <UBadge
-              v-if="stripeWallet === sessionWallet"
-              variant="soft"
-              color="success"
-              size="xs"
-            >
-              {{ $t('nft_book_form.current_wallet') }}
-            </UBadge>
-          </div>
-        </div>
-        <div
-          v-if="stripeConnectWallets.length === 0 && sessionWalletStripeStatus?.isReady"
-          class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
-        >
-          {{ $t('nft_book_form.no_wallets') }}
-          <UButton
-            variant="outline"
-            color="primary"
-            size="xs"
-            :label="$t('nft_book_form.link_wallet')"
-            @click="settings.connectedWallets = { [sessionWallet]: 100 }"
-          />
-        </div>
-        <div
-          v-else-if="stripeConnectWallets.length === 0"
-          class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
-        >
-          {{ $t('nft_book_form.no_wallets') }}
-          <UButton
-            variant="outline"
-            color="error"
-            size="xs"
-            :label="$t('nft_book_form.connect_wallet')"
-            @click="navigateTo('/settings')"
-          />
-        </div>
-      </UFormField>
-    </div>
+      <div
+        v-else-if="stripeConnectWallets.length === 0"
+        class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
+      >
+        {{ $t('nft_book_form.no_wallets') }}
+        <UButton
+          variant="outline"
+          color="error"
+          size="xs"
+          :label="$t('nft_book_form.connect_wallet')"
+          @click="navigateTo('/settings')"
+        />
+      </div>
+    </UFormField>
   </UCard>
 </template>
 
@@ -129,13 +119,14 @@ const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
 const bookstoreApiStore = useBookstoreApiStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
-const { isFreeBook = false, epubSpineItems = undefined } = defineProps<{
-  // Owned by the host, which also feeds it to the lending card beside this one.
-  isFreeBook?: boolean
+const { epubSpineItems = undefined } = defineProps<{
   // Spine table of the uploaded EPUB, for the free-preview cut readout.
   epubSpineItems?: EpubSpineItem[]
 }>()
 
+// A model, not a prop: this card edits the wizard's draft object in place, which
+// vue/no-mutating-props forbids through a prop. The book page's card takes a bag
+// of refs instead, which is why it can.
 const settings = defineModel<PricingFormSettings>('settings', { required: true })
 
 // Actual preview outcome of the "generous" chapter cut, recomputed live as the

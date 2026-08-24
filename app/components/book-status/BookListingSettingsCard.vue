@@ -10,11 +10,8 @@
     <BookSettingsFields
       v-model:is-adult-only="isAdultOnly"
       v-model:hide-audio="hideAudio"
-      v-model:is-plus-reading-enabled="isPlusReadingEnabled"
       v-model:is-preview-enabled="isPreviewEnabled"
       v-model:preview-percentage="previewPercentage"
-      :is-free-book="isFreeBook"
-      :show-plus-reading="false"
     />
   </UCard>
 </template>
@@ -24,10 +21,9 @@ import type { BookListingSettingsContext } from '~/composables/useBookListingSet
 
 const { t: $t } = useI18n()
 
-const { settings, isFreeBook } = defineProps<{
+const { settings } = defineProps<{
   // Page-owned instance; the pending-changes bar saves it, this only edits it.
   settings: BookListingSettingsContext
-  isFreeBook: boolean
 }>()
 
 // The prop never changes identity (one instance per page), so the refs can be
@@ -35,7 +31,6 @@ const { settings, isFreeBook } = defineProps<{
 const {
   isAdultOnly,
   hideAudio,
-  isPlusReadingEnabled,
   isPreviewEnabled,
   previewPercentage,
 } = settings

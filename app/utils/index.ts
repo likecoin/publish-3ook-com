@@ -263,6 +263,15 @@ export function generateAccountIdFromWalletAddress(walletAddress: string) {
   return convertBigIntToBaseString(num, ACCOUNT_ID_LENGTH)
 }
 
+// The clock half of a 最後儲存 line. Shared so the wizard's draft bar and the
+// book page's save bar cannot drift into two different time formats.
+export function formatSavedAtTime(timestamp: number, locale: string): string {
+  return new Date(timestamp).toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) { return '0 B' }
   const units = ['B', 'KB', 'MB', 'GB']

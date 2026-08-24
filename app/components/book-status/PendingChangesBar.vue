@@ -112,10 +112,7 @@ const audienceLabel = computed(() => {
 // says so without claiming a timestamp it does not have.
 const savedLabel = computed(() => {
   if (!lastSavedAt) { return $t('status_page.all_changes_saved') }
-  const time = new Date(lastSavedAt).toLocaleTimeString(locale.value, {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const time = formatSavedAtTime(lastSavedAt, locale.value)
   return `${$t('status_page.all_changes_saved')} · ${$t('status_page.last_saved_at', { time })}`
 })
 

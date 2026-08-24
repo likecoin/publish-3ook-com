@@ -39,9 +39,8 @@
         </button>
       </div>
 
-      <!-- Step content. Cards on the page background, one titled section each,
-           at the same rhythm as the book page's tab panes: the two screens are
-           the same book, so they are read the same way. -->
+      <!-- Titled cards on the page background, at the book page's tab rhythm:
+           the two screens are the same book, so they are read the same way. -->
       <div class="mt-4 space-y-10">
         <!-- One dropzone for everything: the cover is a file like the others,
              and dropping an image is what changes it. -->
@@ -63,12 +62,10 @@
           />
         </UCard>
 
-        <!-- Same card as the book page's 書籍資料, holding the same two
-             components, so the fields keep their surroundings between
-             publishing a book and editing it. -->
+        <!-- The book page's 書籍資料 card, holding the same two components. -->
         <UCard
           v-else-if="step === 'details'"
-          :ui="{ body: 'p-4' }"
+          :ui="{ body: 'p-4 text-left flex flex-col gap-6' }"
         >
           <template #header>
             <h3
@@ -76,52 +73,39 @@
               v-text="$t('status_page.book_details_title')"
             />
           </template>
-          <div class="text-left flex flex-col gap-6">
-            <ISCNForm
-              ref="detailsFormRef"
-              v-model="iscnFormData"
-              v-model:description-full="listingDraft.descriptionFull"
-              :guard-unsaved-changes="false"
-              :prefilled-fields="prefilledFields"
-              :content-excerpt="epubMetadata?.contentExcerpt"
-              :table-of-contents="listingDraft.tableOfContents"
-            />
+          <ISCNForm
+            ref="detailsFormRef"
+            v-model="iscnFormData"
+            v-model:description-full="listingDraft.descriptionFull"
+            :guard-unsaved-changes="false"
+            :prefilled-fields="prefilledFields"
+            :content-excerpt="epubMetadata?.contentExcerpt"
+            :table-of-contents="listingDraft.tableOfContents"
+          />
 
-            <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
-          </div>
+          <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
         </UCard>
 
         <div
           v-else-if="step === 'pricing'"
           class="space-y-10"
         >
-          <!-- Ahead of pricing: how readers get the file, then what they pay
+          <!-- Ahead of the price: how readers get the file, then what they pay
                for it. The tier stays changeable after publishing; what does not
                is an opened file, which is on Arweave for good. -->
-          <UCard>
-            <template #header>
-              <h3
-                class="font-bold font-mono"
-                v-text="$t('upload_form.drm_section_title')"
-              />
-            </template>
-            <PublishFileProtectionField v-model="encryptEbook" />
-            <p
-              class="mt-3 text-xs text-muted"
-              v-text="$t('upload_form.drm_section_description')"
-            />
-          </UCard>
+          <BookStatusFileProtectionCard
+            v-model="encryptEbook"
+            editable
+          />
 
           <PublishPricingForm
             ref="pricingFormRef"
             v-model:prices="listingDraft.prices"
             v-model:signature-image="signatureImage"
-            mode="new"
           />
 
-          <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are paired
-               on the book page: the two channels, stated with their
-               consequences, before the content flags. -->
+          <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are on the
+               book page: the two channels, before the content flags. -->
           <BookStatusBookLendingStateCard
             v-model="listingDraft.isPlusReadingEnabled"
             can-edit
@@ -130,7 +114,6 @@
 
           <PublishSaleSettingsCard
             v-model:settings="listingDraft"
-            :is-free-book="isFreeBook"
             :epub-spine-items="epubMetadata?.spineItems"
           />
         </div>
@@ -225,7 +208,7 @@ import {
   getPublishSessionTitle,
   loadPublishDraftFiles,
 } from '~/utils/publishSession'
-import { validatePriceFormItems, createDefaultPriceFormItem, getPriceItemUSDValue } from '~/utils/listing'
+import { validatePriceFormItems, createDefaultPriceFormItem, hasFreeEditionDraft } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
 
@@ -307,8 +290,6 @@ function restoredBlobFor(record: { fileSHA256?: string }): Blob | undefined {
   return record.fileSHA256 ? restoredFileBlobs.value.get(record.fileSHA256) : undefined
 }
 
-// One button, whose meaning is the step it is on: every step but the last moves
-// on, the last one publishes.
 const primaryActionLabel = computed(() => {
   if (step.value !== 'review') { return $t('publish_wizard.next') }
   return isPublishFailed.value
@@ -331,10 +312,13 @@ const pendingSessionNeedsReselect = computed(() =>
     !isRecordUploaded(record) && !restoredBlobFor(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
 const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
-// A free price tier (0) always opts the book into Plus all-you-can-read, which
-// is why the lending card and the settings card both need to know.
-const isFreeBook = computed(() =>
-  listingDraft.value.prices.some(p => getPriceItemUSDValue(p) === 0))
+// A free price tier (0) always opts the book into Plus all-you-can-read. The
+// book page forces the same value from useBookListingSettings; the wizard has
+// no such composable, so the rule is owned here, beside the control it greys out.
+const isFreeBook = computed(() => hasFreeEditionDraft(listingDraft.value.prices))
+watch(isFreeBook, (isFree) => {
+  if (isFree) { listingDraft.value.isPlusReadingEnabled = true }
+}, { immediate: true })
 const coverImageSrc = computed(() =>
   epubMetadata.value?.coverData
   || fileRecords.value.find(r => r.fileType?.startsWith('image/'))?.fileData

@@ -12,8 +12,7 @@
         v-for="(p, index) in prices"
         :key="p.index"
       >
-        <!-- overflow-visible so a select or tooltip inside can escape the card;
-             everything else is the default card, as on every other pane. -->
+        <!-- overflow-visible so a select or tooltip inside can escape the card. -->
         <UCard
           :ui="{
             root: 'overflow-visible',
@@ -214,17 +213,16 @@ const { validateWithFeedback } = useFormValidateFeedback()
 const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 
 // The editions of one book, and nothing else: class-level settings and the
-// structure around them (add, delete, reorder) belong to the host. 'new' is the
-// wizard's single edition; 'edit' is the one being added in the 新增版本 modal;
-// 'manage' is every live edition of a published book.
+// structure around them (add, delete, reorder) belong to the host.
 const {
-  mode = 'new',
+  isAddingEdition = false,
   displayEditIndex = undefined,
   hasExistingSignatureImage = false,
   namePlaceholder = '',
   reservedNames = undefined,
 } = defineProps<{
-  mode?: 'new' | 'edit' | 'manage'
+  // The 新增版本 modal, which holds an edition that does not exist yet.
+  isAddingEdition?: boolean
   displayEditIndex?: number
   hasExistingSignatureImage?: boolean
   namePlaceholder?: string
@@ -241,10 +239,9 @@ const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 
 // A book with one edition has no edition to choose between, so the price leads
 // and the per-edition machinery collapses. Two or more keep the full cards,
-// where telling them apart is the whole point. 'edit' stays name-led whatever
-// it holds: that modal exists because a second edition is being added, and the
-// name is the only thing that will tell it from the first.
-const isSingleEditionLayout = computed(() => mode !== 'edit' && prices.value.length === 1)
+// where telling them apart is the point — and so does an edition being added,
+// which is about to become the second.
+const isSingleEditionLayout = computed(() => !isAddingEdition && prices.value.length === 1)
 
 // UForm routes each returned error to the UFormField whose name matches
 // (prices.{i}.{field}); no per-field :error piping needed.

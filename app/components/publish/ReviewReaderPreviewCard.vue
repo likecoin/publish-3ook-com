@@ -10,7 +10,6 @@
           v-text="$t('publish_review.reader_preview_title')"
         />
         <UTabs
-          v-if="showChannelTabs"
           v-model="channel"
           size="xs"
           :content="false"
@@ -86,7 +85,6 @@ const {
   previewPercentage,
   isDownloadable,
   isPlusReadingEnabled,
-  showChannelTabs = false,
   isAudioAllowed = false,
 } = defineProps<{
   prices: PriceFormItem[]
@@ -98,9 +96,6 @@ const {
   previewPercentage: number
   isDownloadable: boolean
   isPlusReadingEnabled: boolean
-  // The wizard has no channel to switch away from yet, so it omits this and
-  // gets the single storefront pane it always had.
-  showChannelTabs?: boolean
   isAudioAllowed?: boolean
 }>()
 
@@ -113,7 +108,7 @@ const channelItems = computed<{ value: ReaderChannel, label: string }[]>(() => [
   { value: 'library', label: $t('status_page.reader_view_channel_library') },
 ])
 
-const isLibraryChannel = computed(() => showChannelTabs && channel.value === 'library')
+const isLibraryChannel = computed(() => channel.value === 'library')
 
 const hasListedEdition = computed(() => hasListedEditionDraft(prices))
 
@@ -125,12 +120,6 @@ const lowestListedPriceUSD = computed(() =>
 
 const readerPrice = computed(() => {
   if (isLibraryChannel.value) { return $t('status_page.reader_view_library_price') }
-  // Without the channel panes there is no notice to explain a blank price, so
-  // the wizard keeps showing the draft's lowest as it always did.
-  if (!showChannelTabs) {
-    const lowest = getLowestPriceUSD(prices)
-    return lowest === null ? '' : formatPriceUSDLabel(lowest, $t)
-  }
   if (lowestListedPriceUSD.value === null) { return '' }
   return formatPriceUSDLabel(lowestListedPriceUSD.value, $t)
 })
@@ -168,7 +157,6 @@ const isFreeBorrowCut = computed(() => (
 ))
 
 const channelNotice = computed(() => {
-  if (!showChannelTabs) { return null }
   if (!isLibraryChannel.value) {
     return hasListedEdition.value
       ? null
