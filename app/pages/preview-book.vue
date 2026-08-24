@@ -239,9 +239,13 @@ async function resolveUrl(
   const arweaveLinkEndpoint = apiEndpoints.API_GET_ARWEAVE_V2_LINK
 
   if (rawUrl.startsWith(arweaveLinkEndpoint)) {
-    const expectedOrigin = new URL(arweaveLinkEndpoint).origin
+    const expected = new URL(arweaveLinkEndpoint)
     const parsedRawUrl = new URL(rawUrl)
-    if (parsedRawUrl.origin !== expectedOrigin) {
+    // Match the normalised pathname, not the raw string: `${endpoint}/../../wallet/x`
+    // passes startsWith and the origin check but resolves to another API path, and
+    // apiFetch would put the author's bearer token on whatever it resolved to.
+    if (parsedRawUrl.origin !== expected.origin
+      || !parsedRawUrl.pathname.startsWith(`${expected.pathname}/`)) {
       throw new Error('URL origin does not match expected API endpoint')
     }
     let res: LinkResponse
@@ -359,8 +363,13 @@ async function loadBook() {
       const fetchFile = resolved.requiresAuth ? apiFetch : $fetch
       arrayBuffer = await fetchFile<ArrayBuffer>(fileUrl, { responseType: 'arrayBuffer' })
     }
-    catch {
-      errorMessage.value = $t('preview_book.error_fetch')
+    catch (err) {
+      // The content route still 401s if the session lapsed between resolving and
+      // fetching; blaming the file would send the author looking in the wrong place.
+      const status = err instanceof FetchError ? err.response?.status : undefined
+      errorMessage.value = $t(status === 401
+        ? 'preview_book.error_unauthorized'
+        : 'preview_book.error_fetch')
       return
     }
 
