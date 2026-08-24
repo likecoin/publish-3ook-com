@@ -269,10 +269,9 @@ async function resolveUrl(
       }
       throw err
     }
-    // hasPublicCopy, not `link`, decides: an encrypted doc whose key no longer
-    // resolves still has a link, but it serves ciphertext. Protected books
-    // (ADR 0001 Phase 3) have neither, only a gs:// contentUri no browser can
-    // fetch, so both go through the owner-authed content route instead.
+    // Use hasPublicCopy (not `link`) to decide: encrypted docs can return a `link` that serves ciphertext.
+    // Protected books (ADR 0001 Phase 3) only expose a gs:// contentUri,
+    // so both must use the owner-authed content route instead.
     if (!res.hasPublicCopy && res.contentUri && res.txHash) {
       const contentUrl = new URL(`${apiEndpoints.API_GET_ARWEAVE_V2_CONTENT}/${res.txHash}`)
       const token = parsedRawUrl.searchParams.get('token')
