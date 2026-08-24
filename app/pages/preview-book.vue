@@ -246,7 +246,7 @@ async function resolveUrl(
     // apiFetch would put the author's bearer token on whatever it resolved to.
     if (parsedRawUrl.origin !== expected.origin
       || !parsedRawUrl.pathname.startsWith(`${expected.pathname}/`)) {
-      throw new Error('URL origin does not match expected API endpoint')
+      throw new Error('URL does not match the expected API endpoint')
     }
     let res: LinkResponse
     try {
@@ -364,11 +364,13 @@ async function loadBook() {
       arrayBuffer = await fetchFile<ArrayBuffer>(fileUrl, { responseType: 'arrayBuffer' })
     }
     catch (err) {
-      // The content route still 401s if the session lapsed between resolving and
-      // fetching; blaming the file would send the author looking in the wrong place.
-      const status = err instanceof FetchError ? err.response?.status : undefined
+      // Only our own content route: a 401 from arweave.net or w3s.link says nothing
+      // about book ownership, and telling the author to log in would misdirect them.
+      const status = resolved.requiresAuth && err instanceof FetchError
+        ? err.response?.status
+        : undefined
       errorMessage.value = $t(status === 401
-        ? 'preview_book.error_unauthorized'
+        ? RESOLVE_ERROR_I18N_KEYS.unauthorized
         : 'preview_book.error_fetch')
       return
     }
