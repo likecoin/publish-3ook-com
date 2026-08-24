@@ -755,6 +755,7 @@
   "preview_book.error_render": "無法顯示 EPUB",
   "preview_book.error_render_pdf": "無法顯示 PDF",
   "preview_book.error_resolve": "無法解析書籍連結",
+  "preview_book.error_unauthorized": "請以書籍擁有者身分登入以預覽此檔案",
   "preview_book.error_unsupported_format": "不支援的檔案格式",
   "preview_book.input_placeholder": "輸入 ar://、ipfs:// 或 API 連結網址",
   "preview_book.load": "載入",
