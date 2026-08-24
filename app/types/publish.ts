@@ -54,9 +54,9 @@ export interface MappedPrice {
   autoMemo: string
 }
 
-// Class-level flags edited by PricingForm's advanced-settings section.
+// Class-level flags edited by PricingForm's advanced-settings section. Tipping
+// is not among them: it is stored per edition, so it is asked per edition.
 export interface PricingFormSettings {
-  isAllowCustomPrice: boolean
   isAdultOnly: boolean
   hideAudio: boolean
   isPlusReadingEnabled: boolean

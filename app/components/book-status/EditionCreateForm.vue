@@ -105,10 +105,9 @@ const prices = ref<PriceFormItem[]>([
   createDefaultPriceFormItem(seedPricing),
 ])
 
-// Only isAllowCustomPrice is relevant in edit mode; the rest of the settings
-// model is inert here.
+// Inert in edit mode: every field here is class-level, and this modal adds one
+// edition. Tipping used to be the exception, and is now asked per edition.
 const settings = ref<PricingFormSettings>({
-  isAllowCustomPrice: true,
   isAdultOnly: false,
   hideAudio: false,
   isPlusReadingEnabled: false,

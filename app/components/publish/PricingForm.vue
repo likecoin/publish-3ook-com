@@ -69,13 +69,10 @@
             />
 
             <PublishEditionAdvancedPanel :collapsible="isSingleEditionLayout">
-              <!-- Tipping is stored per edition. The other modes set it for
-                   every edition at once from the sale-settings card below, which
-                   does not exist in manage mode, so edit it in place there. -->
-              <UFormField
-                v-if="mode === 'manage'"
-                class="flex items-center"
-              >
+              <!-- Tipping is stored per edition, so it is asked per edition:
+                   one class-level checkbox fanning out into every price could
+                   only ever overwrite a mix the author had set deliberately. -->
+              <UFormField class="flex items-center">
                 <UTooltip
                   class="flex items-center gap-2"
                   :text="$t('nft_book_form.accept_tipping_tooltip')"
@@ -280,22 +277,6 @@
             />
           </div>
 
-          <!-- Sales settings -->
-          <UFormField class="flex items-center">
-            <UTooltip
-              class="flex items-center gap-2"
-              :text="$t('nft_book_form.accept_tipping_tooltip')"
-            >
-              <UCheckbox
-                v-model="settings.isAllowCustomPrice"
-                name="isAllowCustomPrice"
-                :label="$t('nft_book_form.accept_tipping')"
-              />
-
-              <UIcon name="i-heroicons-question-mark-circle" />
-            </UTooltip>
-          </UFormField>
-
           <!-- Stripe connect list -->
           <UFormField
             v-if="mode === 'new'"
@@ -408,10 +389,12 @@ const signatureImagePreview = useObjectUrl(signatureImage)
 const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 
-// A published book with one edition has no edition to choose between, so the
-// price leads and the per-edition machinery collapses. Two or more keep the
-// full cards, where telling them apart is the whole point.
-const isSingleEditionLayout = computed(() => mode === 'manage' && prices.value.length === 1)
+// A book with one edition has no edition to choose between, so the price leads
+// and the per-edition machinery collapses. Two or more keep the full cards,
+// where telling them apart is the whole point. 'edit' stays name-led whatever
+// it holds: that modal exists because a second edition is being added, and the
+// name is the only thing that will tell it from the first.
+const isSingleEditionLayout = computed(() => mode !== 'edit' && prices.value.length === 1)
 // A free price tier (0) always opts the book into Plus all-you-can-read.
 const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p) === 0))
 
@@ -462,12 +445,6 @@ const stripeConnectWallets = computed(() => Object.keys(settings.value.connected
 const sessionWalletStripeStatus = computed(() => {
   if (!sessionWallet.value) { return null }
   return getStripeConnectStatusByWallet.value(sessionWallet.value)
-})
-
-watch(() => settings.value.isAllowCustomPrice, (newValue: boolean) => {
-  prices.value.forEach((price: PriceFormItem) => {
-    price.isAllowCustomPrice = newValue
-  })
 })
 
 onMounted(async () => {

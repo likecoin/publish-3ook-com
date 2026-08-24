@@ -240,7 +240,6 @@ const managePricingFormRef = ref<{ validate: () => Promise<boolean> } | null>(nu
 // Required by PricingForm's model; every field it drives is hidden in manage
 // mode, so this never reaches a payload.
 const managePricingSettings = ref<PricingFormSettings>({
-  isAllowCustomPrice: true,
   isAdultOnly: false,
   hideAudio: false,
   isPlusReadingEnabled: false,
