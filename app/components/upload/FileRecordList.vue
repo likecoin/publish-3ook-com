@@ -47,9 +47,12 @@
           class="w-5 h-5 text-success"
           :title="$t('upload_form.file_already_uploaded')"
         />
-        <UIcon
-          name="i-heroicons-trash"
-          class="cursor-pointer text-error"
+        <UButton
+          color="error"
+          variant="ghost"
+          size="xs"
+          icon="i-heroicons-trash"
+          :aria-label="$t('common.delete')"
           @click="emit('delete', coverEntry.index)"
         />
       </div>
@@ -108,9 +111,12 @@
               :trailing-icon="isExpanded(record) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
               @click="toggleIssues(record)"
             />
-            <UIcon
-              name="i-heroicons-trash"
-              class="cursor-pointer text-error"
+            <UButton
+              color="error"
+              variant="ghost"
+              size="xs"
+              icon="i-heroicons-trash"
+              :aria-label="$t('common.delete')"
               @click="emit('delete', index)"
             />
           </div>

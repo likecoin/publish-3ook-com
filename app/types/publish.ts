@@ -54,8 +54,9 @@ export interface MappedPrice {
   autoMemo: string
 }
 
-// Class-level flags edited by the wizard's 販售與內容設定 card. Tipping is not
-// among them: it is stored per edition, so it is asked per edition.
+// The wizard draft's class-level fields, as against the per-edition ones in
+// PriceFormItem — tipping being the one that looks class-level and is not. Each
+// is edited by whichever step owns it, so no one card speaks for them all.
 export interface PricingFormSettings {
   isAdultOnly: boolean
   hideAudio: boolean
