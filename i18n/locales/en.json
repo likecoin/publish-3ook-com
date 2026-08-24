@@ -755,6 +755,7 @@
   "preview_book.error_render": "Failed to render EPUB",
   "preview_book.error_render_pdf": "Failed to render PDF",
   "preview_book.error_resolve": "Failed to resolve book URL",
+  "preview_book.error_unauthorized": "Log in as the book owner to preview this file",
   "preview_book.error_unsupported_format": "Unsupported file format",
   "preview_book.input_placeholder": "Enter ar://, ipfs://, or API link URL",
   "preview_book.load": "Load",
