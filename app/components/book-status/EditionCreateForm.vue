@@ -16,7 +16,6 @@
     <PublishPricingForm
       ref="pricingFormRef"
       v-model:prices="prices"
-      v-model:settings="settings"
       v-model:signature-image="signatureImage"
       mode="edit"
       :display-edit-index="displayEditIndex"
@@ -71,8 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
+import type { PriceFormItem } from '~/types/publish'
 import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
@@ -104,18 +102,6 @@ const displayEditIndex = computed(() => Number(editionIndex) + 1)
 const prices = ref<PriceFormItem[]>([
   createDefaultPriceFormItem(seedPricing),
 ])
-
-// Inert in edit mode: every field here is class-level, and this modal adds one
-// edition. Tipping used to be the exception, and is now asked per edition.
-const settings = ref<PricingFormSettings>({
-  isAdultOnly: false,
-  hideAudio: false,
-  isPlusReadingEnabled: false,
-  isPreviewEnabled: false,
-  previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
-  tableOfContents: '',
-  connectedWallets: null,
-})
 
 async function onSubmit() {
   try {

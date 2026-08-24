@@ -201,141 +201,6 @@
         </li>
       </UCard>
     </ul>
-
-    <!-- Advanced settings. Hidden in manage mode: the class-level settings
-         live in their own card there, and this tipping checkbox would silently
-         rewrite every edition's stored value — each edition card carries its
-         own instead. -->
-    <UCard
-      v-if="mode !== 'manage'"
-      :ui="{
-        header: 'flex justify-between items-center',
-        body: 'p-3 space-y-4',
-      }"
-    >
-      <div class="flex justify-between items-center w-full">
-        <h3
-          class="font-bold font-mono"
-          v-text="$t('nft_book_form.sale_settings')"
-        />
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :icon="
-            shouldShowAdvanceSettings
-              ? 'i-heroicons-chevron-up'
-              : 'i-heroicons-chevron-down'
-          "
-          @click="shouldShowAdvanceSettings = !shouldShowAdvanceSettings"
-        />
-      </div>
-      <template v-if="shouldShowAdvanceSettings">
-        <div class="mt-[24px] flex flex-col gap-[12px]">
-          <!-- Content settings -->
-          <BookSettingsFields
-            v-if="mode === 'new'"
-            v-model:is-adult-only="settings.isAdultOnly"
-            v-model:hide-audio="settings.hideAudio"
-            v-model:is-plus-reading-enabled="settings.isPlusReadingEnabled"
-            v-model:is-preview-enabled="settings.isPreviewEnabled"
-            v-model:preview-percentage="settings.previewPercentage"
-            :is-free-book="isFreeBook"
-          />
-
-          <!-- Live free-preview cut readout: the straddled chapter is included
-               in full where that stays under the ceiling, so the actual range
-               can exceed the nominal %; past it the chapter ships part-way. -->
-          <div
-            v-if="mode === 'new' && previewCut"
-            class="p-3 border border-default rounded-lg bg-elevated text-sm"
-          >
-            <template v-if="previewCut.ok">
-              <p
-                class="font-medium"
-                v-text="$t('nft_book_form.preview_actual_range')"
-              />
-              <ul class="mt-1 list-disc list-inside text-muted">
-                <li
-                  v-for="item in previewCut.includedItems"
-                  :key="item.href"
-                  v-text="item.isPartial
-                    ? $t('nft_book_form.preview_partial_item', { label: item.label })
-                    : item.label"
-                />
-              </ul>
-              <p
-                class="mt-1 text-muted"
-                v-text="$t('nft_book_form.preview_actual_percent', { percent: previewCut.effectivePercentageRounded })"
-              />
-            </template>
-
-            <!-- The server refuses these files: a reader would get a 403. -->
-            <p
-              v-else
-              class="text-error"
-              v-text="previewCut.message"
-            />
-          </div>
-
-          <!-- Stripe connect list -->
-          <UFormField
-            v-if="mode === 'new'"
-            :label="$t('nft_book_form.stripe_connect_wallets')"
-          >
-            <div
-              v-for="(stripeWallet) in stripeConnectWallets"
-              :key="stripeWallet"
-              class="flex items-center justify-between p-3 bg-elevated rounded-lg"
-            >
-              <div class="flex items-center gap-2">
-                <UIcon
-                  name="i-heroicons-wallet"
-                  class="text-muted"
-                />
-                <span
-                  class="font-mono text-sm"
-                  v-text="stripeWallet"
-                />
-                <UBadge
-                  v-if="stripeWallet === sessionWallet"
-                  variant="soft"
-                  color="success"
-                  size="xs"
-                >
-                  {{ $t('nft_book_form.current_wallet') }}
-                </UBadge>
-              </div>
-            </div>
-            <div
-              v-if="stripeConnectWallets.length === 0 && sessionWalletStripeStatus?.isReady"
-              class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
-            >
-              {{ $t('nft_book_form.no_wallets') }}
-              <UButton
-                variant="outline"
-                color="primary"
-                size="xs"
-                :label="$t('nft_book_form.link_wallet')"
-                @click="settings.connectedWallets = { [sessionWallet]: 100 }"
-              />
-            </div>
-            <div
-              v-else-if="stripeConnectWallets.length === 0"
-              class="flex items-center justify-between p-3 bg-elevated rounded-lg text-sm"
-            >
-              {{ $t('nft_book_form.no_wallets') }}
-              <UButton
-                variant="outline"
-                color="error"
-                size="xs"
-                :label="$t('nft_book_form.connect_wallet')"
-                @click="navigateTo('/settings')"
-              />
-            </div>
-          </UFormField>
-        </div>
-      </template>
-    </UCard>
   </UForm>
 </template>
 
@@ -344,37 +209,29 @@ import { useObjectUrl } from '@vueuse/core'
 
 import type { FormError } from '#ui/types'
 import { DEFAULT_MAX_SUPPLY } from '~/constant'
-import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import type { EpubSpineItem } from '~/types'
-import { getPriceItemUSDValue, validatePriceFormItems } from '~/utils/listing'
+import type { PriceFormItem } from '~/types/publish'
+import { validatePriceFormItems } from '~/utils/listing'
 
 const { t: $t } = useI18n()
 const { showErrorToast } = useToastComposable()
 const { validateWithFeedback } = useFormValidateFeedback()
-const stripeStore = useStripeStore()
-const { fetchStripeConnectStatusByWallet } = stripeStore
-const { getStripeConnectStatusByWallet } = storeToRefs(stripeStore)
-const bookstoreApiStore = useBookstoreApiStore()
-const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 
 const UPLOAD_FILESIZE_MAX = 1 * 1024 * 1024
 
-// 'new' collects a full draft in the wizard; 'edit' hosts one edition in the
-// add-edition modal; 'manage' hosts every live edition of a published book,
-// where structure (add/delete) and class settings are owned elsewhere.
+// The editions of one book, and nothing else: class-level settings and the
+// structure around them (add, delete, reorder) belong to the host. 'new' is the
+// wizard's single edition; 'edit' is the one being added in the 新增版本 modal;
+// 'manage' is every live edition of a published book.
 const {
   mode = 'new',
   displayEditIndex = undefined,
   hasExistingSignatureImage = false,
-  epubSpineItems = undefined,
   namePlaceholder = '',
   reservedNames = undefined,
 } = defineProps<{
   mode?: 'new' | 'edit' | 'manage'
   displayEditIndex?: number
   hasExistingSignatureImage?: boolean
-  // Spine table of the uploaded EPUB, for the free-preview cut readout.
-  epubSpineItems?: EpubSpineItem[]
   namePlaceholder?: string
   // Names already taken by editions this form does not show, so a new one
   // cannot collide with them.
@@ -382,11 +239,9 @@ const {
 }>()
 
 const prices = defineModel<PriceFormItem[]>('prices', { required: true })
-const settings = defineModel<PricingFormSettings>('settings', { required: true })
 const signatureImage = defineModel<File | null>('signatureImage', { default: null })
 
 const signatureImagePreview = useObjectUrl(signatureImage)
-const shouldShowAdvanceSettings = ref(true)
 const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 
 // A book with one edition has no edition to choose between, so the price leads
@@ -395,34 +250,6 @@ const maxSupply = ref(Number(DEFAULT_MAX_SUPPLY))
 // it holds: that modal exists because a second edition is being added, and the
 // name is the only thing that will tell it from the first.
 const isSingleEditionLayout = computed(() => mode !== 'edit' && prices.value.length === 1)
-// A free price tier (0) always opts the book into Plus all-you-can-read.
-const isFreeBook = computed(() => prices.value.some(p => getPriceItemUSDValue(p) === 0))
-
-// Actual preview outcome of the "generous" chapter cut, recomputed live as the
-// percentage input changes. null hides the readout (disabled or no EPUB).
-// Every remaining refusal is about the file being unusable rather than about
-// how it is chaptered, so there is nothing chapter-specific left to advise.
-const previewCut = computed(() => {
-  if (!settings.value.isPreviewEnabled || !epubSpineItems?.length) { return null }
-  const cut = computePreviewCut(epubSpineItems, settings.value.previewPercentage)
-  if (!cut.ok) {
-    return { ...cut, message: $t('nft_book_form.preview_unavailable') }
-  }
-  return {
-    ...cut,
-    effectivePercentageRounded: Math.round(cut.effectivePercentage),
-  }
-})
-
-// A refusal is an authoring problem the author can see but we could not count.
-// Keyed on the reason itself because the readout recomputes on every tick of
-// the percentage slider, and an unguarded watcher would emit a burst per drag.
-watch(
-  () => (previewCut.value && !previewCut.value.ok ? previewCut.value.reason : ''),
-  (reason) => {
-    if (reason) { useLogEvent('book_preview_unavailable', { reason }) }
-  },
-)
 
 // UForm routes each returned error to the UFormField whose name matches
 // (prices.{i}.{field}); no per-field :error piping needed.
@@ -440,28 +267,6 @@ async function validate(): Promise<boolean> {
 }
 
 defineExpose({ validate })
-
-const stripeConnectWallets = computed(() => Object.keys(settings.value.connectedWallets || {}))
-const sessionWalletStripeStatus = computed(() => {
-  if (!sessionWallet.value) { return null }
-  return getStripeConnectStatusByWallet.value(sessionWallet.value)
-})
-
-onMounted(async () => {
-  if (mode !== 'new') { return }
-  if (!stripeConnectWallets.value.length && sessionWallet.value) {
-    try {
-      const { isReady } = await fetchStripeConnectStatusByWallet(sessionWallet.value)
-      if (isReady) {
-        settings.value.connectedWallets = { [sessionWallet.value]: 100 }
-      }
-    }
-    catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-})
 
 function onImgUpload(event: Event) {
   const input = event.target as HTMLInputElement

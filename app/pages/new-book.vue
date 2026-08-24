@@ -81,9 +81,22 @@
           <PublishPricingForm
             ref="pricingFormRef"
             v-model:prices="listingDraft.prices"
-            v-model:settings="listingDraft"
             v-model:signature-image="signatureImage"
             mode="new"
+          />
+
+          <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are paired
+               on the book page: the two channels, stated with their
+               consequences, before the content flags. -->
+          <BookStatusBookLendingStateCard
+            v-model="listingDraft.isPlusReadingEnabled"
+            can-edit
+            :is-free-book="isFreeBook"
+          />
+
+          <PublishSaleSettingsCard
+            v-model:settings="listingDraft"
+            :is-free-book="isFreeBook"
             :epub-spine-items="epubMetadata?.spineItems"
           />
         </div>
@@ -205,7 +218,7 @@ import {
   getPublishSessionTitle,
   loadPublishDraftFiles,
 } from '~/utils/publishSession'
-import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
+import { validatePriceFormItems, createDefaultPriceFormItem, getPriceItemUSDValue } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
 
@@ -291,6 +304,10 @@ const pendingSessionNeedsReselect = computed(() =>
     !isRecordUploaded(record) && !restoredBlobFor(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
 const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
+// A free price tier (0) always opts the book into Plus all-you-can-read, which
+// is why the lending card and the settings card both need to know.
+const isFreeBook = computed(() =>
+  listingDraft.value.prices.some(p => getPriceItemUSDValue(p) === 0))
 const coverImageSrc = computed(() =>
   epubMetadata.value?.coverData
   || fileRecords.value.find(r => r.fileType?.startsWith('image/'))?.fileData
