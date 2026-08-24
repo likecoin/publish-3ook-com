@@ -16,9 +16,8 @@
     <PublishPricingForm
       ref="pricingFormRef"
       v-model:prices="prices"
-      v-model:settings="settings"
       v-model:signature-image="signatureImage"
-      mode="edit"
+      is-adding-edition
       :display-edit-index="displayEditIndex"
       :has-existing-signature-image="hasExistingSignatureImage"
       :name-placeholder="$t('nft_book_form.new_edition_name_placeholder')"
@@ -71,8 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
-import { PREVIEW_PERCENTAGE_DEFAULT } from '~/constant'
+import type { PriceFormItem } from '~/types/publish'
 import { mapPriceFormItemsToPayload, createDefaultPriceFormItem } from '~/utils/listing'
 
 const { t: $t } = useI18n()
@@ -104,19 +102,6 @@ const displayEditIndex = computed(() => Number(editionIndex) + 1)
 const prices = ref<PriceFormItem[]>([
   createDefaultPriceFormItem(seedPricing),
 ])
-
-// Only isAllowCustomPrice is relevant in edit mode; the rest of the settings
-// model is inert here.
-const settings = ref<PricingFormSettings>({
-  isAllowCustomPrice: true,
-  isAdultOnly: false,
-  hideAudio: false,
-  isPlusReadingEnabled: false,
-  isPreviewEnabled: false,
-  previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
-  tableOfContents: '',
-  connectedWallets: null,
-})
 
 async function onSubmit() {
   try {

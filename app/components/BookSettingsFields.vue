@@ -14,26 +14,6 @@
       :description="$t('nft_book_form.ai_audio_hint')"
     />
 
-    <UFormField
-      v-if="showPlusReading"
-      :label="$t('nft_book_form.plus_reading')"
-    >
-      <URadioGroup
-        v-model="isPlusReadingEnabledRadio"
-        :disabled="isFreeBook"
-        :items="[
-          { label: $t('nft_book_form.plus_reading_join'), value: 'join' },
-          { label: $t('nft_book_form.plus_reading_skip'), value: 'skip' },
-        ]"
-        orientation="vertical"
-      />
-      <p
-        v-if="isFreeBook"
-        class="text-muted text-[12px] mt-1"
-        v-text="$t('nft_book_form.plus_reading_free_forced')"
-      />
-    </UFormField>
-
     <BookSettingsToggleRow
       v-model="isPreviewEnabled"
       name="isPreviewEnabled"
@@ -95,32 +75,19 @@
 <script setup lang="ts">
 import { PREVIEW_PERCENTAGE_MIN, PREVIEW_PERCENTAGE_MAX } from '~/constant'
 
-// Shared class-level content settings (adult-only, AI audio, Plus reading,
-// free preview) used by the new-book pricing step and the status page's
-// details editor.
+// Shared class-level content settings (adult-only, AI audio, free preview),
+// used by the wizard's pricing step and the book page's 販售與內容設定. Lending
+// is not among them: it has a card of its own in both flows.
 const isAdultOnly = defineModel<boolean>('isAdultOnly', { required: true })
 const hideAudio = defineModel<boolean>('hideAudio', { required: true })
-const isPlusReadingEnabled = defineModel<boolean>('isPlusReadingEnabled', { required: true })
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })
 const previewPercentage = defineModel<number>('previewPercentage', { required: true })
-
-const { isFreeBook = false, showPlusReading = true } = defineProps<{
-  isFreeBook?: boolean
-  // The status page moves 上架圖書館 to its own card on 書籍狀態; the wizard,
-  // which has no such tab, keeps it here.
-  showPlusReading?: boolean
-}>()
 
 // The stored flag is the prohibition, the control is the permission. Inverting
 // here is what lets the row default to on without changing the stored default.
 const isAudioAllowed = computed({
   get: () => !hideAudio.value,
   set: (value: boolean) => { hideAudio.value = !value },
-})
-
-const isPlusReadingEnabledRadio = computed({
-  get: () => (isPlusReadingEnabled.value ? 'join' : 'skip'),
-  set: (val: string) => { isPlusReadingEnabled.value = val === 'join' },
 })
 
 // UFormField shares one generated id with every control inside it, so the
@@ -145,11 +112,4 @@ function commitPreviewPercentage() {
   previewPercentage.value = committed
   previewPercentageDraft.value = String(committed)
 }
-
-// Free books always opt into Plus all-you-can-read; force the flag on. The
-// status page forces the same value from useBookListingSettings, so this is a
-// no-op there and the only owner in the wizard, which has no composable.
-watch(() => isFreeBook, (isFree) => {
-  if (isFree) { isPlusReadingEnabled.value = true }
-}, { immediate: true })
 </script>

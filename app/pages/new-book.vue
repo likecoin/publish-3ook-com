@@ -1,5 +1,17 @@
 <template>
-  <PageBody class="flex flex-col items-stretch grow space-y-4">
+  <!-- overflow-y-visible! undoes the `overflow-y-auto` <NuxtPage> puts on every
+       page root, which would pin the sticky bar below in place. -->
+  <PageBody class="flex flex-col items-stretch grow space-y-4 overflow-y-visible!">
+    <PublishWizardNavBar
+      :next-label="primaryActionLabel"
+      :can-go-back="currentStepIndex > 0"
+      :is-next-disabled="shouldDisableNext"
+      :is-busy="isPublishing"
+      :last-saved-at="lastSavedAt"
+      @back="goToPreviousStep"
+      @next="handlePrimaryAction"
+    />
+
     <div
       ref="stepTopRef"
       class="w-full"
@@ -27,24 +39,40 @@
         </button>
       </div>
 
-      <!-- Step Content -->
-      <div class="mt-6 p-4 border border-default rounded-lg bg-elevated flex flex-col gap-[24px]">
+      <!-- Titled cards on the page background, at the book page's tab rhythm:
+           the two screens are the same book, so they are read the same way. -->
+      <div class="mt-4 space-y-10">
         <!-- One dropzone for everything: the cover is a file like the others,
              and dropping an image is what changes it. -->
-        <UploadForm
-          v-if="step === 'files'"
-          ref="uploadFormRef"
-          v-model:encrypt-ebook="encryptEbook"
-          collect-only
-          :show-drm-option="false"
-          :initial-file-records="fileRecords"
-          @file-ready="handleFileReady"
-          @submit="handleFilesCollected"
-        />
-        <div
+        <UCard v-if="step === 'files'">
+          <template #header>
+            <h3
+              class="font-bold font-mono"
+              v-text="$t('publish_review.files_title')"
+            />
+          </template>
+          <UploadForm
+            ref="uploadFormRef"
+            v-model:encrypt-ebook="encryptEbook"
+            collect-only
+            :show-drm-option="false"
+            :initial-file-records="fileRecords"
+            @file-ready="handleFileReady"
+            @submit="handleFilesCollected"
+          />
+        </UCard>
+
+        <!-- The book page's 書籍資料 card, holding the same two components. -->
+        <UCard
           v-else-if="step === 'details'"
-          class="text-left flex flex-col gap-6"
+          :ui="{ body: 'p-4 text-left flex flex-col gap-6' }"
         >
+          <template #header>
+            <h3
+              class="font-bold font-mono"
+              v-text="$t('status_page.book_details_title')"
+            />
+          </template>
           <ISCNForm
             ref="detailsFormRef"
             v-model="iscnFormData"
@@ -56,40 +84,42 @@
           />
 
           <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
-        </div>
+        </UCard>
+
         <div
           v-else-if="step === 'pricing'"
-          class="flex flex-col gap-[24px]"
+          class="space-y-10"
         >
-          <!-- Ahead of pricing: how readers get the file, then what they pay
+          <!-- Ahead of the price: how readers get the file, then what they pay
                for it. The tier stays changeable after publishing; what does not
                is an opened file, which is on Arweave for good. -->
-          <UCard>
-            <template #header>
-              <h3
-                class="font-bold font-mono"
-                v-text="$t('upload_form.drm_section_title')"
-              />
-            </template>
-            <PublishFileProtectionField v-model="encryptEbook" />
-            <p
-              class="mt-3 text-xs text-muted"
-              v-text="$t('upload_form.drm_section_description')"
-            />
-          </UCard>
+          <BookStatusFileProtectionCard
+            v-model="encryptEbook"
+            editable
+          />
 
           <PublishPricingForm
             ref="pricingFormRef"
             v-model:prices="listingDraft.prices"
-            v-model:settings="listingDraft"
             v-model:signature-image="signatureImage"
-            mode="new"
+          />
+
+          <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are on the
+               book page: the two channels, before the content flags. -->
+          <BookStatusBookLendingStateCard
+            v-model="listingDraft.isPlusReadingEnabled"
+            can-edit
+            :is-free-book="isFreeBook"
+          />
+
+          <PublishSaleSettingsCard
+            v-model:settings="listingDraft"
             :epub-spine-items="epubMetadata?.spineItems"
           />
         </div>
         <div
           v-else-if="step === 'review'"
-          class="flex flex-col gap-[24px]"
+          class="space-y-10"
         >
           <PublishReviewStep
             :file-records="fileRecords"
@@ -114,33 +144,6 @@
               />
             </template>
           </UModal>
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="flex gap-2 justify-center mt-4">
-          <UButton
-            v-if="currentStepIndex > 0"
-            variant="outline"
-            color="neutral"
-            :disabled="isPublishing"
-            :label="$t('publish_wizard.back')"
-            @click="goToPreviousStep"
-          />
-          <UButton
-            v-if="step !== 'review'"
-            :disabled="shouldDisableNext"
-            :label="$t('publish_wizard.next')"
-            @click="goToNextStep"
-          />
-          <UButton
-            v-else
-            :loading="isPublishing"
-            :disabled="isPublishing"
-            :label="isPublishFailed
-              ? $t('publish_wizard.retry_publish')
-              : $t('publish_button.publish_now')"
-            @click="handlePublish"
-          />
         </div>
       </div>
     </div>
@@ -205,7 +208,7 @@ import {
   getPublishSessionTitle,
   loadPublishDraftFiles,
 } from '~/utils/publishSession'
-import { validatePriceFormItems, createDefaultPriceFormItem } from '~/utils/listing'
+import { validatePriceFormItems, createDefaultPriceFormItem, hasFreeEditionDraft } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
 
@@ -259,6 +262,9 @@ const publishError = ref('')
 // Gate persistence until the resume-or-fresh decision is made, so the watcher
 // can't overwrite an existing draft with empty initial state.
 const isDraftReady = ref(false)
+// Only this visit's writes, so a resumed draft does not claim a save time from
+// a session that is over.
+const lastSavedAt = ref<number | null>(null)
 const showResumePrompt = ref(false)
 const pendingSession = ref<PublishSession | null>(null)
 
@@ -284,6 +290,21 @@ function restoredBlobFor(record: { fileSHA256?: string }): Blob | undefined {
   return record.fileSHA256 ? restoredFileBlobs.value.get(record.fileSHA256) : undefined
 }
 
+const primaryActionLabel = computed(() => {
+  if (step.value !== 'review') { return $t('publish_wizard.next') }
+  return isPublishFailed.value
+    ? $t('publish_wizard.retry_publish')
+    : $t('publish_button.publish_now')
+})
+
+function handlePrimaryAction() {
+  if (step.value === 'review') {
+    handlePublish()
+    return
+  }
+  goToNextStep()
+}
+
 // A draft interrupted before its upload step needs the files picked again,
 // unless their bytes came back — one interrupted after it never did.
 const pendingSessionNeedsReselect = computed(() =>
@@ -291,6 +312,13 @@ const pendingSessionNeedsReselect = computed(() =>
     !isRecordUploaded(record) && !restoredBlobFor(record)))
 const hasFiles = computed(() => fileRecords.value.length > 0)
 const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
+// A free price tier (0) always opts the book into Plus all-you-can-read. The
+// book page forces the same value from useBookListingSettings; the wizard has
+// no such composable, so the rule is owned here, beside the control it greys out.
+const isFreeBook = computed(() => hasFreeEditionDraft(listingDraft.value.prices))
+watch(isFreeBook, (isFree) => {
+  if (isFree) { listingDraft.value.isPlusReadingEnabled = true }
+}, { immediate: true })
 const coverImageSrc = computed(() =>
   epubMetadata.value?.coverData
   || fileRecords.value.find(r => r.fileType?.startsWith('image/'))?.fileData
@@ -300,7 +328,6 @@ function createDefaultListingDraft(): PublishListingDraft {
   return {
     // Seed no price, so an untouched field can't be accidentally saved.
     prices: [createDefaultPriceFormItem({ price: '', name: $t('prices.standard_edition') })],
-    isAllowCustomPrice: true,
     isAdultOnly: false,
     hideAudio: false,
     // New titles opt into Plus all-you-can-read by default.
@@ -514,6 +541,7 @@ function persistDraft() {
   if (!isDraftReady.value) { return }
   savePublishSession(serializeDraft())
   persistDraftFiles()
+  lastSavedAt.value = Date.now()
 }
 
 watchDebounced(

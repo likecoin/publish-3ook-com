@@ -54,9 +54,10 @@ export interface MappedPrice {
   autoMemo: string
 }
 
-// Class-level flags edited by PricingForm's advanced-settings section.
+// The wizard draft's class-level fields, as against the per-edition ones in
+// PriceFormItem — tipping being the one that looks class-level and is not. Each
+// is edited by whichever step owns it, so no one card speaks for them all.
 export interface PricingFormSettings {
-  isAllowCustomPrice: boolean
   isAdultOnly: boolean
   hideAudio: boolean
   isPlusReadingEnabled: boolean

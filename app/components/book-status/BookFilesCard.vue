@@ -177,11 +177,6 @@
         </div>
       </template>
     </UModal>
-
-    <slot
-      v-if="!isLoading"
-      name="after-files"
-    />
   </div>
 </template>
 

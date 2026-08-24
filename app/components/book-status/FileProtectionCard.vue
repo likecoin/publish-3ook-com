@@ -1,6 +1,4 @@
 <template>
-  <!-- Read-only because it is not a separate choice: it follows whatever the
-       book file was uploaded as, so replacing the file is what changes it. -->
   <UCard>
     <template #header>
       <h3
@@ -9,12 +7,14 @@
       />
     </template>
     <PublishFileProtectionField
-      :model-value="isEncrypted"
-      disabled
+      v-model="isEncrypted"
+      :disabled="!editable"
     />
     <p
       class="mt-3 text-xs text-muted"
-      v-text="$t('status_page.protection_follows_file_note')"
+      v-text="editable
+        ? $t('upload_form.drm_section_description')
+        : $t('status_page.protection_follows_file_note')"
     />
   </UCard>
 </template>
@@ -22,10 +22,12 @@
 <script setup lang="ts">
 const { t: $t } = useI18n()
 
-// The page already derives this from the saved fingerprints and keeps it in
-// sync across a chain save; re-deriving it here would let the card disagree
-// with the settings the same save writes.
-defineProps<{
-  isEncrypted: boolean
+// Read-only on a published book because it is not a separate choice there: it
+// follows whatever the file was uploaded as, so replacing the file is what
+// changes it. The wizard, where the file has not been uploaded yet, asks.
+const { editable = false } = defineProps<{
+  editable?: boolean
 }>()
+
+const isEncrypted = defineModel<boolean>({ required: true })
 </script>

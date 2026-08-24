@@ -55,7 +55,6 @@
     <!-- Fed the edit draft, not the saved listing, so the two radios above show
          their effect before the save that applies it. -->
     <PublishReviewReaderPreviewCard
-      show-channel-tabs
       :prices="editedPrices"
       :title="iscnFormData.title"
       :subtitle="iscnFormData.alternativeHeadline"

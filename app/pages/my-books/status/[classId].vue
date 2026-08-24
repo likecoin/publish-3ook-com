@@ -58,11 +58,7 @@
           :file-links="chainFileLinks"
           @cover-replaced="handleCoverReplaced"
           @files-replaced="handleFilesReplaced"
-        >
-          <template #after-files>
-            <BookStatusFileProtectionCard :is-encrypted="listingSettings.hideDownload.value" />
-          </template>
-        </BookStatusBookFilesCard>
+        />
         <BookStatusBookDetailsSection
           ref="detailsSectionRef"
           :class-id="classId"
@@ -85,6 +81,10 @@
         v-show="selectedTabItemIndex === 'pricing'"
         class="space-y-10 mt-4"
       >
+        <!-- Beside the price, as in the wizard: what a buyer may do with the
+             file is a term of the sale. Locked here — the upload decided it. -->
+        <BookStatusFileProtectionCard :model-value="listingSettings.hideDownload.value" />
+
         <BookStatusEditionsCard
           v-model:prices="prices"
           :class-id="classId"
@@ -100,15 +100,12 @@
           v-if="userIsOwner && editedPrices.length"
           ref="managePricingFormRef"
           v-model:prices="editedPrices"
-          v-model:settings="managePricingSettings"
           v-model:signature-image="signatureImage"
-          mode="manage"
           :has-existing-signature-image="hasExistingSignatureImage"
         />
         <BookStatusBookListingSettingsCard
           v-if="userIsOwner"
           :settings="listingSettings"
-          :is-free-book="isFreeBook"
         />
       </div>
 
@@ -169,13 +166,13 @@
 import { useEventListener } from '@vueuse/core'
 import type { ClassListingData, ClassListingPrice } from '~/types'
 import { BOOK_STATUS_TABS, RETIRED_BOOK_STATUS_TABS, type BookStatusTab } from '~/types/book'
-import type { PriceFormItem, PricingFormSettings } from '~/types/publish'
+import type { PriceFormItem } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
-import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, getPriceItemUSDValue, getSoldCount } from '~/utils/listing'
+import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
-import { PREVIEW_PERCENTAGE_DEFAULT, STOCK_BALANCE_UNKNOWN } from '~/constant'
+import { STOCK_BALANCE_UNKNOWN } from '~/constant'
 
 const { t: $t } = useI18n()
 
@@ -237,25 +234,13 @@ const editedPrices = ref<PriceFormItem[]>([])
 const editionBaselines = ref<string[]>([])
 const signatureImage = ref<File | null>(null)
 const managePricingFormRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-// Required by PricingForm's model; every field it drives is hidden in manage
-// mode, so this never reaches a payload.
-const managePricingSettings = ref<PricingFormSettings>({
-  isAllowCustomPrice: true,
-  isAdultOnly: false,
-  hideAudio: false,
-  isPlusReadingEnabled: false,
-  isPreviewEnabled: false,
-  previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
-  tableOfContents: '',
-  connectedWallets: null,
-})
 const hasExistingSignatureImage = computed(() => !!classListingInfo.value.enableSignatureImage)
 
 // Read from the draft so pricing an edition down to free forces Plus reading
 // on in the same save, rather than only after the post-save refetch. The draft
 // is empty until the listing loads, so the persisted prices seed it.
 const isFreeBook = computed(() => (editedPrices.value.length
-  ? editedPrices.value.some(p => getPriceItemUSDValue(p) === 0)
+  ? hasFreeEditionDraft(editedPrices.value)
   : (classListingInfo.value.prices || []).some(p => Number(p.price) === 0)))
 
 // One settings instance for the whole page: the /settings POST echoes every

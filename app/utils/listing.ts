@@ -66,6 +66,13 @@ export function getLowestPriceUSD(prices: PriceFormItem[]): number | null {
   return values.length ? Math.min(...values) : null
 }
 
+// A free edition, which is what opts a book into Plus all-you-can-read whether
+// its author picks that or not. Lives here rather than in listing-status.ts,
+// which stays free of runtime imports so `node --test` can run it.
+export function hasFreeEditionDraft(prices: PriceFormItem[]): boolean {
+  return prices.some(price => getPriceItemUSDValue(price) === 0)
+}
+
 // Copies sold across the editions — not a headcount of readers: one person can
 // buy several, and buying two editions counts twice.
 export function getSoldCount(prices: ClassListingPrice[] | undefined): number {
