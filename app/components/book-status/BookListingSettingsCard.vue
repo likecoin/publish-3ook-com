@@ -7,6 +7,16 @@
       />
     </template>
 
+    <!-- 試閱 is paused by the same rule as 借閱. -->
+    <UAlert
+      v-if="isBookUnlisted"
+      class="mb-4"
+      color="warning"
+      variant="subtle"
+      icon="i-heroicons-exclamation-triangle"
+      :description="$t('status_page.unlisted_pauses_lending_preview')"
+    />
+
     <BookSettingsFields
       v-model:is-adult-only="isAdultOnly"
       v-model:hide-audio="hideAudio"
@@ -21,9 +31,10 @@ import type { BookListingSettingsContext } from '~/composables/useBookListingSet
 
 const { t: $t } = useI18n()
 
-const { settings } = defineProps<{
+const { settings, isBookUnlisted = false } = defineProps<{
   // Page-owned instance; the pending-changes bar saves it, this only edits it.
   settings: BookListingSettingsContext
+  isBookUnlisted?: boolean
 }>()
 
 // The prop never changes identity (one instance per page), so the refs can be

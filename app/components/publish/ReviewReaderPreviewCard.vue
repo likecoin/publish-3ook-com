@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import type { PriceFormItem } from '~/types/publish'
 import { getLowestPriceUSD, formatPriceUSDLabel } from '~/utils/listing'
-import { hasListedEditionDraft } from '~/utils/listing-status'
+import { hasListedEditionDraft, isBookUnlistedDraft } from '~/utils/listing-status'
 
 const { t: $t } = useI18n()
 
@@ -112,6 +112,11 @@ const isLibraryChannel = computed(() => channel.value === 'library')
 
 const hasListedEdition = computed(() => hasListedEditionDraft(prices))
 
+// The API serves both off for a book with nothing listed, so the preview says so
+// too rather than promising a badge no reader would get.
+const readerGetsPreview = computed(() => isPreviewEnabled && !isBookUnlistedDraft(prices))
+const readerCanBorrow = computed(() => isPlusReadingEnabled && !isBookUnlistedDraft(prices))
+
 // The figure the storefront leads with, so only editions a reader can actually
 // buy count — an unlisted cheaper one would advertise a price that is not for
 // sale. Null once nothing is listed, which is what leaves the price blank.
@@ -132,7 +137,7 @@ const readerBadges = computed(() => {
     if (isAudioAllowed) { badges.push($t('status_page.reader_view_badge_tts')) }
     return badges
   }
-  if (isPreviewEnabled) {
+  if (readerGetsPreview.value) {
     badges.push($t('publish_review.reader_preview_percent', {
       percent: previewPercentage,
     }))
@@ -140,7 +145,7 @@ const readerBadges = computed(() => {
   badges.push(isDownloadable
     ? $t('publish_review.reader_badge_download')
     : $t('publish_review.reader_badge_no_download'))
-  if (isPlusReadingEnabled) {
+  if (readerCanBorrow.value) {
     badges.push($t('publish_review.reader_badge_plus'))
   }
   if (prices.length > 1) {
@@ -162,7 +167,7 @@ const channelNotice = computed(() => {
       ? null
       : { color: 'neutral' as const, description: $t('status_page.reader_view_store_empty') }
   }
-  if (!isPlusReadingEnabled) {
+  if (!readerCanBorrow.value) {
     return { color: 'neutral' as const, description: $t('status_page.reader_view_library_empty') }
   }
   if (isFreeBorrowCut.value) {
