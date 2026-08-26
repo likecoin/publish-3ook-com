@@ -106,6 +106,7 @@
         <BookStatusBookListingSettingsCard
           v-if="userIsOwner"
           :settings="listingSettings"
+          :is-book-unlisted="isBookUnlisted"
         />
       </div>
 
@@ -169,6 +170,7 @@ import { BOOK_STATUS_TABS, RETIRED_BOOK_STATUS_TABS, type BookStatusTab } from '
 import type { PriceFormItem } from '~/types/publish'
 import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
+import { isBookUnlistedDraft } from '~/utils/listing-status'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
@@ -242,6 +244,10 @@ const hasExistingSignatureImage = computed(() => !!classListingInfo.value.enable
 const isFreeBook = computed(() => (editedPrices.value.length
   ? hasFreeEditionDraft(editedPrices.value)
   : (classListingInfo.value.prices || []).some(p => Number(p.price) === 0)))
+
+// Read from the draft, so the notice follows the sale-state radio rather than
+// waiting for the save.
+const isBookUnlisted = computed(() => isBookUnlistedDraft(editedPrices.value))
 
 // One settings instance for the whole page: the /settings POST echoes every
 // field back, so the tabs that edit different fields must share state.
@@ -420,6 +426,16 @@ function failOnDetailsTab(message: string) {
   selectedTabItemIndex.value = 'details'
 }
 
+// 訂價 mounts on its first visit, so an edition unlisted from 狀態與摘要 has no
+// form to ask yet. Mounting the pane hidden keeps one validation path, and puts
+// the errors on the fields that hold them rather than in a toast alone.
+async function validateEditionDraft(): Promise<boolean> {
+  visitedTabs.add('pricing')
+  await nextTick()
+  const form = managePricingFormRef.value
+  return form ? form.validate() : true
+}
+
 async function saveAllChanges() {
   if (isSavingChanges.value) { return }
   const details = detailsSectionRef.value
@@ -446,6 +462,13 @@ async function saveAllChanges() {
       : $t('iscn_form.content_fingerprint_required')
     if (fileLinksError.value) { return failOnDetailsTab(fileLinksError.value) }
   }
+  // Pre-flight like the two above, and for the same reason: bailing once the
+  // settings POST has gone through would save half of what the bar was counting.
+  if ((getEditionChanges().length || signatureImage.value)
+    && !(await validateEditionDraft())) {
+    selectedTabItemIndex.value = 'pricing'
+    return
+  }
   isSavingChanges.value = true
   try {
     let savedSomething = false
@@ -465,10 +488,6 @@ async function saveAllChanges() {
     const editionChanges = getEditionChanges()
     if (editionChanges.length || signatureImage.value) {
       try {
-        if (!(await managePricingFormRef.value?.validate())) {
-          selectedTabItemIndex.value = 'pricing'
-          return
-        }
         const mapped = mapPriceFormItemsToPayload(editedPrices.value)
         for (const change of editionChanges) {
           const listingIndex = prices.value[change.index]?.index

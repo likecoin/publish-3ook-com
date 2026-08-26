@@ -6,6 +6,7 @@ import {
   getBookListingStatus,
   hasListedEdition,
   hasListedEditionDraft,
+  isBookUnlistedDraft,
   isBookSoldOut,
   isEditionDraftSoldOut,
 } from '../app/utils/listing-status.ts'
@@ -18,6 +19,14 @@ test('hasListedEditionDraft reads the draft flag, not the API one', () => {
   assert.equal(hasListedEditionDraft([{ isListed: false }, { isListed: true }]), true)
   assert.equal(hasListedEditionDraft([{}]), false)
   assert.equal(hasListedEdition([{}]), true)
+})
+
+// The empty case is the one that separates it from !hasListedEditionDraft: a
+// draft with no editions yet is not a book its author took off the shelf.
+test('isBookUnlistedDraft needs editions before it calls a book unlisted', () => {
+  assert.equal(isBookUnlistedDraft([]), false)
+  assert.equal(isBookUnlistedDraft([{ isListed: false }]), true)
+  assert.equal(isBookUnlistedDraft([{ isListed: false }, { isListed: true }]), false)
 })
 
 test('hasListedEdition needs at least one edition a reader can see', () => {

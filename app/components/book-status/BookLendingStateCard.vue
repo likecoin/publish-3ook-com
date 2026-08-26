@@ -11,10 +11,8 @@
         />
         <UBadge
           variant="subtle"
-          :color="isPlusReadingEnabled ? 'success' : 'neutral'"
-          :label="isPlusReadingEnabled
-            ? $t('status_page.lending_state_badge_on')
-            : $t('status_page.lending_state_badge_off')"
+          :color="badge.color"
+          :label="badge.label"
         />
       </div>
     </template>
@@ -28,8 +26,16 @@
         :ui="{ fieldset: 'gap-3' }"
       />
 
-      <!-- A free book is always in the library, so the control is greyed out
-           rather than absent: the state is still worth reading. -->
+      <!-- The setting is kept; it just reaches nobody meanwhile. -->
+      <UAlert
+        v-if="isBookUnlisted"
+        color="warning"
+        variant="subtle"
+        icon="i-heroicons-exclamation-triangle"
+        :description="$t('status_page.unlisted_pauses_lending_preview')"
+      />
+      <!-- Independent of the notice above: that one says what readers get, this
+           one says why the radio is greyed out, and a free book can need both. -->
       <UAlert
         v-if="isFreeBook"
         color="neutral"
@@ -38,7 +44,7 @@
         :description="$t('nft_book_form.plus_reading_free_forced')"
       />
       <p
-        v-else
+        v-else-if="!isBookUnlisted"
         class="text-sm text-muted"
         v-text="$t('status_page.lending_state_independent_note')"
       />
@@ -49,16 +55,28 @@
 <script setup lang="ts">
 const { t: $t } = useI18n()
 
-const { canEdit = false, isFreeBook = false } = defineProps<{
+const { canEdit = false, isFreeBook = false, isBookUnlisted = false } = defineProps<{
   // Moderators read this page without a save bar; letting them flip the radio
   // would count a change nothing here can save or discard.
   canEdit?: boolean
   isFreeBook?: boolean
+  isBookUnlisted?: boolean
 }>()
 
 // The page's settings instance, so switching joins the pending-changes bar and
 // 放棄 restores it like any other field.
 const isPlusReadingEnabled = defineModel<boolean>({ required: true })
+
+// Paused is neither on nor off: the stored choice is unchanged, it just does
+// not reach a reader while the book is off the shelf.
+const badge = computed(() => {
+  if (isBookUnlisted) {
+    return { color: 'warning' as const, label: $t('status_page.lending_state_badge_paused') }
+  }
+  return isPlusReadingEnabled.value
+    ? { color: 'success' as const, label: $t('status_page.lending_state_badge_on') }
+    : { color: 'neutral' as const, label: $t('status_page.lending_state_badge_off') }
+})
 
 const stateItems = computed(() => [
   {

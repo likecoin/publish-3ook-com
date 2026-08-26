@@ -50,6 +50,7 @@
       v-model="isPlusReadingEnabled"
       :can-edit="canEdit"
       :is-free-book="isFreeBook"
+      :is-book-unlisted="isBookUnlisted"
     />
 
     <!-- Fed the edit draft, not the saved listing, so the two radios above show
@@ -77,6 +78,7 @@ import type { ISCNFormData } from '~/types/iscn'
 import { getBookEditChangeIcon, type BookEditChangeEntry } from '~/composables/useBookEditChanges'
 import type { PriceFormItem } from '~/types/publish'
 import { getSoldCount } from '~/utils/listing'
+import { isBookUnlistedDraft } from '~/utils/listing-status'
 import { parseImageURLFromMetadata } from '~/utils'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { getStoreMetadataDrift } from '~/utils/store-metadata-drift'
@@ -115,6 +117,8 @@ const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 // The page's edition draft, so the sale-state control writes into the same
 // state the pricing tab and the pending-changes bar work on.
 const editedPrices = defineModel<PriceFormItem[]>('prices', { required: true })
+
+const isBookUnlisted = computed(() => isBookUnlistedDraft(editedPrices.value))
 
 const iscnFormData = ref<ISCNFormData>(createEmptyISCNFormData())
 

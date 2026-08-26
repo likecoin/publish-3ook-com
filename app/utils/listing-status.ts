@@ -29,6 +29,13 @@ export function hasListedEditionDraft(prices: PriceFormItem[]): boolean {
   return prices.some(p => p.isListed)
 }
 
+// A book taken off the shelf — it has editions and none is listed — which the
+// API mirrors as ValidationHelper.isBookUnlisted: readers get borrowing and
+// preview off whatever the stored settings say. An editionless draft is not one.
+export function isBookUnlistedDraft(prices: PriceFormItem[]): boolean {
+  return prices.length > 0 && !hasListedEditionDraft(prices)
+}
+
 // Sold out only counts the editions a reader can still see: with none listed the
 // book is already 已下架. `isSoldOut` is the API's verdict and the source of
 // truth, never true for an auto-delivered edition since those mint on demand.
