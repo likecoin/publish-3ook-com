@@ -317,6 +317,16 @@ const fileLinks: IscnFileLinksContext = {
   contentFingerprints: computed(() => iscnFormData.value.contentFingerprints),
 }
 
+// The file URLs the last save wrote, out of the same snapshot the pending-changes
+// ledger diffs against, so 書檔's 待儲存 agrees with the save bar rather than with
+// a chain re-read that can still be answering with the state the tx replaced.
+// Row-level, which `changedFields` cannot be: it only says the array moved.
+const savedFileUrls = computed<string[]>(() => {
+  if (!chainFormSnapshot.value) { return [] }
+  const saved = JSON.parse(chainFormSnapshot.value) as ISCNFormData
+  return (saved.downloadableUrls || []).map(row => row.url).filter(Boolean)
+})
+
 const isChainDirty = computed(() => !!iscnFormRef.value?.hasUnsavedChanges)
 const changedFields = computed<string[]>(() => iscnFormRef.value?.changedFields ?? [])
 
@@ -387,6 +397,7 @@ defineExpose({
   coverUrl,
   setCoverUrl,
   fileLinks,
+  savedFileUrls,
   setFiles,
   saveChain,
   discardChain,

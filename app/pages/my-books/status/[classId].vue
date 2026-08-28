@@ -50,6 +50,9 @@
             :file-links-error="fileLinksError"
             :sold-count="soldCount"
             :file-links="chainFileLinks"
+            :saved-file-urls="chainSavedFileUrls"
+            :cover-url="chainCoverUrl"
+            :is-cover-pending="isCoverPending"
             @cover-replaced="handleCoverReplaced"
             @files-replaced="handleFilesReplaced"
           />
@@ -206,6 +209,7 @@ interface BookDetailsSectionApi {
   coverUrl: string
   setCoverUrl: (coverUrl: string) => void
   fileLinks: IscnFileLinksContext
+  savedFileUrls: string[]
   setFiles: (links: IscnFileLinks) => void
   saveChain: () => Promise<boolean>
   discardChain: () => Promise<void>
@@ -223,6 +227,10 @@ const hasStoreMetadataMismatch = computed(() => !!detailsSectionRef.value?.store
 // owns them, so both read its form rather than fetching their own copy.
 const chainFileLinks = computed(() => detailsSectionRef.value?.fileLinks ?? null)
 const chainCoverUrl = computed(() => detailsSectionRef.value?.coverUrl ?? '')
+const chainSavedFileUrls = computed<string[]>(() => detailsSectionRef.value?.savedFileUrls ?? [])
+// The cover is one key in the chain form's own diff, so 書檔's badge and the save
+// bar's 封面圖片 entry are the same fact rather than two comparisons to keep aligned.
+const isCoverPending = computed(() => !!detailsSectionRef.value?.changedFields.includes('coverUrl'))
 
 // Editable copy of the editions, diffed per edition against a baseline taken
 // at load; the manage-mode pricing form writes into it and the bar saves the

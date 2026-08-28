@@ -56,7 +56,7 @@
               @click="coverInput?.click()"
             />
             <UBadge
-              v-if="pendingCover"
+              v-if="isCoverPending"
               color="warning"
               variant="subtle"
               size="sm"
@@ -195,7 +195,17 @@ const { uploadFileRecordsToArweave } = useArweaveUpload()
 const { showErrorToast } = useToastComposable()
 const { takeImageFile, takeDroppedImageFile } = useImageFilePick()
 
-const { classId, canEdit = false, coverError = '', fileLinksError = '', soldCount = 0, fileLinks = null } = defineProps<{
+const {
+  classId,
+  canEdit = false,
+  coverError = '',
+  fileLinksError = '',
+  soldCount = 0,
+  fileLinks = null,
+  savedFileUrls = [],
+  coverUrl = '',
+  isCoverPending = false,
+} = defineProps<{
   classId: string
   // Moderators reach this tab too, and nothing here can be saved without the
   // owner's signature — so an upload they make would only strand bytes.
@@ -210,6 +220,12 @@ const { classId, canEdit = false, coverError = '', fileLinksError = '', soldCoun
   // The chain form's own file arrays, so the list shows what will be saved
   // rather than what was last fetched.
   fileLinks?: IscnFileLinksContext | null
+  // The URLs the last save wrote — what 待儲存 is judged against.
+  savedFileUrls?: string[]
+  // The chain form's cover, pending replacement included.
+  coverUrl?: string
+  // Judged by the page, off the same diff the save bar reads.
+  isCoverPending?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -218,7 +234,9 @@ const emit = defineEmits<{
 }>()
 
 const isLoading = ref(false)
-const coverUrl = ref('')
+// This card's own read of the chain; the props above win, since this one can
+// still be stale after a save.
+const fetchedCoverUrl = ref('')
 const fileRows = ref<{ url: string, type: string, fileName: string }[]>([])
 const contentFingerprints = ref<string[]>([])
 
@@ -247,10 +265,10 @@ const hasPickedEbook = computed(() => pickedRecords.value.some(
 
 // Prefer the chain form's live arrays over this card's own fetch, so a pending
 // replacement — or a row hand-edited in 技術資料 — shows here rather than only
-// in the save bar. Anything the last fetch did not carry is unsaved.
+// in the save bar. Anything the last save did not write is unsaved.
 const displayedFileRows = computed(() => {
   const rows = fileLinks?.downloadableUrls.value.length ? fileLinks.downloadableUrls.value : fileRows.value
-  const savedUrls = new Set(fileRows.value.map(file => file.url))
+  const savedUrls = new Set(savedFileUrls)
   return rows
     .filter(row => row.url)
     .map(row => ({ ...row, isPending: !savedUrls.has(row.url) }))
@@ -263,8 +281,10 @@ const pendingCover = ref<{ file: File, width: number, height: number } | null>(n
 const pendingCoverFile = computed(() => pendingCover.value?.file)
 const pendingCoverPreview = useObjectUrl(pendingCoverFile)
 
+// The picked file while it is on screen; the chain form's cover otherwise, so a
+// pending replacement shows here rather than the cover the save replaced.
 const coverSrc = computed(() => (
-  pendingCoverPreview.value || parseImageURLFromMetadata(coverUrl.value)
+  pendingCoverPreview.value || parseImageURLFromMetadata(coverUrl || fetchedCoverUrl.value)
 ))
 
 // Only a droppable zone looks like one: without the right to replace it, the
@@ -292,7 +312,7 @@ watch(() => classId, async () => {
     isLoading.value = true
     const loaded = await loadClassMetadataIntoForm(classId)
     if (!loaded) { return }
-    coverUrl.value = loaded.formData.coverUrl || ''
+    fetchedCoverUrl.value = loaded.formData.coverUrl || ''
     fileRows.value = (loaded.formData.downloadableUrls || []).filter(file => file.url)
     contentFingerprints.value = loaded.formData.contentFingerprints
       .map(fingerprint => fingerprint.url)
