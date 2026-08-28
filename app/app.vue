@@ -24,7 +24,6 @@
         />
       </template>
     </UModal>
-    <WelcomeModal />
 
     <NuxtLoadingIndicator />
   </UApp>

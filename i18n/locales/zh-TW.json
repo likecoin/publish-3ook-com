@@ -1187,11 +1187,5 @@
   "validation.text_cannot_exceed": "文字不能超過 {max} 個字元",
   "validation.unable_to_submit_edit": "無法提交編輯：缺少版本索引或類別 ID",
   "validation.unsupported_file_type": "不支援的檔案類型",
-  "wallet_changed_warning": "偵測到目前連接的錢包與登入時不同，請重新登入。",
-  "welcome_modal.click_here": "點擊這裡",
-  "welcome_modal.first_time_message": "如果這是您第一次從 publish.liker.land 造訪，請",
-  "welcome_modal.latest_update": "最新更新",
-  "welcome_modal.migration_icon_alt": "遷移圖示",
-  "welcome_modal.understood": "了解",
-  "welcome_modal.welcome_message": "歡迎來到我們的新平台 publish.3ook.com。在這裡，您可以發佈和管理您的電子書。"
+  "wallet_changed_warning": "偵測到目前連接的錢包與登入時不同，請重新登入。"
 }

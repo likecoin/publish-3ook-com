@@ -45,7 +45,7 @@ All stores use Composition API style (setup function pattern):
 - NFT contracts: `useNFTContractReader.ts`, `useNFTContractWriter.ts`, `useNFTClassCreator.ts`, `useNFTMinter.ts`, `useContractWrite.ts`, `useSponsoredTransaction.ts`
 - ISCN: `useISCN.ts`
 - Upload: `useFileUploadLocal.ts`, `useArweaveUpload.ts`, `useBulkUpload.ts`
-- UI / utilities: `useToast.ts`, `useTimePopup.ts`, `useRouteQuery.ts`, `useReadersTable.ts`, `useMessageCharCount.ts`, `useMaintenanceMode.ts`, `useLogEvent.ts`
+- UI / utilities: `useToast.ts`, `useRouteQuery.ts`, `useReadersTable.ts`, `useMessageCharCount.ts`, `useMaintenanceMode.ts`, `useLogEvent.ts`
 
 ### Pages (`pages/`)
 - **new-book.vue** — Multi-step wizard: Upload EPUB/PDF → Register ISCN → Mint NFT class → Create listing
