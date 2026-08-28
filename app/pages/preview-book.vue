@@ -1,114 +1,112 @@
 <template>
-  <PageBody>
-    <h1
-      class="text-2xl font-bold"
-      v-text="$t('preview_book.title')"
-    />
+  <PageContainer>
+    <PageHeader :title="$t('preview_book.title')" />
+    <PageBody>
+      <UAlert
+        v-if="errorMessage"
+        color="error"
+        :title="errorMessage"
+        class="mb-4"
+      />
 
-    <UAlert
-      v-if="errorMessage"
-      color="error"
-      :title="errorMessage"
-      class="mb-4"
-    />
-
-    <div class="flex gap-2 items-end">
-      <UFormField
-        :label="$t('preview_book.title')"
-        class="flex-1"
-      >
-        <UInput
-          v-model="inputUrl"
-          :placeholder="$t('preview_book.input_placeholder')"
-          class="font-mono"
+      <div class="flex gap-2 items-end">
+        <UFormField
+          :label="$t('preview_book.title')"
+          class="flex-1"
+        >
+          <UInput
+            v-model="inputUrl"
+            :placeholder="$t('preview_book.input_placeholder')"
+            class="font-mono"
+          />
+        </UFormField>
+        <UButton
+          :label="$t('preview_book.load')"
+          :loading="isLoading"
+          :disabled="!inputUrl || isLoading"
+          @click="loadBook"
         />
-      </UFormField>
-      <UButton
-        :label="$t('preview_book.load')"
-        :loading="isLoading"
-        :disabled="!inputUrl || isLoading"
-        @click="loadBook"
-      />
-    </div>
+      </div>
 
-    <p
-      v-if="detectedType"
-      class="text-sm text-gray-500"
-    >
-      {{ $t('preview_book.detected_type') }}: {{ detectedType }}
-    </p>
-    <p
-      v-else
-      class="text-sm text-gray-500"
-      v-text="$t('preview_book.supported_formats')"
-    />
-
-    <div
-      v-if="fileBlob"
-      class="flex"
-    >
-      <UButton
-        :label="$t('preview_book.download')"
-        variant="outline"
-        icon="i-heroicons-arrow-down-tray"
-        @click="triggerDownload"
-      />
-    </div>
-
-    <UProgress
-      v-if="isLoading"
-      animation="carousel"
-    />
-
-    <img
-      v-if="imageObjectUrl"
-      :src="imageObjectUrl"
-      :alt="$t('preview_book.title')"
-      class="max-w-full max-h-[70vh] border rounded-lg object-contain"
-    >
-
-    <div
-      v-show="isLoading || isBookLoaded"
-      ref="viewerRef"
-      class="w-full border rounded-lg overflow-hidden"
-      style="height: 70vh"
-    />
-
-    <div
-      v-if="isPdfLoaded"
-      class="w-full border rounded-lg overflow-auto bg-gray-100 flex justify-center"
-      style="height: 70vh"
-    >
-      <canvas
-        ref="pdfCanvasRef"
-        class="shadow-lg"
-      />
-    </div>
-
-    <div
-      v-if="isBookLoaded || isPdfLoaded"
-      class="flex justify-center gap-4 items-center"
-    >
-      <UButton
-        :label="$t('preview_book.prev_page')"
-        variant="outline"
-        icon="i-heroicons-chevron-left"
-        @click="prevPage"
-      />
-      <span
-        v-if="isPdfLoaded"
+      <p
+        v-if="detectedType"
         class="text-sm text-gray-500"
       >
-        {{ pdfCurrentPage }} / {{ pdfTotalPages }}
-      </span>
-      <UButton
-        :label="$t('preview_book.next_page')"
-        variant="outline"
-        trailing-icon="i-heroicons-chevron-right"
-        @click="nextPage"
+        {{ $t('preview_book.detected_type') }}: {{ detectedType }}
+      </p>
+      <p
+        v-else
+        class="text-sm text-gray-500"
+        v-text="$t('preview_book.supported_formats')"
       />
-    </div>
-  </PageBody>
+
+      <div
+        v-if="fileBlob"
+        class="flex"
+      >
+        <UButton
+          :label="$t('preview_book.download')"
+          variant="outline"
+          icon="i-heroicons-arrow-down-tray"
+          @click="triggerDownload"
+        />
+      </div>
+
+      <UProgress
+        v-if="isLoading"
+        animation="carousel"
+      />
+
+      <img
+        v-if="imageObjectUrl"
+        :src="imageObjectUrl"
+        :alt="$t('preview_book.title')"
+        class="max-w-full max-h-[70vh] border rounded-lg object-contain"
+      >
+
+      <div
+        v-show="isLoading || isBookLoaded"
+        ref="viewerRef"
+        class="w-full border rounded-lg overflow-hidden"
+        style="height: 70vh"
+      />
+
+      <div
+        v-if="isPdfLoaded"
+        class="w-full border rounded-lg overflow-auto bg-gray-100 flex justify-center"
+        style="height: 70vh"
+      >
+        <canvas
+          ref="pdfCanvasRef"
+          class="shadow-lg"
+        />
+      </div>
+
+      <div
+        v-if="isBookLoaded || isPdfLoaded"
+        class="flex justify-center gap-4 items-center"
+      >
+        <UButton
+          :label="$t('preview_book.prev_page')"
+          variant="outline"
+          icon="i-heroicons-chevron-left"
+          @click="prevPage"
+        />
+        <span
+          v-if="isPdfLoaded"
+          class="text-sm text-gray-500"
+        >
+          {{ pdfCurrentPage }} / {{ pdfTotalPages }}
+        </span>
+        <UButton
+          :label="$t('preview_book.next_page')"
+          variant="outline"
+          trailing-icon="i-heroicons-chevron-right"
+          @click="nextPage"
+        />
+      </div>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

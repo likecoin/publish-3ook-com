@@ -1,5 +1,28 @@
 <template>
   <div class="flex-1 overflow-y-auto">
+    <UDashboardNavbar
+      :toggle="false"
+      :ui="{ root: 'sticky top-0 z-10 min-h-[64px] px-5 bg-default' }"
+    >
+      <template #title>
+        <img
+          :src="isTestnet ? logoTestnet : logo"
+          :alt="$t('app.site_title')"
+          class="h-8 w-8 lg:hidden"
+        >
+        <span class="hidden lg:inline">{{ $t('app.site_title') }}</span>
+      </template>
+      <template #right>
+        <UButton
+          v-if="!bookstoreApiStore.isAuthenticated"
+          :label="$t('about.navbar_login')"
+          :loading="isAuthenticating"
+          color="primary"
+          @click="bookstoreApiStore.openLoginPanel()"
+        />
+      </template>
+    </UDashboardNavbar>
+
     <!-- Hero Section (dark, matching 3ook.com) -->
     <section
       class="flex flex-col justify-center items-center text-center space-y-8 min-h-[50vh] px-6 py-16 bg-[#131313] bg-cover bg-center"
@@ -157,7 +180,11 @@
 <script setup lang="ts">
 import heroImage from '~/assets/images/hero.jpg'
 
+import logo from '~/assets/images/logo.svg'
+import logoTestnet from '~/assets/images/logo-testnet.svg'
+
 const { t: $t } = useI18n()
+const isTestnet = getIsTestnet()
 
 const localeRoute = useLocaleRoute()
 const bookstoreApiStore = useBookstoreApiStore()

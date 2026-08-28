@@ -1,22 +1,25 @@
 <template>
-  <PageBody>
-    <UTabs
-      v-model="selectedTabItemIndex"
-      class="w-full"
-      :items="tabItems"
-    >
-      <template #content="{ item }">
-        <SalesReportPlusReading
-          v-if="item.value === 'plus'"
-          :key="item.value"
-        />
-        <SalesReportCommissionHistory
-          v-else
-          :key="item.value"
-        />
-      </template>
-    </UTabs>
-  </PageBody>
+  <PageContainer>
+    <PageHeader :title="$t('menu.sales_report')" />
+    <PageBody>
+      <UTabs
+        v-model="selectedTabItemIndex"
+        class="w-full"
+        :items="tabItems"
+      >
+        <template #content="{ item }">
+          <SalesReportPlusReading
+            v-if="item.value === 'plus'"
+            :key="item.value"
+          />
+          <SalesReportCommissionHistory
+            v-else
+            :key="item.value"
+          />
+        </template>
+      </UTabs>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

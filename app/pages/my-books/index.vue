@@ -1,161 +1,166 @@
 <template>
-  <PageBody :ui="{ constrained: '' }">
-    <AppErrorAlert
-      v-model="error"
-      class="mt-4"
-    />
-
-    <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <template #header>
-        <div class="flex flex-wrap justify-between items-center gap-3">
-          <div class="flex items-center gap-3">
-            <span
-              class="text-sm font-medium whitespace-nowrap"
-              v-text="$t('my_books.total_books', { count: tableRows.length })"
-            />
-            <UButton
-              v-if="moderatedBookList.length || isShowingModeratedList"
-              size="xs"
-              :color="isShowingModeratedList ? 'primary' : 'neutral'"
-              :variant="isShowingModeratedList ? 'soft' : 'outline'"
-              :label="$t('bookstore.viewable_listing')"
-              :aria-pressed="isShowingModeratedList"
-              @click="toggleModeratedList"
-            />
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <UInput
-              v-model="searchInput"
-              class="w-44"
-              size="sm"
-              icon="i-heroicons-magnifying-glass-20-solid"
-              :placeholder="$t('table.search_placeholder')"
-            />
-            <TablePaginationBar
-              v-model:page="tablePage"
-              v-model:page-size="pageSize"
-              :total="pagination.total"
-              :row-from="tablePageRowFrom"
-              :row-to="tablePageRowTo"
-              :page-size-options="pageSizeOptions"
-            />
-          </div>
-        </div>
+  <PageContainer>
+    <PageHeader :title="$t('menu.manage_book_listings')">
+      <template #right>
+        <UInput
+          v-model="searchInput"
+          class="w-44 sm:w-64"
+          icon="i-heroicons-magnifying-glass-20-solid"
+          :placeholder="$t('table.search_placeholder')"
+        />
       </template>
+    </PageHeader>
+    <PageBody :ui="{ constrained: '' }">
+      <AppErrorAlert
+        v-model="error"
+        class="mt-4"
+      />
 
-      <UTable
-        :columns="tableColumns"
-        :data="displayedTableRows"
-        :loading="isLoading"
-        :progress="{ color: 'primary', animation: 'carousel' }"
-        :ui="{
-          th: 'whitespace-nowrap',
-          tr: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors duration-200',
-        }"
-        @select="selectTableRow"
-      >
-        <template
-          v-for="column in sortableColumns"
-          :key="`header-${column.accessorKey}`"
-          #[`${column.accessorKey}-header`]
-        >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :label="column.header"
-            :trailing-icon="getSortIcon(column.accessorKey)"
-            :aria-label="getSortAriaLabel(column)"
-            @click="() => toggleSort(column.accessorKey)"
-          />
-        </template>
+      <UCard :ui="{ body: 'p-0 sm:p-0' }">
+        <template #header>
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+              <span
+                class="text-sm font-medium whitespace-nowrap"
+                v-text="$t('my_books.total_books', { count: tableRows.length })"
+              />
+              <UButton
+                v-if="moderatedBookList.length || isShowingModeratedList"
+                size="xs"
+                :color="isShowingModeratedList ? 'primary' : 'neutral'"
+                :variant="isShowingModeratedList ? 'soft' : 'outline'"
+                :label="$t('bookstore.viewable_listing')"
+                :aria-pressed="isShowingModeratedList"
+                @click="toggleModeratedList"
+              />
+            </div>
 
-        <template #className-cell="{ row }">
-          <div class="flex items-center gap-3">
-            <BookCoverThumbnail
-              :src="row.original.coverSrc"
-              :alt="row.original.className"
-            />
-            <div class="min-w-0 max-w-md">
-              <div
-                class="font-medium truncate"
-                v-text="row.original.className"
-              />
-              <div
-                v-if="row.original.hasClassName"
-                class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate"
-                v-text="row.original.classId"
-              />
-              <div
-                v-if="row.original.draftStepLabel"
-                class="text-xs text-gray-500 dark:text-gray-400 truncate"
-                v-text="$t('my_books.draft_step', { step: row.original.draftStepLabel })"
-              />
-              <div
-                v-if="row.original.unlistedEditionCount"
-                class="text-xs text-gray-500 dark:text-gray-400"
-                v-text="$t('my_books.unlisted_editions', {
-                  count: row.original.unlistedEditionCount,
-                  total: row.original.editionCount,
-                })"
+            <div class="flex flex-wrap items-center gap-2">
+              <TablePaginationBar
+                v-model:page="tablePage"
+                v-model:page-size="pageSize"
+                :total="pagination.total"
+                :row-from="tablePageRowFrom"
+                :row-to="tablePageRowTo"
+                :page-size-options="pageSizeOptions"
               />
             </div>
           </div>
         </template>
 
-        <template #priceInUSD-cell="{ row }">
-          <span v-text="row.original.priceInUSD == null ? '-' : formatPriceUSDLabel(Number(row.original.priceInUSD), $t)" />
-        </template>
+        <UTable
+          :columns="tableColumns"
+          :data="displayedTableRows"
+          :loading="isLoading"
+          :progress="{ color: 'primary', animation: 'carousel' }"
+          :ui="{
+            th: 'whitespace-nowrap',
+            tr: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors duration-200',
+          }"
+          @select="selectTableRow"
+        >
+          <template
+            v-for="column in sortableColumns"
+            :key="`header-${column.accessorKey}`"
+            #[`${column.accessorKey}-header`]
+          >
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="column.header"
+              :trailing-icon="getSortIcon(column.accessorKey)"
+              :aria-label="getSortAriaLabel(column)"
+              @click="() => toggleSort(column.accessorKey)"
+            />
+          </template>
 
-        <template #sold-cell="{ row }">
-          <span v-text="row.original.sold ?? '-'" />
-        </template>
+          <template #className-cell="{ row }">
+            <div class="flex items-center gap-3">
+              <BookCoverThumbnail
+                :src="row.original.coverSrc"
+                :alt="row.original.className"
+              />
+              <div class="min-w-0 max-w-md">
+                <div
+                  class="font-medium truncate"
+                  v-text="row.original.className"
+                />
+                <div
+                  v-if="row.original.hasClassName"
+                  class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate"
+                  v-text="row.original.classId"
+                />
+                <div
+                  v-if="row.original.draftStepLabel"
+                  class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                  v-text="$t('my_books.draft_step', { step: row.original.draftStepLabel })"
+                />
+                <div
+                  v-if="row.original.unlistedEditionCount"
+                  class="text-xs text-gray-500 dark:text-gray-400"
+                  v-text="$t('my_books.unlisted_editions', {
+                    count: row.original.unlistedEditionCount,
+                    total: row.original.editionCount,
+                  })"
+                />
+              </div>
+            </div>
+          </template>
 
-        <template #status-cell="{ row }">
-          <BookListingStatusBadge :status="row.original.status" />
-        </template>
+          <template #priceInUSD-cell="{ row }">
+            <span v-text="row.original.priceInUSD == null ? '-' : formatPriceUSDLabel(Number(row.original.priceInUSD), $t)" />
+          </template>
 
-        <template #pendingAction-cell="{ row }">
-          <span v-text="row.original.pendingAction ?? '-'" />
-        </template>
+          <template #sold-cell="{ row }">
+            <span v-text="row.original.sold ?? '-'" />
+          </template>
 
-        <template #empty>
-          <span v-text="searchInput ? $t('my_books.no_search_result') : $t('my_books.no_books')" />
-        </template>
+          <template #status-cell="{ row }">
+            <BookListingStatusBadge :status="row.original.status" />
+          </template>
 
-        <template #actions-cell="{ row }">
-          <UButton
-            v-if="row.original.isDraft"
-            icon="i-heroicons-trash"
-            variant="ghost"
-            color="error"
-            size="sm"
-            :aria-label="$t('my_books.delete_draft')"
-            @click.stop="deleteDraft"
-          />
-          <UButton
-            v-else
-            icon="i-heroicons-arrow-top-right-on-square"
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            :aria-label="$t('my_books.view_store_page')"
-            @click.stop="openStorePage(row.original.classId)"
-          />
-        </template>
-      </UTable>
-    </UCard>
+          <template #pendingAction-cell="{ row }">
+            <span v-text="row.original.pendingAction ?? '-'" />
+          </template>
 
-    <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-      <ULink
-        :to="authorPromoFormUrl"
-        target="_blank"
-        class="underline"
-      >
-        {{ $t('my_books.author_promo_form') }}
-      </ULink>
-    </div>
-  </PageBody>
+          <template #empty>
+            <span v-text="searchInput ? $t('my_books.no_search_result') : $t('my_books.no_books')" />
+          </template>
+
+          <template #actions-cell="{ row }">
+            <UButton
+              v-if="row.original.isDraft"
+              icon="i-heroicons-trash"
+              variant="ghost"
+              color="error"
+              size="sm"
+              :aria-label="$t('my_books.delete_draft')"
+              @click.stop="deleteDraft"
+            />
+            <UButton
+              v-else
+              icon="i-heroicons-arrow-top-right-on-square"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              :aria-label="$t('my_books.view_store_page')"
+              @click.stop="openStorePage(row.original.classId)"
+            />
+          </template>
+        </UTable>
+      </UCard>
+
+      <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <ULink
+          :to="authorPromoFormUrl"
+          target="_blank"
+          class="underline"
+        >
+          {{ $t('my_books.author_promo_form') }}
+        </ULink>
+      </div>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

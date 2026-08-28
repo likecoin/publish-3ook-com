@@ -1,108 +1,110 @@
 <template>
-  <PageBody class="print:space-y-0 print:p-0">
-    <h1 class="text-lg font-bold font-mono print:hidden">
-      {{ $t('batch_qrcode.page_title') }}
-    </h1>
-
-    <UFormField
-      :label="$t('batch_qrcode.upload_csv')"
+  <div class="flex flex-col">
+    <PageHeader
       class="print:hidden"
-    >
-      <UInput
-        type="file"
-        accept="csv"
-        @change="handleFileChange"
-      />
-    </UFormField>
-    <USeparator
-      class="print:hidden"
-      :label="$t('batch_qrcode.or_divider')"
+      :title="$t('batch_qrcode.page_title')"
     />
-    <UFormField
-      class="print:hidden"
-      :label="$t('batch_qrcode.input_csv')"
-    >
-      <UTextarea
-        v-model="csvInput"
-        class="font-mono"
-        :placeholder="csvInputPlaceholder"
-        :resize="true"
-      />
-    </UFormField>
-
-    <div class="print:hidden flex justify-center">
-      <UButton
-        :label="$t('batch_qrcode.qr_appearance')"
-        variant="outline"
-        @click="isEditingQRCodeConfig = true"
-      />
-    </div>
-
-    <UModal
-      v-model:open="isEditingQRCodeConfig"
-      :title="$t('batch_qrcode.qr_config')"
-      :ui="{ body: '!p-0' }"
-    >
-      <template #body>
-        <QRCodeGenerator
-          v-model:icon="selectedQRCodeIcon"
-          v-model:color="selectedQRCodeColor"
-          v-model:dot-style="selectedQRCodeDotStyle"
-          :data="`${BOOK3_URL}/store`"
-          :width="500"
-          :height="500"
-          mode="config"
-          @save="isEditingQRCodeConfig = false"
-        />
-      </template>
-    </UModal>
-
-    <nav class="flex justify-center items-center gap-2 print:hidden">
-      <UButton
-        v-if="!urlItems?.length"
-        :label="$t('batch_qrcode.generate')"
-        size="lg"
-        :disabled="!csvInput"
-        @click="drawQRCodes"
-      />
-      <template v-else>
-        <UButton
-          :label="$t('batch_qrcode.print')"
-          size="lg"
-          variant="outline"
-          @click="handleClickPrint"
-        />
-        <UButton
-          :label="$t('batch_qrcode.download')"
-          size="lg"
-          variant="outline"
-          @click="handleClickDownload"
-        />
-      </template>
-    </nav>
-
-    <div class="flex flex-col items-center gap-[2cm] print:gap-0">
-      <ul
-        v-for="(items, page) in pagesForPrint"
-        :key="page"
-        class="w-[20cm] grid grid-cols-3 items-center gap-[0.25cm] py-[0.5cm] break-before-page"
+    <PageBody class="print:space-y-0 print:p-0">
+      <UFormField
+        :label="$t('batch_qrcode.upload_csv')"
+        class="print:hidden"
       >
-        <li
-          v-for="item in items"
-          :key="item.key || item.url"
+        <UInput
+          type="file"
+          accept="csv"
+          @change="handleFileChange"
+        />
+      </UFormField>
+      <USeparator
+        class="print:hidden"
+        :label="$t('batch_qrcode.or_divider')"
+      />
+      <UFormField
+        class="print:hidden"
+        :label="$t('batch_qrcode.input_csv')"
+      >
+        <UTextarea
+          v-model="csvInput"
+          class="font-mono"
+          :placeholder="csvInputPlaceholder"
+          :resize="true"
+        />
+      </UFormField>
+
+      <div class="print:hidden flex justify-center">
+        <UButton
+          :label="$t('batch_qrcode.qr_appearance')"
+          variant="outline"
+          @click="isEditingQRCodeConfig = true"
+        />
+      </div>
+
+      <UModal
+        v-model:open="isEditingQRCodeConfig"
+        :title="$t('batch_qrcode.qr_config')"
+        :ui="{ body: '!p-0' }"
+      >
+        <template #body>
+          <QRCodeGenerator
+            v-model:icon="selectedQRCodeIcon"
+            v-model:color="selectedQRCodeColor"
+            v-model:dot-style="selectedQRCodeDotStyle"
+            :data="`${BOOK3_URL}/store`"
+            :width="500"
+            :height="500"
+            mode="config"
+            @save="isEditingQRCodeConfig = false"
+          />
+        </template>
+      </UModal>
+
+      <nav class="flex justify-center items-center gap-2 print:hidden">
+        <UButton
+          v-if="!urlItems?.length"
+          :label="$t('batch_qrcode.generate')"
+          size="lg"
+          :disabled="!csvInput"
+          @click="drawQRCodes"
+        />
+        <template v-else>
+          <UButton
+            :label="$t('batch_qrcode.print')"
+            size="lg"
+            variant="outline"
+            @click="handleClickPrint"
+          />
+          <UButton
+            :label="$t('batch_qrcode.download')"
+            size="lg"
+            variant="outline"
+            @click="handleClickDownload"
+          />
+        </template>
+      </nav>
+
+      <div class="flex flex-col items-center gap-[2cm] print:gap-0">
+        <ul
+          v-for="(items, page) in pagesForPrint"
+          :key="page"
+          class="w-[20cm] grid grid-cols-3 items-center gap-[0.25cm] py-[0.5cm] break-before-page"
         >
-          <figure
-            ref="qrCodeRef"
-            class="qrcode"
+          <li
+            v-for="item in items"
+            :key="item.key || item.url"
           >
-            <figcaption class="text-xs text-center font-mono">
-              {{ item.key || item.url }}
-            </figcaption>
-          </figure>
-        </li>
-      </ul>
-    </div>
-  </PageBody>
+            <figure
+              ref="qrCodeRef"
+              class="qrcode"
+            >
+              <figcaption class="text-xs text-center font-mono">
+                {{ item.key || item.url }}
+              </figcaption>
+            </figure>
+          </li>
+        </ul>
+      </div>
+    </PageBody>
+  </div>
 </template>
 
 <script setup lang="ts">

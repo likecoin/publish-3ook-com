@@ -2,7 +2,7 @@
   <!-- Sticky at the top of the page, and present even when clean: testers who
        edited a long tab never scrolled far enough to find a bottom bar, and a
        bar that only appears once you are dirty cannot tell you you are saved. -->
-  <div class="sticky top-0 z-20 -mx-2 px-2 py-2 bg-default/95 backdrop-blur">
+  <div class="sticky top-16 z-20 -mx-2 px-2 py-2 bg-default/95 backdrop-blur">
     <div
       class="flex items-center justify-between gap-4 rounded-lg border px-3 py-2"
       :class="isDirty ? 'border-primary/40 bg-elevated/95 shadow-sm' : 'border-default bg-elevated/60'"

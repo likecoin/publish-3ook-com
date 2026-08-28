@@ -1,31 +1,34 @@
 <template>
-  <PageBody :ui="{ base: 'max-w-3xl! mx-auto pl-6!' }">
-    <template v-if="bookstoreApiStore.isAuthenticated">
-      <AccountAvatarSection />
+  <PageContainer>
+    <PageHeader :title="$t('menu.user_settings')" />
+    <PageBody :ui="{ base: 'max-w-3xl! mx-auto pl-6!' }">
+      <template v-if="bookstoreApiStore.isAuthenticated">
+        <AccountAvatarSection />
 
-      <UAlert
-        v-if="!canEditProfile"
-        icon="i-heroicons-lock-closed"
-        color="neutral"
-        variant="soft"
-        :title="$t('user_settings.profile_permission_title')"
-        :description="$t('user_settings.profile_permission_description')"
-        :actions="[{
-          label: $t('user_settings.profile_permission_action'),
-          color: 'neutral',
-          variant: 'solid',
-          loading: isRequestingPermission,
-          onClick: handleAuthorizeClick,
-        }]"
-      />
+        <UAlert
+          v-if="!canEditProfile"
+          icon="i-heroicons-lock-closed"
+          color="neutral"
+          variant="soft"
+          :title="$t('user_settings.profile_permission_title')"
+          :description="$t('user_settings.profile_permission_description')"
+          :actions="[{
+            label: $t('user_settings.profile_permission_action'),
+            color: 'neutral',
+            variant: 'solid',
+            loading: isRequestingPermission,
+            onClick: handleAuthorizeClick,
+          }]"
+        />
 
-      <AccountIdentityCard />
+        <AccountIdentityCard />
 
-      <AccountPreferencesCard />
+        <AccountPreferencesCard />
 
-      <AccountStripeConnectCard />
-    </template>
-  </PageBody>
+        <AccountStripeConnectCard />
+      </template>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

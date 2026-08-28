@@ -1,18 +1,24 @@
 <template>
-  <SiteHeaderBase class="justify-between w-full px-5">
-    <div class="flex items-center gap-2">
-      <h1 class="font-bold text-xl">
-        {{ props.title }}
-      </h1>
-    </div>
-  </SiteHeaderBase>
+  <UDashboardNavbar
+    :title="title"
+    :toggle="false"
+    :ui="{
+      root: 'sticky top-0 z-10 min-h-[64px] px-5 bg-default',
+      title: 'text-xl font-bold',
+    }"
+  >
+    <template
+      v-if="$slots.default"
+      #default
+    >
+      <slot />
+    </template>
+    <template #right>
+      <slot name="right" />
+    </template>
+  </UDashboardNavbar>
 </template>
 
 <script setup lang="ts">
-const props = defineProps({
-  title: {
-    type: String,
-    default: '',
-  },
-})
+const { title = '' } = defineProps<{ title?: string }>()
 </script>

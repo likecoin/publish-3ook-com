@@ -1,195 +1,194 @@
 <template>
-  <PageBody>
-    <h1 class="text-lg font-bold font-mono">
-      Deliver NFT Book "{{ nftClassName || classId }}"
-    </h1>
+  <PageContainer>
+    <PageHeader :title="`Deliver NFT Book ${nftClassName || classId}`" />
+    <PageBody>
+      <AppErrorAlert
+        :model-value="error.message"
+        :actions="error.actions"
+        @update:model-value="error = { message: '', actions: [] }"
+      />
 
-    <AppErrorAlert
-      :model-value="error.message"
-      :actions="error.actions"
-      @update:model-value="error = { message: '', actions: [] }"
-    />
+      <UProgress
+        v-if="isLoading"
+        animation="carousel"
+      >
+        <template #indicator>
+          Loading...
+        </template>
+      </UProgress>
 
-    <UProgress
-      v-if="isLoading"
-      animation="carousel"
-    >
-      <template #indicator>
-        Loading...
-      </template>
-    </UProgress>
+      <UCard
+        v-if="bookstoreApiStore.isAuthenticated"
+        :ui="{
+          body: 'space-y-6',
+          footer: 'flex justify-center gap-2',
+        }"
+      >
+        <UCard :ui="{ body: 'p-0' }">
+          <table class="divide-y w-full">
+            <tbody>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  {{ $t('table.buyer_email') }}
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.email }}
+                </td>
+              </tr>
+              <tr v-if="orderInfo.giftInfo?.toEmail">
+                <th class="text-left px-4 py-3">
+                  {{ $t('table.reader_email') }}
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.giftInfo?.toEmail || orderInfo.email }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  {{ $t('table.status') }}
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.status }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  Buyer Wallet
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.wallet }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  {{ $t('table.price_name') }}
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.priceName }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  Price
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.price }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  Quantity
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.quantity }}
+                </td>
+              </tr>
+              <tr>
+                <th class="text-left px-4 py-3">
+                  Sales channel
+                </th><td class="px-4 py-3">
+                  {{ orderInfo.from }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </UCard>
 
-    <UCard
-      v-if="bookstoreApiStore.isAuthenticated"
-      :ui="{
-        body: 'space-y-6',
-        footer: 'flex justify-center gap-2',
-      }"
-    >
-      <UCard :ui="{ body: 'p-0' }">
-        <table class="divide-y w-full">
-          <tbody>
-            <tr>
-              <th class="text-left px-4 py-3">
-                {{ $t('table.buyer_email') }}
-              </th><td class="px-4 py-3">
-                {{ orderInfo.email }}
-              </td>
-            </tr>
-            <tr v-if="orderInfo.giftInfo?.toEmail">
-              <th class="text-left px-4 py-3">
-                {{ $t('table.reader_email') }}
-              </th><td class="px-4 py-3">
-                {{ orderInfo.giftInfo?.toEmail || orderInfo.email }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                {{ $t('table.status') }}
-              </th><td class="px-4 py-3">
-                {{ orderInfo.status }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                Buyer Wallet
-              </th><td class="px-4 py-3">
-                {{ orderInfo.wallet }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                {{ $t('table.price_name') }}
-              </th><td class="px-4 py-3">
-                {{ orderInfo.priceName }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                Price
-              </th><td class="px-4 py-3">
-                {{ orderInfo.price }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                Quantity
-              </th><td class="px-4 py-3">
-                {{ orderInfo.quantity }}
-              </td>
-            </tr>
-            <tr>
-              <th class="text-left px-4 py-3">
-                Sales channel
-              </th><td class="px-4 py-3">
-                {{ orderInfo.from }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </UCard>
+        <UCard>
+          <div class="space-y-2 mb-4">
+            <h5
+              class="text-sm font-bold"
+              v-text="`${$t('nft_book_form.buyer_message')}`"
+            />
+            <p v-text="orderInfo.message" />
+          </div>
 
-      <UCard>
-        <div class="space-y-2 mb-4">
-          <h5
-            class="text-sm font-bold"
-            v-text="`${$t('nft_book_form.buyer_message')}`"
-          />
-          <p v-text="orderInfo.message" />
-        </div>
+          <UFormField
+            :label="$t('nft_book_form.author_message')"
+            :error="isLimitReached"
+            :hint="`${messageCharCount} / ${AUTHOR_MESSAGE_LIMIT}`"
+          >
+            <UTextarea
+              v-model="memo"
+            />
+          </UFormField>
+        </UCard>
 
         <UFormField
-          :label="$t('nft_book_form.author_message')"
-          :error="isLimitReached"
-          :hint="`${messageCharCount} / ${AUTHOR_MESSAGE_LIMIT}`"
+          :label="$t('form.nft_id_label')"
+          class="mb-4"
+          :error="nftIdError || validationError || false"
+          :help="isNftIdConfirmed && isSingleQuantity ? $t('button.confirmed') : undefined"
+          :ui="{ description: 'text-gray-400 dark:text-gray-600', help: 'text-green-500' }"
         >
-          <UTextarea
-            v-model="memo"
-          />
-        </UFormField>
-      </UCard>
-
-      <UFormField
-        :label="$t('form.nft_id_label')"
-        class="mb-4"
-        :error="nftIdError || validationError || false"
-        :help="isNftIdConfirmed && isSingleQuantity ? $t('button.confirmed') : undefined"
-        :ui="{ description: 'text-gray-400 dark:text-gray-600', help: 'text-green-500' }"
-      >
-        <div class="flex flex-wrap items-center justify-center gap-2 w-full">
-          <div
-            v-if="orderInfo.quantity"
-            :class="[orderInfo.quantity > 1 ? 'w-full' : 'grow', 'space-y-1']"
-          >
-            <UInput
-              v-for="i in orderInfo.quantity"
-              :key="`nft-id-input-${i}`"
-              ref="nftIdInputRef"
-              v-model="nftIdInput[i - 1]"
-              :disabled="!isSingleQuantity"
-              class="font-mono"
+          <div class="flex flex-wrap items-center justify-center gap-2 w-full">
+            <div
+              v-if="orderInfo.quantity"
+              :class="[orderInfo.quantity > 1 ? 'w-full' : 'grow', 'space-y-1']"
             >
-              <template
-                v-if="orderInfo.quantity > 1"
-                #leading
+              <UInput
+                v-for="i in orderInfo.quantity"
+                :key="`nft-id-input-${i}`"
+                ref="nftIdInputRef"
+                v-model="nftIdInput[i - 1]"
+                :disabled="!isSingleQuantity"
+                class="font-mono"
               >
-                <span class="text-sm text-gray-400 dark:text-gray-600">#{{ i }}</span>
-              </template>
-            </UInput>
+                <template
+                  v-if="orderInfo.quantity > 1"
+                  #leading
+                >
+                  <span class="text-sm text-gray-400 dark:text-gray-600">#{{ i }}</span>
+                </template>
+              </UInput>
+            </div>
+            <UButton
+              v-if="isSingleQuantity"
+              :label="$t('button.confirm_nft_id')"
+              :disabled="isLoading || isVerifyingNFTId || !hasValidNftInput"
+              variant="outline"
+              :loading="isVerifyingNFTId"
+              color="primary"
+              @click="handleConfirmNFTId"
+            />
+            <USeparator
+              v-if="isSingleQuantity"
+              :class="['text-sm text-gray-600', 'sm:w-min']"
+            >
+              OR
+            </USeparator>
+            <UButton
+              v-if="isSingleQuantity"
+              :label="$t('button.check_all_nft_ids')"
+              :disabled="isLoading"
+              variant="outline"
+              @click="onCheckOwnedIds"
+            />
           </div>
-          <UButton
-            v-if="isSingleQuantity"
-            :label="$t('button.confirm_nft_id')"
-            :disabled="isLoading || isVerifyingNFTId || !hasValidNftInput"
-            variant="outline"
-            :loading="isVerifyingNFTId"
-            color="primary"
-            @click="handleConfirmNFTId"
-          />
-          <USeparator
-            v-if="isSingleQuantity"
-            :class="['text-sm text-gray-600', 'sm:w-min']"
+        </UFormField>
+
+        <PlaceholderCard class="h-[300px]">
+          <img
+            v-if="nftImage"
+            class="max-w-[180px] w-full h-full object-contain"
+            alt="preview"
+            :src="nftImage"
           >
-            OR
-          </USeparator>
+        </PlaceholderCard>
+
+        <template #footer>
           <UButton
-            v-if="isSingleQuantity"
-            :label="$t('button.check_all_nft_ids')"
-            :disabled="isLoading"
-            variant="outline"
-            @click="onCheckOwnedIds"
+            :label="$t('nft_send.sign_and_send')"
+            :disabled="isSendButtonDisabled"
+            size="xl"
+            @click="onSendNFTStart"
           />
-        </div>
-      </UFormField>
-
-      <PlaceholderCard class="h-[300px]">
-        <img
-          v-if="nftImage"
-          class="max-w-[180px] w-full h-full object-contain"
-          alt="preview"
-          :src="nftImage"
-        >
-      </PlaceholderCard>
-
-      <template #footer>
-        <UButton
-          :label="$t('nft_send.sign_and_send')"
-          :disabled="isSendButtonDisabled"
-          size="xl"
-          @click="onSendNFTStart"
-        />
-      </template>
-    </UCard>
-    <UModal v-model:open="showRestockModal">
-      <template #content>
-        <LiteMintNFT
-          :is-restock="true"
-          :iscn-id="classId"
-          @submit="handleFinishRestock"
-        />
-      </template>
-    </UModal>
-  </PageBody>
+        </template>
+      </UCard>
+      <UModal v-model:open="showRestockModal">
+        <template #content>
+          <LiteMintNFT
+            :is-restock="true"
+            :iscn-id="classId"
+            @submit="handleFinishRestock"
+          />
+        </template>
+      </UModal>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

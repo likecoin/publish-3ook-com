@@ -1,188 +1,192 @@
 <template>
-  <!-- overflow-y-visible! undoes the `overflow-y-auto` <NuxtPage> puts on every
-       page root, which would pin the sticky bar below in place. -->
-  <PageBody class="flex flex-col items-stretch grow space-y-4 overflow-y-visible!">
-    <PublishWizardNavBar
-      :next-label="primaryActionLabel"
-      :can-go-back="currentStepIndex > 0"
-      :is-next-disabled="shouldDisableNext"
-      :is-busy="isPublishing"
-      :last-saved-at="lastSavedAt"
-      @back="goToPreviousStep"
-      @next="handlePrimaryAction"
-    />
-
-    <div
-      ref="stepTopRef"
-      class="w-full"
-    >
-      <!-- Stepper Navigation -->
-      <div class="justify-evenly items-center flex space-x-4 relative">
-        <div class="absolute w-full h-px bg-accented top-[50%] left-0 z-[-1]" />
-        <button
-          v-for="(s, index) in steps"
-          :key="s.key"
-          type="button"
-          class="flex items-center space-x-2 bg-default p-2 rounded-lg"
-          :class="index <= maxVisitedStepIndex && !isPublishing ? 'cursor-pointer' : 'cursor-default'"
-          :disabled="index > maxVisitedStepIndex || isPublishing"
-          @click="goToStep(s.key)"
-        >
-          <UAvatar
-            :size="s.key === step ? 'lg' : 'md'"
-            :text="(index + 1).toString()"
-            :class="s.key === step ? 'bg-primary/20' : 'bg-accented'"
-          />
-          <p class="text-sm font-semibold">
-            {{ s.title }}
-          </p>
-        </button>
-      </div>
-
-      <!-- Titled cards on the page background, at the book page's tab rhythm:
-           the two screens are the same book, so they are read the same way. -->
-      <div class="mt-4 space-y-10">
-        <!-- One dropzone for everything: the cover is a file like the others,
-             and dropping an image is what changes it. -->
-        <UCard v-if="step === 'files'">
-          <template #header>
-            <h3
-              class="font-bold font-mono"
-              v-text="$t('publish_review.files_title')"
-            />
-          </template>
-          <UploadForm
-            ref="uploadFormRef"
-            v-model:encrypt-ebook="encryptEbook"
-            collect-only
-            :show-drm-option="false"
-            :initial-file-records="fileRecords"
-            @file-ready="handleFileReady"
-            @submit="handleFilesCollected"
-          />
-        </UCard>
-
-        <!-- The book page's 書籍資料 card, holding the same two components. -->
-        <UCard
-          v-else-if="step === 'details'"
-          :ui="{ body: 'p-4 text-left flex flex-col gap-6' }"
-        >
-          <template #header>
-            <h3
-              class="font-bold font-mono"
-              v-text="$t('status_page.book_details_title')"
-            />
-          </template>
-          <ISCNForm
-            ref="detailsFormRef"
-            v-model="iscnFormData"
-            v-model:description-full="listingDraft.descriptionFull"
-            :guard-unsaved-changes="false"
-            :prefilled-fields="prefilledFields"
-            :content-excerpt="epubMetadata?.contentExcerpt"
-            :table-of-contents="listingDraft.tableOfContents"
-          />
-
-          <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
-        </UCard>
-
-        <div
-          v-else-if="step === 'pricing'"
-          class="space-y-10"
-        >
-          <!-- Ahead of the price: how readers get the file, then what they pay
-               for it. The tier stays changeable after publishing; what does not
-               is an opened file, which is on Arweave for good. -->
-          <BookStatusFileProtectionCard
-            v-model="encryptEbook"
-            editable
-          />
-
-          <PublishPricingForm
-            ref="pricingFormRef"
-            v-model:prices="listingDraft.prices"
-            v-model:signature-image="signatureImage"
-          />
-
-          <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are on the
-               book page: the two channels, before the content flags. -->
-          <BookStatusBookLendingStateCard
-            v-model="listingDraft.isPlusReadingEnabled"
-            can-edit
-            :is-free-book="isFreeBook"
-          />
-
-          <PublishSaleSettingsCard
-            v-model:settings="listingDraft"
-            :epub-spine-items="epubMetadata?.spineItems"
-          />
-        </div>
-        <div
-          v-else-if="step === 'review'"
-          class="space-y-10"
-        >
-          <PublishReviewStep
-            :file-records="fileRecords"
-            :encrypt-ebook="encryptEbook"
-            :iscn-form-data="iscnFormData"
-            :listing-draft="listingDraft"
-            :cover-image-src="coverImageSrc"
-            @edit="goToStep"
-          />
-          <UModal
-            v-model:open="isPublishProgressOpen"
-            :title="$t('publish_wizard.publishing_title')"
-            :description="isPublishing ? $t('publish_wizard.publishing_do_not_close') : undefined"
-            :dismissible="!isPublishing"
-            :close="!isPublishing"
-          >
-            <template #body>
-              <PublishProgressChecklist
-                :status="lastStepStatus"
-                :is-failed="isPublishFailed"
-                :error-message="publishError"
-              />
-            </template>
-          </UModal>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resume draft prompt -->
-    <UModal
-      :open="showResumePrompt"
-      :dismissible="false"
-    >
-      <template #header>
-        <h3
-          class="font-semibold"
-          v-text="$t('publish_wizard.resume_draft_title')"
+  <PageContainer>
+    <PageHeader :title="$t('publish_nft_book.page_title')">
+      <template #right>
+        <PublishWizardNavBar
+          :next-label="primaryActionLabel"
+          :can-go-back="currentStepIndex > 0"
+          :is-next-disabled="shouldDisableNext"
+          :is-busy="isPublishing"
+          :last-saved-at="lastSavedAt"
+          @back="goToPreviousStep"
+          @next="handlePrimaryAction"
         />
       </template>
-      <template #body>
-        <p class="text-sm text-muted">
-          {{ pendingSessionNeedsReselect
-            ? $t('publish_wizard.resume_draft_description_reselect', { title: pendingSessionTitle })
-            : $t('publish_wizard.resume_draft_description', { title: pendingSessionTitle }) }}
-        </p>
-      </template>
-      <template #footer>
-        <div class="w-full flex justify-end gap-2">
-          <UButton
-            variant="outline"
-            color="neutral"
-            :label="$t('publish_wizard.start_new')"
-            @click="discardDraft"
-          />
-          <UButton
-            color="primary"
-            :label="$t('publish_wizard.resume_draft')"
-            @click="resumeDraft"
-          />
+    </PageHeader>
+
+    <PageBody class="flex flex-col items-stretch grow space-y-4">
+      <div
+        ref="stepTopRef"
+        class="w-full"
+      >
+        <!-- Stepper Navigation -->
+        <div class="justify-evenly items-center flex space-x-4 relative">
+          <div class="absolute w-full h-px bg-accented top-[50%] left-0 z-[-1]" />
+          <button
+            v-for="(s, index) in steps"
+            :key="s.key"
+            type="button"
+            class="flex items-center space-x-2 bg-default p-2 rounded-lg"
+            :class="index <= maxVisitedStepIndex && !isPublishing ? 'cursor-pointer' : 'cursor-default'"
+            :disabled="index > maxVisitedStepIndex || isPublishing"
+            @click="goToStep(s.key)"
+          >
+            <UAvatar
+              :size="s.key === step ? 'lg' : 'md'"
+              :text="(index + 1).toString()"
+              :class="s.key === step ? 'bg-primary/20' : 'bg-accented'"
+            />
+            <p class="text-sm font-semibold">
+              {{ s.title }}
+            </p>
+          </button>
         </div>
-      </template>
-    </UModal>
-  </PageBody>
+
+        <!-- Titled cards on the page background, at the book page's tab rhythm:
+           the two screens are the same book, so they are read the same way. -->
+        <div class="mt-4 space-y-10">
+          <!-- One dropzone for everything: the cover is a file like the others,
+             and dropping an image is what changes it. -->
+          <UCard v-if="step === 'files'">
+            <template #header>
+              <h3
+                class="font-bold font-mono"
+                v-text="$t('publish_review.files_title')"
+              />
+            </template>
+            <UploadForm
+              ref="uploadFormRef"
+              v-model:encrypt-ebook="encryptEbook"
+              collect-only
+              :show-drm-option="false"
+              :initial-file-records="fileRecords"
+              @file-ready="handleFileReady"
+              @submit="handleFilesCollected"
+            />
+          </UCard>
+
+          <!-- The book page's 書籍資料 card, holding the same two components. -->
+          <UCard
+            v-else-if="step === 'details'"
+            :ui="{ body: 'p-4 text-left flex flex-col gap-6' }"
+          >
+            <template #header>
+              <h3
+                class="font-bold font-mono"
+                v-text="$t('status_page.book_details_title')"
+              />
+            </template>
+            <ISCNForm
+              ref="detailsFormRef"
+              v-model="iscnFormData"
+              v-model:description-full="listingDraft.descriptionFull"
+              :guard-unsaved-changes="false"
+              :prefilled-fields="prefilledFields"
+              :content-excerpt="epubMetadata?.contentExcerpt"
+              :table-of-contents="listingDraft.tableOfContents"
+            />
+
+            <BookTableOfContentsField v-model="listingDraft.tableOfContents" />
+          </UCard>
+
+          <div
+            v-else-if="step === 'pricing'"
+            class="space-y-10"
+          >
+            <!-- Ahead of the price: how readers get the file, then what they pay
+               for it. The tier stays changeable after publishing; what does not
+               is an opened file, which is on Arweave for good. -->
+            <BookStatusFileProtectionCard
+              v-model="encryptEbook"
+              editable
+            />
+
+            <PublishPricingForm
+              ref="pricingFormRef"
+              v-model:prices="listingDraft.prices"
+              v-model:signature-image="signatureImage"
+            />
+
+            <!-- Paired with the price above, as 銷售狀態 and 借閱狀態 are on the
+               book page: the two channels, before the content flags. -->
+            <BookStatusBookLendingStateCard
+              v-model="listingDraft.isPlusReadingEnabled"
+              can-edit
+              :is-free-book="isFreeBook"
+            />
+
+            <PublishSaleSettingsCard
+              v-model:settings="listingDraft"
+              :epub-spine-items="epubMetadata?.spineItems"
+            />
+          </div>
+          <div
+            v-else-if="step === 'review'"
+            class="space-y-10"
+          >
+            <PublishReviewStep
+              :file-records="fileRecords"
+              :encrypt-ebook="encryptEbook"
+              :iscn-form-data="iscnFormData"
+              :listing-draft="listingDraft"
+              :cover-image-src="coverImageSrc"
+              @edit="goToStep"
+            />
+            <UModal
+              v-model:open="isPublishProgressOpen"
+              :title="$t('publish_wizard.publishing_title')"
+              :description="isPublishing ? $t('publish_wizard.publishing_do_not_close') : undefined"
+              :dismissible="!isPublishing"
+              :close="!isPublishing"
+            >
+              <template #body>
+                <PublishProgressChecklist
+                  :status="lastStepStatus"
+                  :is-failed="isPublishFailed"
+                  :error-message="publishError"
+                />
+              </template>
+            </UModal>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resume draft prompt -->
+      <UModal
+        :open="showResumePrompt"
+        :dismissible="false"
+      >
+        <template #header>
+          <h3
+            class="font-semibold"
+            v-text="$t('publish_wizard.resume_draft_title')"
+          />
+        </template>
+        <template #body>
+          <p class="text-sm text-muted">
+            {{ pendingSessionNeedsReselect
+              ? $t('publish_wizard.resume_draft_description_reselect', { title: pendingSessionTitle })
+              : $t('publish_wizard.resume_draft_description', { title: pendingSessionTitle }) }}
+          </p>
+        </template>
+        <template #footer>
+          <div class="w-full flex justify-end gap-2">
+            <UButton
+              variant="outline"
+              color="neutral"
+              :label="$t('publish_wizard.start_new')"
+              @click="discardDraft"
+            />
+            <UButton
+              color="primary"
+              :label="$t('publish_wizard.resume_draft')"
+              @click="resumeDraft"
+            />
+          </div>
+        </template>
+      </UModal>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
