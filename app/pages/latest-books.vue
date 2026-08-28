@@ -1,77 +1,79 @@
 <template>
-  <PageBody>
+  <PageContainer>
     <PageHeader :title="$t('latest_books.title')" />
-    <AppErrorAlert v-model="error" />
-    <UAlert
-      v-if="!isAffiliationReady"
-      icon="i-heroicons-exclamation-circle"
-      color="warning"
-      variant="soft"
-      :title="$t('latest_books.join_affiliation')"
-      :description="$t('latest_books.affiliation_description')"
-      :actions="[{
-        label: $t('common.setup'),
-        color: 'warning',
-        variant: 'outline',
-        onClick: handleAffiliationSetupButtonClick,
-      }]"
-    />
-    <UCard v-else>
-      {{ $t('latest_books_extended.append_text') }}<UKbd class="font-mono">
-        ?from={{ channelId }}
-      </UKbd>{{ $t('latest_books_extended.append_suffix') }}
-    </UCard>
-    <UTabs
-      v-model="selectedTabItemIndex"
-      class="w-full"
-      :items="tabItems"
-    >
-      <template #content="{ item }">
-        <UCard
-          :key="item.value"
-          :ui="{
-            header: 'flex justify-between items-center',
-            body: 'p-0 sm:p-0',
-            footer: 'text-center',
-          }"
-        >
-          <div class="flex px-3 py-3.5 border-b border-gray-200">
-            <UInput
-              v-model="q"
-              :placeholder="$t('latest_books.filter_placeholder')"
-            />
-          </div>
-          <UTable
-            :columns="tableColumns"
-            :data="filteredRows"
-            @select="selectTableRow"
+    <PageBody>
+      <AppErrorAlert v-model="error" />
+      <UAlert
+        v-if="!isAffiliationReady"
+        icon="i-heroicons-exclamation-circle"
+        color="warning"
+        variant="soft"
+        :title="$t('latest_books.join_affiliation')"
+        :description="$t('latest_books.affiliation_description')"
+        :actions="[{
+          label: $t('common.setup'),
+          color: 'warning',
+          variant: 'outline',
+          onClick: handleAffiliationSetupButtonClick,
+        }]"
+      />
+      <UCard v-else>
+        {{ $t('latest_books_extended.append_text') }}<UKbd class="font-mono">
+          ?from={{ channelId }}
+        </UKbd>{{ $t('latest_books_extended.append_suffix') }}
+      </UCard>
+      <UTabs
+        v-model="selectedTabItemIndex"
+        class="w-full"
+        :items="tabItems"
+      >
+        <template #content="{ item }">
+          <UCard
+            :key="item.value"
+            :ui="{
+              header: 'flex justify-between items-center',
+              body: 'p-0 sm:p-0',
+              footer: 'text-center',
+            }"
           >
-            <template #image-cell="{ row }">
-              <img
-                v-if="row.original.image"
-                :src="row.original.image"
-                :alt="row.original.className"
-                class="w-12 h-12 object-cover rounded-lg"
-              >
-            </template>
-            <template #className-cell="{ row }">
-              <div
-                class="max-w-[20vw] whitespace-normal"
-                v-text="row.original.className"
+            <div class="flex px-3 py-3.5 border-b border-gray-200">
+              <UInput
+                v-model="q"
+                :placeholder="$t('latest_books.filter_placeholder')"
               />
-            </template>
-            <template #url-cell="{ row }">
-              <UButton
-                :label="$t('common.copy')"
-                :disabled="!isAffiliationReady"
-                @click="handleCopyButtonClick($event, row.original.url)"
-              />
-            </template>
-          </UTable>
-        </UCard>
-      </template>
-    </UTabs>
-  </PageBody>
+            </div>
+            <UTable
+              :columns="tableColumns"
+              :data="filteredRows"
+              @select="selectTableRow"
+            >
+              <template #image-cell="{ row }">
+                <img
+                  v-if="row.original.image"
+                  :src="row.original.image"
+                  :alt="row.original.className"
+                  class="w-12 h-12 object-cover rounded-lg"
+                >
+              </template>
+              <template #className-cell="{ row }">
+                <div
+                  class="max-w-[20vw] whitespace-normal"
+                  v-text="row.original.className"
+                />
+              </template>
+              <template #url-cell="{ row }">
+                <UButton
+                  :label="$t('common.copy')"
+                  :disabled="!isAffiliationReady"
+                  @click="handleCopyButtonClick($event, row.original.url)"
+                />
+              </template>
+            </UTable>
+          </UCard>
+        </template>
+      </UTabs>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">

@@ -1,166 +1,161 @@
 <template>
-  <!-- overflow-y-visible! undoes the `overflow-y-auto` <NuxtPage> puts on every
-       page root: it makes this element a scrollport that never scrolls (the
-       real one is <main>), which would pin the sticky bar below in place. -->
-  <PageBody class="space-y-10 pb-10 overflow-y-visible!">
-    <BookStatusPendingChangesBar
-      v-if="bookstoreApiStore.isAuthenticated && userIsOwner"
-      :changes="changes"
-      :audience="changeAudience"
-      :sold-count="soldCount"
-      :needs-wallet-signature="needsWalletSignature"
-      :is-saving="isSavingChanges"
-      :last-saved-at="lastSavedAt"
-      @save="saveAllChanges"
-      @discard="discardAllChanges"
-      @jump="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
-    />
-
-    <AppErrorAlert v-model="error" />
-
-    <UProgress
-      v-if="isLoading"
-      animation="carousel"
-    >
-      <template #indicator>
-        {{ $t('loading.progress') }}
-      </template>
-    </UProgress>
-
-    <template v-if="bookstoreApiStore.isAuthenticated">
-      <h1
-        class="font-bold font-mono text-lg text-highlighted"
-        v-text="nftClassName || classId"
+  <PageContainer>
+    <PageHeader :title="nftClassName || classId" />
+    <PageBody class="space-y-10 pb-10">
+      <BookStatusPendingChangesBar
+        v-if="bookstoreApiStore.isAuthenticated && userIsOwner"
+        :changes="changes"
+        :audience="changeAudience"
+        :sold-count="soldCount"
+        :needs-wallet-signature="needsWalletSignature"
+        :is-saving="isSavingChanges"
+        :last-saved-at="lastSavedAt"
+        @save="saveAllChanges"
+        @discard="discardAllChanges"
+        @jump="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
       />
 
-      <!-- Labels only: each pane below mounts on its first visit and then stays
+      <AppErrorAlert v-model="error" />
+
+      <UProgress
+        v-if="isLoading"
+        animation="carousel"
+      >
+        <template #indicator>
+          {{ $t('loading.progress') }}
+        </template>
+      </UProgress>
+
+      <template v-if="bookstoreApiStore.isAuthenticated">
+        <!-- Labels only: each pane below mounts on its first visit and then stays
            mounted (v-show), so edits survive visiting another tab while they
            wait in the bar and an unopened tab fetches nothing. -->
-      <UTabs
-        v-model="selectedTabItemIndex"
-        class="w-full"
-        :items="tabItems"
-        :content="false"
-      />
+        <UTabs
+          v-model="selectedTabItemIndex"
+          class="w-full"
+          :items="tabItems"
+          :content="false"
+        />
 
-      <div
-        v-if="visitedTabs.has('details')"
-        v-show="selectedTabItemIndex === 'details'"
-        class="space-y-10 mt-4"
-      >
-        <BookStatusBookFilesCard
-          :key="filesRefreshCounter"
-          :class-id="classId"
-          :can-edit="userIsOwner"
-          :cover-error="coverError"
-          :file-links-error="fileLinksError"
-          :sold-count="soldCount"
-          :file-links="chainFileLinks"
-          @cover-replaced="handleCoverReplaced"
-          @files-replaced="handleFilesReplaced"
-        />
-        <BookStatusBookDetailsSection
-          ref="detailsSectionRef"
-          :class-id="classId"
-          :class-listing-info="classListingInfo"
-          :settings="listingSettings"
-        />
-        <!-- Last on the tab: only our own team reads these identifiers, and
+        <div
+          v-if="visitedTabs.has('details')"
+          v-show="selectedTabItemIndex === 'details'"
+          class="space-y-10 mt-4"
+        >
+          <BookStatusBookFilesCard
+            :key="filesRefreshCounter"
+            :class-id="classId"
+            :can-edit="userIsOwner"
+            :cover-error="coverError"
+            :file-links-error="fileLinksError"
+            :sold-count="soldCount"
+            :file-links="chainFileLinks"
+            @cover-replaced="handleCoverReplaced"
+            @files-replaced="handleFilesReplaced"
+          />
+          <BookStatusBookDetailsSection
+            ref="detailsSectionRef"
+            :class-id="classId"
+            :class-listing-info="classListingInfo"
+            :settings="listingSettings"
+          />
+          <!-- Last on the tab: only our own team reads these identifiers, and
              only when support asks for them. -->
-        <BookStatusBookTechnicalDetailsCard
-          :class-id="classId"
-          :can-edit="userIsOwner"
-          :cover-url="chainCoverUrl"
-          :file-links="chainFileLinks"
-          :file-links-error="fileLinksError"
-        />
-      </div>
+          <BookStatusBookTechnicalDetailsCard
+            :class-id="classId"
+            :can-edit="userIsOwner"
+            :cover-url="chainCoverUrl"
+            :file-links="chainFileLinks"
+            :file-links-error="fileLinksError"
+          />
+        </div>
 
-      <div
-        v-if="visitedTabs.has('pricing')"
-        v-show="selectedTabItemIndex === 'pricing'"
-        class="space-y-10 mt-4"
-      >
-        <!-- Beside the price, as in the wizard: what a buyer may do with the
+        <div
+          v-if="visitedTabs.has('pricing')"
+          v-show="selectedTabItemIndex === 'pricing'"
+          class="space-y-10 mt-4"
+        >
+          <!-- Beside the price, as in the wizard: what a buyer may do with the
              file is a term of the sale. Locked here — the upload decided it. -->
-        <BookStatusFileProtectionCard :model-value="listingSettings.hideDownload.value" />
+          <BookStatusFileProtectionCard :model-value="listingSettings.hideDownload.value" />
 
-        <BookStatusEditionsCard
-          v-model:prices="prices"
-          :class-id="classId"
-          :stock-balance="stockBalance"
-          :locked="changeCount > 0"
-          :can-add-edition="userIsOwner"
-          :has-existing-signature-image="hasExistingSignatureImage"
-          @restocked="calculateStock"
-          @added="refreshListingInfo"
-          @error="(message: string) => (error = message)"
-        />
-        <PublishPricingForm
-          v-if="userIsOwner && editedPrices.length"
-          ref="managePricingFormRef"
-          v-model:prices="editedPrices"
-          v-model:signature-image="signatureImage"
-          :has-existing-signature-image="hasExistingSignatureImage"
-        />
-        <BookStatusBookListingSettingsCard
-          v-if="userIsOwner"
-          :settings="listingSettings"
-          :is-book-unlisted="isBookUnlisted"
-        />
-      </div>
+          <BookStatusEditionsCard
+            v-model:prices="prices"
+            :class-id="classId"
+            :stock-balance="stockBalance"
+            :locked="changeCount > 0"
+            :can-add-edition="userIsOwner"
+            :has-existing-signature-image="hasExistingSignatureImage"
+            @restocked="calculateStock"
+            @added="refreshListingInfo"
+            @error="(message: string) => (error = message)"
+          />
+          <PublishPricingForm
+            v-if="userIsOwner && editedPrices.length"
+            ref="managePricingFormRef"
+            v-model:prices="editedPrices"
+            v-model:signature-image="signatureImage"
+            :has-existing-signature-image="hasExistingSignatureImage"
+          />
+          <BookStatusBookListingSettingsCard
+            v-if="userIsOwner"
+            :settings="listingSettings"
+            :is-book-unlisted="isBookUnlisted"
+          />
+        </div>
 
-      <div
-        v-if="visitedTabs.has('summary')"
-        v-show="selectedTabItemIndex === 'summary'"
-        class="mt-4"
-      >
-        <BookStatusBookSummaryTab
-          :key="summaryRefreshCounter"
-          v-model:prices="editedPrices"
-          :class-id="classId"
-          :class-listing-info="classListingInfo"
-          :store-url="affiliationLink"
-          :settings="listingSettings"
-          :is-free-book="isFreeBook"
-          :can-edit="userIsOwner"
-          :pending-changes="changes"
-          :has-store-metadata-mismatch="hasStoreMetadataMismatch"
-          @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
-        />
-      </div>
+        <div
+          v-if="visitedTabs.has('summary')"
+          v-show="selectedTabItemIndex === 'summary'"
+          class="mt-4"
+        >
+          <BookStatusBookSummaryTab
+            :key="summaryRefreshCounter"
+            v-model:prices="editedPrices"
+            :class-id="classId"
+            :class-listing-info="classListingInfo"
+            :store-url="affiliationLink"
+            :settings="listingSettings"
+            :is-free-book="isFreeBook"
+            :can-edit="userIsOwner"
+            :pending-changes="changes"
+            :has-store-metadata-mismatch="hasStoreMetadataMismatch"
+            @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
+          />
+        </div>
 
-      <div
-        v-if="visitedTabs.has('sales')"
-        v-show="selectedTabItemIndex === 'sales'"
-        class="space-y-10 mt-4"
-      >
-        <UAlert
-          v-if="pendingNFTCount > 0"
-          color="warning"
-          variant="subtle"
-          icon="i-heroicons-exclamation-circle"
-          :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
-          :description="$t('status_page.pending_send_banner_description')"
-        />
-        <BookStatusSalesOrdersTab
-          :class-id="classId"
-          :owner-wallet="ownerWallet"
-          @reduce-pending-nft="handleReducePendingNft"
-        />
-        <BookStatusPurchaseLinksCard
-          :class-id="classId"
-          :prices="prices"
-          :book-name="nftClassName"
-        />
-        <BookStatusModeratorWalletsCard
-          ref="moderatorWalletsCardRef"
-          v-model="listingSettings.moderatorWallets.value"
-          :can-edit="userIsOwner"
-        />
-      </div>
-    </template>
-  </PageBody>
+        <div
+          v-if="visitedTabs.has('sales')"
+          v-show="selectedTabItemIndex === 'sales'"
+          class="space-y-10 mt-4"
+        >
+          <UAlert
+            v-if="pendingNFTCount > 0"
+            color="warning"
+            variant="subtle"
+            icon="i-heroicons-exclamation-circle"
+            :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
+            :description="$t('status_page.pending_send_banner_description')"
+          />
+          <BookStatusSalesOrdersTab
+            :class-id="classId"
+            :owner-wallet="ownerWallet"
+            @reduce-pending-nft="handleReducePendingNft"
+          />
+          <BookStatusPurchaseLinksCard
+            :class-id="classId"
+            :prices="prices"
+            :book-name="nftClassName"
+          />
+          <BookStatusModeratorWalletsCard
+            ref="moderatorWalletsCardRef"
+            v-model="listingSettings.moderatorWallets.value"
+            :can-edit="userIsOwner"
+          />
+        </div>
+      </template>
+    </PageBody>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
