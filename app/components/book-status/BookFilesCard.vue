@@ -2,10 +2,19 @@
   <div class="flex flex-col gap-[16px] text-left">
     <UCard>
       <template #header>
-        <h3
-          class="font-bold font-mono"
-          v-text="$t('publish_review.files_title')"
-        />
+        <div class="flex items-center justify-between gap-2">
+          <h3
+            class="font-bold font-mono"
+            v-text="$t('publish_review.files_title')"
+          />
+          <UButton
+            v-if="canEdit"
+            variant="subtle"
+            icon="i-heroicons-arrow-path"
+            :label="$t('common.replace')"
+            @click="isReplaceModalOpen = true"
+          />
+        </div>
       </template>
 
       <UProgress
@@ -19,105 +28,103 @@
         v-else
         class="flex gap-6"
       >
-        <!-- The cover is a file like the others, so it lives in the file list
-             rather than as an ar:// string typed into 書籍資料. Dropping an
-             image here is the only way to change it. -->
-        <!-- w-fit beats the app-wide `formField.root: w-full`, which in a flex
-             row would give the cover the whole width and squeeze the file list
-             down to a filename broken mid-word. -->
-        <UFormField
-          class="w-fit shrink-0"
-          :label="$t('form.cover_image')"
-          :error="coverError"
-        >
-          <div
-            class="flex flex-col gap-2 items-start rounded-lg p-3 transition-colors"
-            :class="coverDropzoneClass"
-            @dragover.prevent="isDraggingCover = true"
-            @dragleave="isDraggingCover = false"
-            @drop.prevent="handleCoverDrop"
-          >
-            <BookCoverThumbnail
-              :src="coverSrc"
-              size="lg"
-            />
-            <p
-              v-if="pendingCover"
-              class="text-xs text-muted break-all max-w-[120px]"
-              v-text="pendingCoverMeta"
-            />
-            <UButton
-              v-if="canEdit"
-              size="xs"
-              variant="soft"
-              icon="i-heroicons-arrow-up-tray"
-              :loading="isUploadingCover"
-              :label="$t('publish_cover.replace')"
-              @click="coverInput?.click()"
-            />
-            <UBadge
-              v-if="isCoverPending"
-              color="warning"
-              variant="subtle"
-              size="sm"
-              :label="$t('status_page.pending_save')"
-            />
-            <input
-              ref="coverInput"
-              type="file"
-              :accept="COVER_ACCEPT_ATTRIBUTE"
-              class="hidden"
-              @change="handleCoverPick"
-            >
-          </div>
-        </UFormField>
+        <div class="w-40 shrink-0 flex flex-col items-start gap-2">
+          <BookCoverThumbnail
+            :src="coverSrc"
+            size="lg"
+          />
+          <!-- No sizing advice here: nothing on this card takes a new cover,
+               so the guidance belongs where one is dropped. -->
+          <p
+            class="text-sm font-semibold"
+            v-text="$t('upload_form.file_cover')"
+          />
+          <UBadge
+            v-if="isCoverPending"
+            color="warning"
+            variant="subtle"
+            size="sm"
+            :label="$t('status_page.pending_save')"
+          />
+          <p
+            v-if="coverError"
+            class="text-sm text-error"
+            v-text="coverError"
+          />
+        </div>
 
         <div class="grow min-w-0 self-start flex flex-col items-start gap-3">
           <ul
-            v-if="displayedFileRows.length"
-            class="w-full space-y-2"
+            v-if="coverRow || displayedFileRows.length"
+            class="w-full flex flex-col gap-2"
           >
+            <!-- The cover is a file like the others, so it gets a row too: the
+                 picture beside the list is not the manifest of what is stored. -->
+            <li
+              v-if="coverRow"
+              class="w-full rounded-lg border border-default px-3 py-2 flex items-center gap-3"
+            >
+              <UIcon
+                name="i-heroicons-photo"
+                class="shrink-0 w-10 h-10 text-muted"
+              />
+              <div class="flex items-center gap-2 grow min-w-0">
+                <UBadge
+                  variant="soft"
+                  color="neutral"
+                  size="sm"
+                  :label="$t('upload_form.file_cover')"
+                />
+                <UBadge
+                  v-if="coverRow.isPending"
+                  color="warning"
+                  variant="subtle"
+                  size="sm"
+                  :label="$t('status_page.pending_save')"
+                />
+              </div>
+            </li>
+
             <!-- Keyed by index, like 技術資料's own rows: a URL is editable
                  there, so keying by it would rebuild the row on every keystroke
                  and collide the moment two rows read the same. -->
             <li
               v-for="(file, index) in displayedFileRows"
               :key="index"
-              class="flex items-center gap-3 text-sm"
+              class="w-full rounded-lg border border-default px-3 py-2 flex items-center gap-3"
             >
-              <UBadge
-                variant="soft"
-                color="neutral"
-                size="xs"
-                class="uppercase"
-              >
-                {{ file.type || '?' }}
-              </UBadge>
-              <span
-                class="font-medium text-highlighted break-all"
-                v-text="file.fileName || file.url"
+              <UIcon
+                name="i-heroicons-book-open"
+                class="shrink-0 w-10 h-10 text-muted"
               />
-              <UBadge
-                v-if="file.isPending"
-                color="warning"
-                variant="subtle"
-                size="sm"
-                :label="$t('status_page.pending_save')"
-              />
+              <div class="flex flex-col items-start grow min-w-0">
+                <p
+                  class="font-semibold text-highlighted break-all"
+                  v-text="file.fileName || file.url"
+                />
+                <div class="mt-1 flex items-center gap-2">
+                  <UBadge
+                    variant="soft"
+                    color="neutral"
+                    size="sm"
+                    class="uppercase"
+                    :label="file.type || '?'"
+                  />
+                  <UBadge
+                    v-if="file.isPending"
+                    color="warning"
+                    variant="subtle"
+                    size="sm"
+                    :label="$t('status_page.pending_save')"
+                  />
+                </div>
+              </div>
             </li>
           </ul>
           <p
             v-else
             class="text-sm text-muted"
             v-text="'—'"
-          />
-          <UButton
-            v-if="canEdit"
-            size="xs"
-            variant="soft"
-            icon="i-heroicons-arrow-up-tray"
-            :label="$t('status_page.replace_book_file')"
-            @click="isReplaceModalOpen = true"
           />
           <p
             v-if="fileLinksError"
@@ -131,46 +138,52 @@
     <UModal
       v-model:open="isReplaceModalOpen"
       :dismissible="false"
-      class="w-full max-w-[80vw]"
+      :title="$t('status_page.replace_book_file')"
+      :ui="{
+        title: 'font-bold font-mono',
+        footer: 'block p-0 sm:p-0',
+      }"
+      class="w-full max-w-5xl"
     >
-      <template #header>
-        <h2
-          class="font-bold font-mono"
-          v-text="$t('status_page.replace_book_file')"
-        />
-      </template>
       <template #body>
-        <div class="space-y-4">
-          <UAlert
-            color="warning"
-            variant="subtle"
-            icon="i-heroicons-exclamation-triangle"
-            :description="soldCount > 0
-              ? $t('status_page.replace_book_file_warning', { count: soldCount })
-              : $t('status_page.replace_book_file_warning_none')"
-          />
-          <UploadForm
-            ref="uploadFormRef"
-            :key="replaceFormKey"
-            v-model:encrypt-ebook="encryptEbook"
-            :require-cover="false"
-            @file-upload-status="(status: string) => (uploadStatus = status)"
-            @file-ready="(records: FileRecord[]) => (pickedRecords = records)"
-            @submit="handleReplacementUploaded"
-          />
-        </div>
+        <UploadForm
+          ref="uploadFormRef"
+          :key="replaceFormKey"
+          v-model:encrypt-ebook="encryptEbook"
+          :require-cover="false"
+          :require-ebook="false"
+          @file-upload-status="(status: string) => (uploadStatus = status)"
+          @file-ready="(records: FileRecord[]) => (pickedRecords = records)"
+          @submit="handleReplacementUploaded"
+        >
+          <template #alerts>
+            <UAlert
+              v-if="hasPickedEbook"
+              color="warning"
+              variant="subtle"
+              icon="i-heroicons-exclamation-triangle"
+              :description="soldCount > 0
+                ? $t('status_page.replace_book_file_warning', { count: soldCount })
+                : $t('status_page.replace_book_file_warning_none')"
+            />
+          </template>
+        </UploadForm>
       </template>
       <template #footer>
-        <div class="w-full flex justify-center items-center gap-2">
-          <UButton
-            color="neutral"
-            variant="soft"
-            :label="$t('common.cancel')"
-            @click="isReplaceModalOpen = false"
-          />
+        <!-- The tier belongs to the book file, so it only asks when one is
+           being replaced: a new cover is stored the same way either way. -->
+        <PublishFileProtectionField
+          v-if="hasPickedEbook"
+          v-model="encryptEbook"
+          class="p-4 sm:px-6"
+        />
+        <div
+          class="flex justify-center items-center gap-2 p-4 sm:px-6"
+          :class="hasPickedEbook ? 'border-t border-default' : ''"
+        >
           <UButton
             color="primary"
-            :disabled="!hasPickedEbook || !!uploadStatus"
+            :disabled="!pickedRecords.length || !!uploadStatus"
             :label="$t('iscn_form.confirm_upload')"
             @click="startReplacementUpload"
           />
@@ -181,19 +194,16 @@
 </template>
 
 <script setup lang="ts">
-import { useObjectUrl } from '@vueuse/core'
 import type { FileRecord } from '~/types'
-import { formatBytes, parseImageURLFromMetadata } from '~/utils'
+import { parseImageURLFromMetadata } from '~/utils'
+import { isManualCoverRecord } from '~/utils/arweave'
 import { isContentFingerprintEncrypted } from '~/utils/iscn'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
-import { COVER_ACCEPT_ATTRIBUTE, EBOOK_FILE_TYPES } from '~/constant'
+import { EBOOK_FILE_TYPES } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
-const { uploadFileRecordsToArweave } = useArweaveUpload()
-const { showErrorToast } = useToastComposable()
-const { takeImageFile, takeDroppedImageFile } = useImageFilePick()
 
 const {
   classId,
@@ -274,36 +284,15 @@ const displayedFileRows = computed(() => {
     .map(row => ({ ...row, isPending: !savedUrls.has(row.url) }))
 })
 
-const coverInput = ref<HTMLInputElement | null>(null)
-const isDraggingCover = ref(false)
-const isUploadingCover = ref(false)
-const pendingCover = ref<{ file: File, width: number, height: number } | null>(null)
-const pendingCoverFile = computed(() => pendingCover.value?.file)
-const pendingCoverPreview = useObjectUrl(pendingCoverFile)
+// The chain form's cover, which a replacement writes the moment it uploads, so
+// the picture here is already the pending one.
+const coverSrc = computed(() => parseImageURLFromMetadata(coverUrl || fetchedCoverUrl.value))
 
-// The picked file while it is on screen; the chain form's cover otherwise, so a
-// pending replacement shows here rather than the cover the save replaced.
-const coverSrc = computed(() => (
-  pendingCoverPreview.value || parseImageURLFromMetadata(coverUrl || fetchedCoverUrl.value)
-))
-
-// Only a droppable zone looks like one: without the right to replace it, the
-// cover is just a picture.
-const coverDropzoneClass = computed(() => canEdit && [
-  'border border-dashed',
-  isDraggingCover.value ? 'border-primary bg-primary/5' : 'border-default',
-])
-
-// A cover already on chain is just a storage id, which 技術資料 carries; only a
-// replacement has anything a person can read under the picture.
-const pendingCoverMeta = computed(() => {
-  const picked = pendingCover.value
-  if (!picked) { return '' }
-  return [
-    picked.file.name,
-    `${picked.width} × ${picked.height}`,
-    formatBytes(picked.file.size),
-  ].join(' · ')
+// The stored cover, as a row: what the list shows is storage ids, and the
+// cover has one like every other file.
+const coverRow = computed(() => {
+  const url = coverUrl || fetchedCoverUrl.value
+  return url ? { url, isPending: isCoverPending } : null
 })
 
 watch(() => classId, async () => {
@@ -333,89 +322,43 @@ watch(() => classId, async () => {
 // Confirmed before the upload rather than before the save: the bar announces
 // the audience too, but Arweave is where this stops being reversible.
 async function startReplacementUpload() {
-  const message = soldCount > 0
-    ? $t('status_page.replace_book_file_confirm', { count: soldCount })
-    : $t('status_page.replace_book_file_confirm_none')
-  if (!window.confirm(message)) { return }
+  if (hasPickedEbook.value) {
+    const message = soldCount > 0
+      ? $t('status_page.replace_book_file_confirm', { count: soldCount })
+      : $t('status_page.replace_book_file_confirm_none')
+    if (!window.confirm(message)) { return }
+  }
   await uploadFormRef.value?.onSubmit()
 }
 
-// Ebook records only, so the cover the upload carried is dropped whole: a
-// replacement EPUB brings its own embedded cover, and swapping the author's for
-// it silently is not what replacing a file means. Passing the image through
-// would also fingerprint a cover this book does not use. The cover has its own
-// dropzone above, and its own entry in the save bar.
+// Only the author's own image becomes the cover: a replacement EPUB brings its
+// own embedded one, and swapping the author's for it silently is not what
+// replacing a file means.
+//
+// The file links are built from the ebook records alone for the same reason —
+// passing the image through would fingerprint a cover this book does not use.
+// Both changes land as pending edits, so the tx still waits for 儲存變更.
 function handleReplacementUploaded({ fileRecords }: { fileRecords: FileRecord[] }) {
+  const manualCover = fileRecords.find(
+    record => isManualCoverRecord(record) && record.arweaveId,
+  )
+  if (manualCover) {
+    emit('coverReplaced', `ar://${manualCover.arweaveId}`)
+    useLogEvent('book_cover_replaced', { class_id: classId })
+  }
+
   const ebookRecords = fileRecords.filter(
     record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
   )
-  if (!ebookRecords.length) { return }
-  const { downloadableUrls, contentFingerprints } = buildIscnLinksFromFileRecords(ebookRecords)
-  if (!downloadableUrls.length) { return }
-  emit('filesReplaced', { downloadableUrls, contentFingerprints })
-  useLogEvent('book_file_replaced', { class_id: classId })
+  const { downloadableUrls, contentFingerprints } = ebookRecords.length
+    ? buildIscnLinksFromFileRecords(ebookRecords)
+    : { downloadableUrls: [], contentFingerprints: [] }
+  if (downloadableUrls.length) {
+    emit('filesReplaced', { downloadableUrls, contentFingerprints })
+    useLogEvent('book_file_replaced', { class_id: classId })
+  }
+
+  if (!manualCover && !downloadableUrls.length) { return }
   isReplaceModalOpen.value = false
-}
-
-function handleCoverDrop(event: DragEvent) {
-  isDraggingCover.value = false
-  if (!canEdit) { return }
-  const file = takeDroppedImageFile(event)
-  if (file) { replaceCover(file) }
-}
-
-function handleCoverPick(event: Event) {
-  const file = takeImageFile(event)
-  if (file) { replaceCover(file) }
-}
-
-// Uploads on pick rather than on save, because the chain metadata stores a URL
-// and there is nowhere to put the bytes otherwise. Writing coverUrl is what
-// joins the pending-changes bar, so the tx still waits for 儲存變更.
-async function replaceCover(file: File) {
-  isUploadingCover.value = true
-  try {
-    const { width, height } = await readImageDimensions(file)
-    const record: FileRecord = {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      fileBlob: file,
-      isGeneratedCover: false,
-    }
-    await uploadFileRecordsToArweave([record], { encryptEbook: false })
-    if (!record.arweaveId) {
-      throw new Error('Upload returned no Arweave ID for the cover')
-    }
-    pendingCover.value = { file, width, height }
-    emit('coverReplaced', `ar://${record.arweaveId}`)
-    useLogEvent('book_cover_replaced', { class_id: classId })
-  }
-  catch (error) {
-    showErrorToast($t('upload_form.error_during_upload'), {
-      description: (error as Error).message || $t('upload_form.upload_error_occurred'),
-    })
-  }
-  finally {
-    isUploadingCover.value = false
-  }
-}
-
-function readImageDimensions(file: File): Promise<{ width: number, height: number }> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file)
-    const image = new Image()
-    image.onload = () => {
-      resolve({ width: image.naturalWidth, height: image.naturalHeight })
-      URL.revokeObjectURL(url)
-    }
-    // Dimensions are a readout, not a gate: a file the browser cannot decode
-    // still uploads, and the server is what judges it.
-    image.onerror = () => {
-      resolve({ width: 0, height: 0 })
-      URL.revokeObjectURL(url)
-    }
-    image.src = url
-  })
 }
 </script>
