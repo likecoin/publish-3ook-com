@@ -87,6 +87,7 @@ All stores use Composition API style (setup function pattern):
 - TypeScript for all new files, Vue 3 `<script setup>` syntax
 - `defineModel` and props destructuring are enabled
 - Tailwind CSS with custom `like-green` color theme; use @nuxt/ui components
+- Clickable icons are `UButton` (`variant="ghost"`, `icon="..."`, `to`/`@click`), never an `<a>` or `<button>` wrapping a bare `UIcon` — the button carries the hit area, focus ring and disabled state for free
 - Commit messages use gitmoji convention (e.g., `✨ Add feature`, `🐛 Fix bug`, `♻️ Refactor`, `💄 Style`, `⬆️ Upgrade deps`)
 - Comments — keep concise, at most 3 lines. Avoid breaking lines mid-sentence; break at punctuation when needed.
 

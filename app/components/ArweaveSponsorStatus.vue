@@ -1,27 +1,18 @@
 <template>
-  <div
-    v-if="isSponsored || remainingUploads !== undefined"
-    class="flex items-center gap-2 text-sm"
-  >
-    <template v-if="isSponsored">
-      <UIcon
-        name="i-heroicons-check-circle"
-        class="w-4 h-4 shrink-0 text-green-500"
-      />
-      <span class="text-green-700">
-        {{ sponsoredMessage }}
-      </span>
-    </template>
-    <template v-else-if="remainingUploads !== undefined && remainingUploads <= 0">
-      <UIcon
-        name="i-heroicons-x-circle"
-        class="w-4 h-4 shrink-0 text-red-500"
-      />
-      <span class="text-red-700">
-        {{ $t('upload_form.arweave_quota_used') }}
-      </span>
-    </template>
-  </div>
+  <UAlert
+    v-if="isSponsored"
+    color="success"
+    variant="subtle"
+    icon="i-heroicons-check-circle"
+    :description="sponsoredMessage"
+  />
+  <UAlert
+    v-else-if="remainingUploads !== undefined && remainingUploads <= 0"
+    color="error"
+    variant="subtle"
+    icon="i-heroicons-x-circle"
+    :description="$t('upload_form.arweave_quota_used')"
+  />
 </template>
 
 <script setup lang="ts">

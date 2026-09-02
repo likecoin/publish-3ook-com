@@ -1,8 +1,34 @@
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Stacked so the dropzone stays full width once files are listed, making
-         adding a cover the same gesture as the first drop. -->
+    <!-- Alerts first, above everything: they are standing facts about the
+       upload as a whole — the free quota, the cover in force — rather than
+       captions on any one file. -->
+    <div class="flex flex-col gap-2 empty:hidden">
+      <ArweaveSponsorStatus
+        :is-sponsored="isArweaveSponsored"
+        :remaining-uploads="arweaveRemainingUploads"
+        :required-uploads="arweaveRequiredUploads"
+      />
+      <UAlert
+        v-if="canRevertCover && requireCover"
+        color="neutral"
+        variant="subtle"
+        icon="i-heroicons-information-circle"
+        :description="$t('publish_cover.replaced_hint')"
+      />
+      <slot name="alerts" />
+    </div>
+
     <div class="flex flex-col gap-3">
+      <UploadFileRecordList
+        v-if="fileRecords.length"
+        :file-records="fileRecords"
+        :can-revert-cover="canRevertCover"
+        @delete="handleDeleteFile"
+        @reselect="openFilePicker"
+        @revert-cover="revertCover"
+      />
+
       <form
         :class="[computedFormClasses, isDragging ? 'bg-default' : '']"
         @drop.prevent="onFileUpload"
@@ -20,7 +46,7 @@
         />
         <UButton
           type="button"
-          variant="ghost"
+          variant="subtle"
           @click.stop="openFilePicker"
         >
           {{ $t('common.select_file') }}
@@ -29,19 +55,13 @@
           class="text-xs text-muted mt-2"
           v-text="$t('upload_form.file_size_suggestion')"
         />
-        <a
-          :href="PUBLISH_GUIDE_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-xs text-primary hover:text-primary/80 mt-2 flex items-center gap-1"
-          @click.stop
-        >
-          <UIcon
-            name="i-heroicons-question-mark-circle"
-            class="w-4 h-4"
-          />
-          {{ $t('upload_form.help_link') }}
-        </a>
+        <!-- Inside the zone, and only once something is in: what another drop
+           would do is a fact about this gesture. -->
+        <p
+          v-if="fileRecords.length"
+          class="text-xs text-muted mt-2"
+          v-text="$t('upload_form.drop_to_replace_hint')"
+        />
         <input
           ref="imageFile"
           type="file"
@@ -51,31 +71,7 @@
           @change="onFileUpload"
         >
       </form>
-
-      <template v-if="fileRecords.length">
-        <UploadFileRecordList
-          :file-records="fileRecords"
-          :can-revert-cover="canRevertCover"
-          :owns-cover="requireCover"
-          @delete="handleDeleteFile"
-          @reselect="openFilePicker"
-          @revert-cover="revertCover"
-        />
-        <p
-          class="text-xs text-muted"
-          v-text="$t('upload_form.drop_to_replace_hint')"
-        />
-      </template>
     </div>
-    <PublishFileProtectionField
-      v-if="showDrmOption"
-      v-model="isEncryptEBookData"
-    />
-    <ArweaveSponsorStatus
-      :is-sponsored="isArweaveSponsored"
-      :remaining-uploads="arweaveRemainingUploads"
-      :required-uploads="arweaveRequiredUploads"
-    />
     <UploadProgressModal
       :upload-status="uploadStatus"
       :current-file-index="currentFileIndex"
@@ -93,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { EBOOK_FILE_TYPES, PUBLISH_GUIDE_URL, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
+import { EBOOK_FILE_TYPES, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
 import { isGeneratedCoverRecord, isManualCoverRecord } from '~/utils/arweave'
 
 import type { FileRecord, EpubMetadata } from '~/types'
@@ -115,7 +111,6 @@ const props = defineProps({
   // The wizard hides the control and asks at its pricing step instead. It still
   // binds the model: the tier decides what a record's stored upload result
   // means, so guessing it here would clear a resumed draft's real uploads.
-  showDrmOption: { type: Boolean, default: true },
   // Collect-only mode (new-book wizard): onSubmit validates and emits the
   // selected files without uploading; the publish pipeline uploads later.
   collectOnly: { type: Boolean, default: false },
@@ -123,6 +118,7 @@ const props = defineProps({
   // 書檔's dropzone is what changes it. A PDF that yields no extractable cover
   // would otherwise be blocked outright from being replaced.
   requireCover: { type: Boolean, default: true },
+  requireEbook: { type: Boolean, default: true },
   // Restores a previously collected selection (e.g. resumed wizard draft);
   // records restored without a blob must be re-selected before publish.
   initialFileRecords: {
@@ -133,7 +129,6 @@ const props = defineProps({
 
 const fileRecords = ref<FileRecord[]>([])
 
-const isSizeExceeded = ref(false)
 const isDragging = ref(false)
 
 // Both hosts seed this and both must keep it bound even when the radio is
@@ -171,12 +166,11 @@ const completedFiles = ref(0)
 
 const computedFormClasses = computed(() => [
   'flex w-full flex-col items-center justify-between',
-  'border-2 border-dashed border-default rounded-[12px]',
-  'text-muted cursor-pointer hover:bg-accented',
+  'border border-dashed border-default rounded-[12px]',
+  'text-muted cursor-pointer bg-transparent hover:bg-muted',
   // Tighter once it sits above a file list, so it stays reachable without
   // pushing the list off screen.
   fileRecords.value.length ? 'p-[16px]' : 'p-[28px]',
-  isSizeExceeded.value ? 'bg-transparent' : 'bg-elevated',
 ])
 
 // The quota cost is the same either way, but the tier is not: re-check so an
@@ -238,18 +232,24 @@ const emitFileReady = () => {
   emit('fileReady', fileRecords.value, epubMetadataList.value[0])
 }
 
-// One file per format, so the dropzone alone decides between adding and
-// replacing. The cover the outgoing file generated leaves with it — matched by
-// provenance, since the incoming file brings its own and both are named after
-// the book rather than the file.
+// A generated cover belongs to the file it came out of, so it leaves with it —
+// whether the author deleted that file or dropped a replacement over it. Left
+// behind, the next ebook's own cover would land beside it and the list would
+// show two 自動產生 rows. Matched by provenance, since both are named after the
+// book rather than after the file.
+const dropGeneratedCoverOf = (removed: FileRecord) => {
+  fileRecords.value = fileRecords.value.filter(record => !(
+    isGeneratedCoverRecord(record) && record.sourceFileName === removed.fileName
+  ))
+}
+
+// One file per format, so the dropzone alone decides between adding and replacing.
 const releaseEbookSlot = (fileType: string) => {
   const index = fileRecords.value.findIndex(record => record.fileType === fileType)
   if (index < 0) { return }
   const [removed] = fileRecords.value.splice(index, 1)
   if (!removed) { return }
-  fileRecords.value = fileRecords.value.filter(record => !(
-    isGeneratedCoverRecord(record) && record.sourceFileName === removed.fileName
-  ))
+  dropGeneratedCoverOf(removed)
   removeMetadataForDeletedFile(removed)
   // Only reached when a file was actually displaced, so this counts drops that
   // the author meant as a replacement rather than as their first upload.
@@ -296,7 +296,6 @@ const uploadSlotOf = (file: File) => file.type.startsWith('image/') ? 'image' : 
 const onFileUpload = async (event: Event) => {
   try {
     uploadStatus.value = $t('upload_form.loading')
-    isSizeExceeded.value = false
     const files
       = (event as InputEvent).dataTransfer?.files || (event.target as HTMLInputElement)?.files
 
@@ -379,7 +378,9 @@ const onFileUpload = async (event: Event) => {
           }
         }
         else {
-          isSizeExceeded.value = true
+          showErrorToast($t('errors.api_file_size_limit_exceeded'), {
+            description: file.name,
+          })
         }
         // A file too large to accept, or one that failed to hash, leaves the
         // record untouched. Listing it would show a nameless row and count as a
@@ -417,6 +418,7 @@ const handleDeleteFile = (index: number) => {
   }
   const [removedFile] = fileRecords.value.splice(index, 1)
   if (!removedFile) { return }
+  dropGeneratedCoverOf(removedFile)
   removeMetadataForDeletedFile(removedFile)
   emitFileReady()
 }
@@ -583,7 +585,9 @@ const validateFiles = (): { valid: boolean, error?: string, canProceedAnyway?: b
     return !isGeneratedCoverRecord(file)
   })
 
-  if (epubFiles.length === 0 && pdfFiles.length === 0) {
+  // Not required where the book already has its files and the drop is only
+  // meant to change one of them — the cover, say.
+  if (props.requireEbook && epubFiles.length === 0 && pdfFiles.length === 0) {
     return {
       valid: false,
       error: $t('upload_form.missing_ebook_file'),

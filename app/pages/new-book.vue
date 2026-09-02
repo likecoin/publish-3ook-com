@@ -1,6 +1,22 @@
 <template>
   <PageContainer>
     <PageHeader :title="$t('publish_nft_book.page_title')">
+      <template #trailing>
+        <UTooltip :text="$t('upload_form.help_link')">
+          <UButton
+            :to="PUBLISH_GUIDE_URL"
+            :aria-label="$t('upload_form.help_link')"
+            target="_blank"
+            rel="noopener noreferrer"
+            external
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-heroicons-question-mark-circle"
+            class="rounded-full"
+          />
+        </UTooltip>
+      </template>
       <template #right>
         <PublishWizardNavBar
           :next-label="primaryActionLabel"
@@ -14,40 +30,30 @@
       </template>
     </PageHeader>
 
+    <div class="sticky top-16 z-[9] bg-default border-b border-default">
+      <UStepper
+        v-model="step"
+        :items="steps"
+        :linear="false"
+        :disabled="isPublishing"
+        class="w-full max-w-5xl mx-auto px-4 py-3"
+      />
+    </div>
+
     <PageBody class="flex flex-col items-stretch grow space-y-4">
       <div
         ref="stepTopRef"
-        class="w-full"
+        class="w-full scroll-mt-36"
       >
-        <!-- Stepper Navigation -->
-        <div class="justify-evenly items-center flex space-x-4 relative">
-          <div class="absolute w-full h-px bg-accented top-[50%] left-0 z-[-1]" />
-          <button
-            v-for="(s, index) in steps"
-            :key="s.key"
-            type="button"
-            class="flex items-center space-x-2 bg-default p-2 rounded-lg"
-            :class="index <= maxVisitedStepIndex && !isPublishing ? 'cursor-pointer' : 'cursor-default'"
-            :disabled="index > maxVisitedStepIndex || isPublishing"
-            @click="goToStep(s.key)"
-          >
-            <UAvatar
-              :size="s.key === step ? 'lg' : 'md'"
-              :text="(index + 1).toString()"
-              :class="s.key === step ? 'bg-primary/20' : 'bg-accented'"
-            />
-            <p class="text-sm font-semibold">
-              {{ s.title }}
-            </p>
-          </button>
-        </div>
-
         <!-- Titled cards on the page background, at the book page's tab rhythm:
            the two screens are the same book, so they are read the same way. -->
-        <div class="mt-4 space-y-10">
+        <div class="space-y-10">
           <!-- One dropzone for everything: the cover is a file like the others,
              and dropping an image is what changes it. -->
-          <UCard v-if="step === 'files'">
+          <UCard
+            v-if="step === 'files'"
+            class="w-full max-w-5xl mx-auto"
+          >
             <template #header>
               <h3
                 class="font-bold font-mono"
@@ -58,11 +64,21 @@
               ref="uploadFormRef"
               v-model:encrypt-ebook="encryptEbook"
               collect-only
-              :show-drm-option="false"
               :initial-file-records="fileRecords"
               @file-ready="handleFileReady"
               @submit="handleFilesCollected"
             />
+
+            <template #footer>
+              <div class="flex justify-center">
+                <UButton
+                  :label="primaryActionLabel"
+                  :loading="isPublishing"
+                  :disabled="isPublishing || shouldDisableNext"
+                  @click="handlePrimaryAction"
+                />
+              </div>
+            </template>
           </UCard>
 
           <!-- The book page's 書籍資料 card, holding the same two components. -->
@@ -201,7 +217,13 @@ import type {
 } from '~/types/publish'
 import { PUBLISH_WIZARD_STEPS, PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
 import { BookUploadStatus } from '~/types/bulk-upload'
-import { PREVIEW_PERCENTAGE_DEFAULT, MAX_BOOK_KEYWORDS, MAX_DESCRIPTION_LENGTH } from '~/constant'
+import {
+  PREVIEW_PERCENTAGE_DEFAULT,
+  MAX_BOOK_KEYWORDS,
+  MAX_DESCRIPTION_LENGTH,
+  PUBLISH_GUIDE_URL,
+  EBOOK_FILE_TYPES,
+} from '~/constant'
 import { resolveShortDescription } from '~/utils/description'
 import {
   PUBLISH_RESUME_QUERY,
@@ -277,9 +299,10 @@ useSeoMeta({
   ogTitle: () => $t('seo_titles.publish_nft_book'),
 })
 
-const steps = computed(() => STEP_KEYS.map(key => ({
-  key,
+const steps = computed(() => STEP_KEYS.map((key, index) => ({
+  value: key,
   title: $t(PUBLISH_WIZARD_STEP_LABEL_KEYS[key]),
+  disabled: index > maxVisitedStepIndex.value,
 })))
 
 const currentStepIndex = computed(() => STEP_KEYS.indexOf(step.value))
@@ -314,8 +337,10 @@ function handlePrimaryAction() {
 const pendingSessionNeedsReselect = computed(() =>
   (pendingSession.value?.fileRecords ?? []).some(record =>
     !isRecordUploaded(record) && !restoredBlobFor(record)))
-const hasFiles = computed(() => fileRecords.value.length > 0)
-const shouldDisableNext = computed(() => step.value === 'files' && !hasFiles.value)
+const hasEbookFile = computed(() => fileRecords.value.some(
+  record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
+))
+const shouldDisableNext = computed(() => step.value === 'files' && !hasEbookFile.value)
 // A free price tier (0) always opts the book into Plus all-you-can-read. The
 // book page forces the same value from useBookListingSettings; the wizard has
 // no such composable, so the rule is owned here, beside the control it greys out.
