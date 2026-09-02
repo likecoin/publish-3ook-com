@@ -13,6 +13,12 @@
     >
       <slot />
     </template>
+    <template
+      v-if="$slots.trailing"
+      #trailing
+    >
+      <slot name="trailing" />
+    </template>
     <template #right>
       <slot name="right" />
     </template>

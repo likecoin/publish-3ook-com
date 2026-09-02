@@ -2,8 +2,8 @@
   <!-- Cover left, book files beside it — the book page's 書檔 anatomy, so a
        cover reads as a picture in both places. -->
   <div class="flex gap-6 w-full">
-    <!-- w-40, not w-fit: the caption and the cover hint below wrap inside this
-         column, and at the thumbnail's own 120px they wrap to one word a line. -->
+    <!-- w-40, not w-fit: the label row sits under the thumbnail, and at the
+         thumbnail's own 120px it wraps. -->
     <div
       v-if="coverEntry"
       class="w-40 shrink-0 flex flex-col items-start gap-2"
@@ -13,48 +13,24 @@
         :alt="coverEntry.record.fileName"
         size="lg"
       />
-      <UBadge
-        variant="soft"
-        color="neutral"
-        size="xs"
-      >
-        {{ isGeneratedCoverRecord(coverEntry.record)
-          ? $t('upload_form.file_generated_cover')
-          : $t('upload_form.file_cover') }}
-      </UBadge>
-      <p
-        class="text-xs text-muted break-all"
-        v-text="`${coverEntry.record.fileName} · ${formatBytes(coverEntry.record.fileSize || 0)}`"
-      />
-      <p
-        v-if="ownsCover"
-        class="text-xs text-muted"
-        v-text="coverHint(coverEntry.record)"
-      />
       <div class="flex items-center gap-1">
-        <UButton
-          v-if="canRevertCover && isManualCoverRecord(coverEntry.record)"
-          size="xs"
-          variant="ghost"
-          color="neutral"
-          icon="i-heroicons-arrow-uturn-left"
-          :label="$t('publish_cover.revert')"
-          @click="emit('revertCover')"
+        <p
+          class="text-sm font-semibold"
+          v-text="$t('upload_form.file_cover')"
         />
-        <UIcon
-          v-if="isRecordUploaded(coverEntry.record)"
-          name="i-heroicons-check-circle"
-          class="w-5 h-5 text-success"
-          :title="$t('upload_form.file_already_uploaded')"
-        />
-        <UButton
-          color="error"
-          variant="ghost"
-          size="xs"
-          icon="i-heroicons-trash"
-          :aria-label="$t('common.delete')"
-          @click="emit('delete', coverEntry.index)"
-        />
+        <UTooltip
+          :text="$t('publish_cover.hint')"
+          :ui="{ content: 'h-auto max-w-64', text: 'whitespace-normal' }"
+        >
+          <UButton
+            :aria-label="$t('publish_cover.hint')"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-heroicons-question-mark-circle"
+            class="rounded-full"
+          />
+        </UTooltip>
       </div>
       <button
         v-if="needsFileReselect(coverEntry.record)"
@@ -65,17 +41,16 @@
       />
     </div>
 
-    <ul class="flex flex-col grow min-w-0">
+    <ul class="flex flex-col grow min-w-0 gap-2">
       <li
-        v-for="{ record, index } of bookFileEntries"
+        v-for="{ record, index } of displayedRecords"
         :key="`${record.fileName}-${index}`"
-        class="border-b border-default"
+        class="rounded-lg border border-default overflow-hidden"
       >
-        <div class="flex justify-between items-center hover:bg-elevated transition-colors w-full py-[4px]">
-          <ImgPreviewer
-            :file-type="record.fileType"
-            :file-data="record.fileData"
-            size="small"
+        <div class="flex justify-between items-center gap-3 hover:bg-muted transition-colors w-full px-3 py-2">
+          <UIcon
+            :name="isCoverRecord(record) ? 'i-heroicons-photo' : 'i-heroicons-book-open'"
+            class="shrink-0 w-10 h-10 text-muted"
           />
           <div class="flex flex-col items-start grow">
             <p class="font-semibold text-highlighted">
@@ -85,6 +60,26 @@
               class="text-muted text-sm"
               v-text="formatBytes(record.fileSize || 0)"
             />
+            <div class="mt-1 flex items-center gap-2 empty:hidden">
+              <UBadge
+                v-if="isCoverRecord(record)"
+                variant="soft"
+                color="neutral"
+                size="sm"
+                :label="isGeneratedCoverRecord(record)
+                  ? $t('upload_form.file_generated_cover')
+                  : $t('upload_form.file_cover')"
+              />
+              <UTooltip
+                v-if="isRecordUploaded(record)"
+                :text="$t('upload_form.file_already_uploaded')"
+              >
+                <UIcon
+                  name="i-heroicons-cloud-arrow-up"
+                  class="w-5 h-5 text-success"
+                />
+              </UTooltip>
+            </div>
             <button
               v-if="needsFileReselect(record)"
               type="button"
@@ -94,12 +89,6 @@
             />
           </div>
           <div class="flex items-center gap-2">
-            <UIcon
-              v-if="isRecordUploaded(record)"
-              name="i-heroicons-check-circle"
-              class="w-5 h-5 text-success"
-              :title="$t('upload_form.file_already_uploaded')"
-            />
             <UButton
               v-if="advisoryOf(record)"
               variant="ghost"
@@ -110,6 +99,15 @@
               :label="advisoryCopy(record, 'label')"
               :trailing-icon="isExpanded(record) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
               @click="toggleIssues(record)"
+            />
+            <UButton
+              v-if="canRevertCover && isManualCoverRecord(record)"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              icon="i-heroicons-arrow-uturn-left"
+              :label="$t('publish_cover.revert')"
+              @click="emit('revertCover')"
             />
             <UButton
               color="error"
@@ -126,7 +124,7 @@
              than in a modal, which stole focus while files were still going in. -->
         <div
           v-if="isExpanded(record)"
-          class="pb-3 space-y-2 text-sm"
+          class="px-3 pb-3 space-y-2 text-sm"
         >
           <p
             class="text-xs text-muted"
@@ -163,14 +161,11 @@ import { formatBytes } from '~/utils'
 
 const { t: $t } = useI18n()
 
-const { fileRecords, canRevertCover = false, ownsCover = true } = defineProps<{
+const { fileRecords, canRevertCover = false } = defineProps<{
   fileRecords: FileRecord[]
   // Whether the ebook's own cover is still around to go back to; the row only
   // offers 復原 when it is.
   canRevertCover?: boolean
-  // False where the listed cover is not the book's — a replacement upload shows
-  // what came out of the file, but the published cover is set elsewhere.
-  ownsCover?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -178,13 +173,6 @@ const emit = defineEmits<{
   reselect: [index: number]
   revertCover: []
 }>()
-
-// The replaced copy speaks of going back, so it is only true alongside the
-// 復原 button — a PDF that yielded no cover of its own has nothing to go to.
-const coverHint = (record: FileRecord) =>
-  canRevertCover && isManualCoverRecord(record)
-    ? $t('publish_cover.replaced_hint')
-    : $t('publish_cover.hint')
 
 // Both covers are kept — 復原 needs the ebook's own — but only one of them is
 // this book's cover, so the superseded row is hidden. Indices are carried
@@ -200,8 +188,6 @@ const displayedRecords = computed(() => {
 // single entry rather than a list.
 const coverEntry = computed(() =>
   displayedRecords.value.find(({ record }) => isCoverRecord(record)))
-const bookFileEntries = computed(() =>
-  displayedRecords.value.filter(({ record }) => !isCoverRecord(record)))
 
 // Tracks what was dismissed rather than what is open, so a file's issues are
 // visible the moment it lands and stay hidden once the author collapses them.
