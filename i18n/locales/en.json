@@ -206,6 +206,7 @@
   "bulk_upload.error_invalid_boolean": "\"{field}\" must be \"true\" or \"false\", got \"{value}\"",
   "bulk_upload.error_invalid_price": "Price must be 0 (free) or at least {minPrice}",
   "bulk_upload.error_invalid_price_override": "Per-currency price override must be a non-negative number",
+  "bulk_upload.error_invalid_publish_date": "publish_date \"{value}\" is not a recognised date; use YYYY-MM-DD",
   "bulk_upload.error_row": "Row {row}",
   "bulk_upload.existing_session_description": "You have an unfinished bulk upload session. Would you like to resume or start fresh?",
   "bulk_upload.existing_session_found": "Existing Session Found",

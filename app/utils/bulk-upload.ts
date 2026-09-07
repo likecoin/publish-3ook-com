@@ -16,6 +16,7 @@ import {
 import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUploadValidationError, ValidatedProgressFields } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
+import { normalizePublicationDate } from '~/utils/publicationDate'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -217,6 +218,12 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
 
   if (book.autoMemo && !book.isAutoDeliver) {
     errors.push({ rowIndex, field: 'auto_memo', message: 'bulk_upload.error_auto_memo_requires_auto_deliver' })
+  }
+
+  // Caught here rather than at publish time: an unparseable date only blows up
+  // while building ISCN metadata, which is after the Arweave upload is paid for.
+  if (book.publishDate && !normalizePublicationDate(book.publishDate)) {
+    errors.push({ rowIndex, field: 'publish_date', message: 'bulk_upload.error_invalid_publish_date', params: { value: book.publishDate } })
   }
 
   // Validate boolean fields contain valid values

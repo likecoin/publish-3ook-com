@@ -206,6 +206,7 @@
   "bulk_upload.error_invalid_boolean": "「{field}」必須為「true」或「false」，目前為「{value}」",
   "bulk_upload.error_invalid_price": "售價必須為 0（免費）或至少 {minPrice}",
   "bulk_upload.error_invalid_price_override": "自訂幣別售價必須為 0 或正數",
+  "bulk_upload.error_invalid_publish_date": "publish_date「{value}」不是可辨識的日期格式，請使用 YYYY-MM-DD",
   "bulk_upload.error_row": "第 {row} 列",
   "bulk_upload.existing_session_description": "你有一個未完成的批量上傳。要繼續還是重新開始？",
   "bulk_upload.existing_session_found": "發現未完成的上傳",

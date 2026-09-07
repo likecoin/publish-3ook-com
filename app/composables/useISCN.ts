@@ -1,6 +1,7 @@
 import { sha256, toHex, fromHex, stringToHex } from 'viem'
 import { getApiEndpoints } from '~/constant/api'
 import type { ISCNFormData, ClassMetadata } from '~/types/iscn'
+import { normalizePublicationDate } from '~/utils/publicationDate'
 
 const getFileMimeType = (fileType: string): string => {
   switch (fileType) {
@@ -69,11 +70,12 @@ export function useISCN({
         value: data.publisher.name,
       })
     }
-    if (data.publicationDate) {
+    const publicationDate = normalizePublicationDate(data.publicationDate)
+    if (publicationDate) {
       attributes.push({
         trait_type: 'Publish Date',
         display_type: 'date',
-        value: ((new Date(data.publicationDate)).getTime() || 0) / 1000,
+        value: new Date(publicationDate).getTime() / 1000,
       })
     }
     return attributes.length ? attributes : undefined
@@ -98,9 +100,7 @@ export function useISCN({
     'publisher': iscnFormData.value.publisher.name,
     'publisherDescription': iscnFormData.value.publisher.description,
     'isbn': iscnFormData.value.isbn,
-    'datePublished': iscnFormData.value.publicationDate
-      ? new Date(iscnFormData.value.publicationDate).toISOString().split('T')[0]
-      : undefined,
+    'datePublished': normalizePublicationDate(iscnFormData.value.publicationDate),
     'url': iscnFormData.value.bookInfoUrl,
     'tagsString': iscnFormData.value.tags?.join(', ') || '',
     'thumbnailUrl': iscnFormData.value.coverUrl,
