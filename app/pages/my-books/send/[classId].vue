@@ -193,6 +193,7 @@
 
 <script setup lang="ts">
 import { whenever } from '@vueuse/core'
+import type { AlertProps } from '@nuxt/ui'
 import { parseImageURLFromMetadata } from '~/utils'
 import { AUTHOR_MESSAGE_LIMIT } from '~/constant'
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
@@ -217,7 +218,7 @@ const { getBalanceOf, getTokenIdByOwnerIndex } = useNFTContractReader()
 const { assertSufficientBalanceForTransaction, waitForTransactionReceipt } = useNFTContractWriter()
 
 const { showErrorToast } = useToastComposable()
-const error = ref({ message: '', actions: [] as { label: string, variant: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link', color: 'error' | 'primary' | 'neutral', click: () => void }[] })
+const error = ref<{ message: string, actions: AlertProps['actions'] }>({ message: '', actions: [] })
 const isLoading = ref(false)
 const classId = computed(() => route.params.classId as string)
 const paymentId = computed(() => route.query.payment_id as string)
@@ -397,7 +398,7 @@ async function fetchNextNFTId(_count = 1) {
           label: $t('button.restock_nft'),
           variant: 'outline',
           color: 'error',
-          click: () => {
+          onClick: () => {
             showRestockModal.value = true
           },
         },
