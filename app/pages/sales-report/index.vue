@@ -13,6 +13,7 @@
 
     <PageBody>
       <SalesReportPlusReading v-if="selectedTabValue === 'plus'" />
+      <SalesReportSubscriptionAffiliate v-else-if="selectedTabValue === 'affiliate'" />
       <SalesReportPayoutHistory v-else-if="selectedTabValue === 'payout'" />
       <SalesReportCommissionHistory v-else />
     </PageBody>
@@ -25,6 +26,7 @@ const { t: $t } = useI18n()
 const tabItems = computed(() => [
   { label: $t('user_settings.commission_history'), value: 'commission' },
   { label: $t('plus_reading_report.title'), value: 'plus' },
+  { label: $t('subscription_affiliate_report.title'), value: 'affiliate' },
   { label: $t('user_settings.payout_history'), value: 'payout' },
 ])
 
