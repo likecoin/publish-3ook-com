@@ -4,9 +4,9 @@
 
     <UCard
       :ui="{
+        root: 'lg:overflow-visible',
         header: 'flex justify-between items-center',
         body: 'p-0 sm:p-0',
-        footer: 'text-center',
       }"
     >
       <template #header>
@@ -37,7 +37,7 @@
         </div>
       </template>
 
-      <div class="flex flex-wrap justify-center gap-8 px-6 py-4">
+      <div class="flex flex-wrap justify-center gap-8 px-6 py-4 border-b border-default">
         <div
           v-for="stat in summaryStats"
           :key="stat.label"
@@ -57,7 +57,15 @@
       <UTable
         :columns="columns"
         :data="reportRows"
-        :ui="{ th: 'text-center', td: 'text-center' }"
+        :ui="{
+          // Sticks under the tabs only where all columns fit;
+          // narrower screens keep horizontal scroll, which disables sticky.
+          // The offset is owned by sales-report/index.vue.
+          root: 'lg:overflow-visible',
+          thead: 'lg:sticky lg:top-(--sales-report-sticky-top) lg:z-[5] bg-default',
+          th: 'text-center',
+          td: 'text-center',
+        }"
       >
         <template #empty>
           <span

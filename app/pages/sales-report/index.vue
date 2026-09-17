@@ -11,7 +11,8 @@
       />
     </div>
 
-    <PageBody>
+    <!-- Page header (64px) + sticky tabs bar (65px), for sticky table headers in the tabs -->
+    <PageBody class="[--sales-report-sticky-top:129px]">
       <SalesReportPlusReading v-if="selectedTabValue === 'plus'" />
       <SalesReportSubscriptionAffiliate v-else-if="selectedTabValue === 'affiliate'" />
       <SalesReportPayoutHistory v-else-if="selectedTabValue === 'payout'" />
