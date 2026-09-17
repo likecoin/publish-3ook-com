@@ -24,7 +24,7 @@
             @click="exportReport"
           />
           <UTooltip
-            :text="$t('subscription_affiliate_report.refresh')"
+            :text="$t('common.refresh')"
             :popper="{ placement: 'left' }"
           >
             <UButton
@@ -90,7 +90,10 @@ const error = ref('')
 const isLoading = ref(false)
 
 const payouts = ref<SubscriptionAffiliateRow[]>([])
-const summary = ref<SubscriptionAffiliateReport['summary']>()
+const summary = ref<SubscriptionAffiliateReport['summary']>({
+  totalCents: 0,
+  subscriptionCount: 0,
+})
 
 whenever(isLoading, () => { error.value = '' })
 
@@ -102,13 +105,13 @@ const columns = computed(() => [
   { accessorKey: 'interval', header: $t('subscription_affiliate_report.interval') },
   { accessorKey: 'commissionRate', header: $t('subscription_affiliate_report.commission_rate') },
   { accessorKey: 'subscriptionAmount', header: $t('subscription_affiliate_report.subscription_amount') },
-  { accessorKey: 'fee', header: $t('subscription_affiliate_report.fee') },
+  { accessorKey: 'fee', header: $t('user_settings.transaction_fee') },
   { accessorKey: 'payoutAmount', header: $t('subscription_affiliate_report.payout_amount') },
 ])
 
 // The ledger stores integer cents, the unit convertDecimalToAmount expects.
 const reportRows = computed(() => payouts.value.map((row: SubscriptionAffiliateRow) => ({
-  payoutAt: row.payoutAt ? new Date(row.payoutAt).toLocaleString() : '-',
+  payoutAt: new Date(row.payoutAt).toLocaleString(),
   subscribedAt: row.subscribedAt ? new Date(row.subscribedAt).toLocaleString() : '-',
   interval: $t(`subscription_affiliate_report.interval_${row.interval}`),
   commissionRate: `${Math.round(row.commissionRate * 100)}%`,
@@ -117,20 +120,10 @@ const reportRows = computed(() => payouts.value.map((row: SubscriptionAffiliateR
   payoutAmount: formatNumberWithCurrency(row.payoutCents, row.currency),
 })))
 
-const summaryStats = computed(() => {
-  if (!summary.value) return []
-  const currency = payouts.value[0]?.currency || 'usd'
-  return [
-    {
-      label: $t('subscription_affiliate_report.summary_total'),
-      value: formatNumberWithCurrency(summary.value.totalCents, currency),
-    },
-    {
-      label: $t('subscription_affiliate_report.summary_subscriptions'),
-      value: String(summary.value.subscriptionCount),
-    },
-  ]
-})
+const summaryStats = computed(() => [
+  { label: $t('subscription_affiliate_report.summary_total'), value: formatNumberWithCurrency(summary.value.totalCents, 'usd') },
+  { label: $t('subscription_affiliate_report.summary_subscriptions'), value: String(summary.value.subscriptionCount) },
+])
 
 async function loadReport() {
   try {
@@ -139,7 +132,7 @@ async function loadReport() {
       '/likernft/book/user/subscription-affiliate/report',
     )
     payouts.value = data?.payouts || []
-    summary.value = data?.summary
+    summary.value = data?.summary || summary.value
   }
   catch (e) {
     error.value = (e as Error).toString()
@@ -162,13 +155,13 @@ async function exportReport() {
     { accessorKey: 'interval', header: $t('subscription_affiliate_report.interval') },
     { accessorKey: 'commissionRate', header: $t('subscription_affiliate_report.commission_rate') },
     { accessorKey: 'subscriptionAmount', header: $t('subscription_affiliate_report.subscription_amount') },
-    { accessorKey: 'fee', header: $t('subscription_affiliate_report.fee') },
+    { accessorKey: 'fee', header: $t('user_settings.transaction_fee') },
     { accessorKey: 'payoutAmount', header: $t('subscription_affiliate_report.payout_amount') },
     { accessorKey: 'currency', header: $t('user_settings.currency') },
   ]
 
   const data = payouts.value.map((row: SubscriptionAffiliateRow) => ({
-    payoutAt: row.payoutAt ? new Date(row.payoutAt).toLocaleString() : '',
+    payoutAt: new Date(row.payoutAt).toLocaleString(),
     subscribedAt: row.subscribedAt ? new Date(row.subscribedAt).toLocaleString() : '',
     subscriptionId: row.subscriptionId,
     transferId: row.transferId,
