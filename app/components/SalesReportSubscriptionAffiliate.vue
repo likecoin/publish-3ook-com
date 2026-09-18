@@ -150,8 +150,8 @@ async function exportReport() {
   const columnsForExport = [
     { accessorKey: 'payoutAt', header: $t('subscription_affiliate_report.payout_at') },
     { accessorKey: 'subscribedAt', header: $t('subscription_affiliate_report.subscribed_at') },
-    { accessorKey: 'subscriptionId', header: 'Subscription ID' },
-    { accessorKey: 'transferId', header: 'Transfer ID' },
+    { accessorKey: 'subscriptionId', header: $t('subscription_affiliate_report.subscription_id') },
+    { accessorKey: 'transferId', header: $t('subscription_affiliate_report.transfer_id') },
     { accessorKey: 'interval', header: $t('subscription_affiliate_report.interval') },
     { accessorKey: 'commissionRate', header: $t('subscription_affiliate_report.commission_rate') },
     { accessorKey: 'subscriptionAmount', header: $t('subscription_affiliate_report.subscription_amount') },
