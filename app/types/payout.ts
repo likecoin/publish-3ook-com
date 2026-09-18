@@ -50,6 +50,7 @@ export interface SubscriptionAffiliateRow {
   feeCents: number
   payoutCents: number
   currency: string
+  invoiceId?: string
   subscribedAt?: number
   payoutAt: number
 }
