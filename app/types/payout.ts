@@ -39,3 +39,26 @@ export interface PayoutData {
   arrivalTs?: number
   items?: PayoutItemDetail[]
 }
+
+/** Written by the affiliate payout script, one row per referred subscription. */
+export interface SubscriptionAffiliateRow {
+  subscriptionId: string
+  transferId: string
+  interval: 'month' | 'year'
+  commissionRate: number
+  balanceTxCents: number
+  feeCents: number
+  payoutCents: number
+  currency: string
+  invoiceId?: string
+  subscribedAt?: number
+  payoutAt: number
+}
+
+export interface SubscriptionAffiliateReport {
+  payouts: SubscriptionAffiliateRow[]
+  summary: {
+    totalCents: number
+    subscriptionCount: number
+  }
+}

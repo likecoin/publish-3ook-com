@@ -39,6 +39,7 @@ export const INTERCOM_TRACKED_EVENTS: ReadonlySet<string> = new Set([
   'readers_export_csv',
   'sales_report_export_commission',
   'sales_report_export_payout',
+  'sales_report_export_subscription_affiliate',
   // Stripe payout setup
   'stripe_setup_started',
   'stripe_login',
