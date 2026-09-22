@@ -56,7 +56,7 @@ import { useLocalStorage } from '@vueuse/core'
 import type { BookStatusTab } from '~/types/book'
 
 // Also the persisted dismissal format, so a rename has to be a deliberate one.
-type BookTodoKey = 'genre' | 'isbn' | 'store-metadata' | 'pending-send'
+type BookTodoKey = 'genre' | 'isbn' | 'store-metadata' | 'pending-send' | 'pending-ship'
 
 interface BookTodoItem {
   key: BookTodoKey
@@ -77,6 +77,8 @@ const {
   isbn = '',
   pendingNFTCount = 0,
   hasStoreMetadataMismatch = false,
+  isMerch = false,
+  pendingShipmentCount = 0,
 } = defineProps<{
   classId: string
   genre?: string
@@ -85,6 +87,10 @@ const {
   // The bookstore listing holds metadata that disagrees with the chain, which
   // only the owner can resolve — see utils/store-metadata-drift.ts.
   hasStoreMetadataMismatch?: boolean
+  // A good carries no genre, ISBN or chain metadata to drift from, so the only
+  // todo it can have is an order waiting to be shipped.
+  isMerch?: boolean
+  pendingShipmentCount?: number
 }>()
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
@@ -99,6 +105,16 @@ const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 // intended default rather than a mistake.
 const items = computed<BookTodoItem[]>(() => {
   const list: BookTodoItem[] = []
+  if (isMerch) {
+    if (pendingShipmentCount > 0) {
+      list.push({
+        key: 'pending-ship',
+        label: $t('status_page.todo_pending_ship', { count: pendingShipmentCount }),
+        tab: 'sales',
+      })
+    }
+    return list
+  }
   if (!genre) {
     list.push({ key: 'genre', label: $t('status_page.todo_no_genre'), tab: 'details' })
   }

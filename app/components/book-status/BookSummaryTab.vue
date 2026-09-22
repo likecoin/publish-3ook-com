@@ -31,6 +31,8 @@
       :isbn="iscnFormData.isbn"
       :pending-nft-count="classListingInfo.pendingNFTCount"
       :has-store-metadata-mismatch="hasStoreMetadataMismatch"
+      :is-merch="isMerch"
+      :pending-shipment-count="pendingShipmentCount"
       @go-to-tab="(tab: BookStatusTab) => emit('goToTab', tab)"
     />
 
@@ -46,7 +48,9 @@
       :is-hidden-by-platform="classListingInfo.isHidden ?? false"
     />
 
+    <!-- Lending is the Plus library, which only ever holds books. -->
     <BookStatusBookLendingStateCard
+      v-if="!isMerch"
       v-model="isPlusReadingEnabled"
       :can-edit="canEdit"
       :is-free-book="isFreeBook"
@@ -54,8 +58,10 @@
     />
 
     <!-- Fed the edit draft, not the saved listing, so the two radios above show
-         their effect before the save that applies it. -->
+         their effect before the save that applies it. Every line of it — cover,
+         author, preview, audio, lending — is a book's. -->
     <PublishReviewReaderPreviewCard
+      v-if="!isMerch"
       :prices="editedPrices"
       :title="iscnFormData.title"
       :subtitle="iscnFormData.alternativeHeadline"
@@ -87,7 +93,7 @@ import { BOOK_CATEGORY_VALUES, MAX_BOOK_KEYWORDS } from '~/constant'
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
 
-const { classId, classListingInfo, storeUrl, settings, isFreeBook = false, canEdit = false, pendingChanges = [], hasStoreMetadataMismatch = false } = defineProps<{
+const { classId, classListingInfo, storeUrl, settings, isFreeBook = false, canEdit = false, pendingChanges = [], hasStoreMetadataMismatch = false, isMerch = false, pendingShipmentCount = 0 } = defineProps<{
   classId: string
   classListingInfo: ClassListingData
   storeUrl: string
@@ -98,6 +104,9 @@ const { classId, classListingInfo, storeUrl, settings, isFreeBook = false, canEd
   // Passed down rather than recomputed here: the details tab owns the drift, so
   // a conflict the author resolves there stops being a todo immediately.
   hasStoreMetadataMismatch?: boolean
+  // A good has no contract at its id, so nothing here may read the chain.
+  isMerch?: boolean
+  pendingShipmentCount?: number
 }>()
 
 const soldCount = computed(() => getSoldCount(classListingInfo.prices))
@@ -135,9 +144,11 @@ const {
 const coverImageSrc = computed(() =>
   parseImageURLFromMetadata(iscnFormData.value.coverUrl))
 
-// Cached after any other tab loaded it; the summary reads, never writes.
-watch(() => classId, async () => {
-  if (!classId) { return }
+// Cached after any other tab loaded it; the summary reads, never writes. Never
+// for a merch item: this reads `contractURI` on chain and nothing is deployed at a
+// good's id, so the call fails rather than returning nothing.
+watch([() => classId, () => isMerch], async () => {
+  if (!classId || isMerch) { return }
   try {
     const loaded = await loadClassMetadataIntoForm(classId)
     if (loaded) {

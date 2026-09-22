@@ -244,12 +244,27 @@ export const useOrdersStore = defineStore('orders', () => {
 
   // Orders are exposed behind `readonly()`, so optimistic status flips have to
   // go through the store rather than the caller's own copy.
+  function findOrder(classId: string, orderId: string) {
+    return allOrders.value.find(o => o.classId === classId && o.id === orderId)
+  }
+
   function setOrderStatus(classId: string, orderId: string, status: OrderData['status']) {
-    const order = allOrders.value.find(o => o.classId === classId && o.id === orderId)
+    const order = findOrder(classId, orderId)
     if (!order) {
       return
     }
     order.status = status
+  }
+
+  // Status and tracking number land together, so a shipped row shows the number
+  // the dialog just submitted rather than waiting for a refetch.
+  function setOrderShipped(classId: string, orderId: string, trackingNumber: string) {
+    const order = findOrder(classId, orderId)
+    if (!order) {
+      return
+    }
+    order.status = 'shipped'
+    order.trackingNumber = trackingNumber
   }
 
   return {
@@ -267,5 +282,6 @@ export const useOrdersStore = defineStore('orders', () => {
     clearError,
     clearCache,
     setOrderStatus,
+    setOrderShipped,
   }
 })
