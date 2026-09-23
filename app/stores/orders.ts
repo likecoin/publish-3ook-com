@@ -180,10 +180,10 @@ export const useOrdersStore = defineStore('orders', () => {
       await bookstoreApiStore.fetchBookListing()
       await bookstoreApiStore.fetchModeratedBookList()
 
-      const allClassIds = [
-        ...bookstoreApiStore.listingList.map((book: BookListingItem) => book.classId),
-        ...bookstoreApiStore.moderatedBookList.map((book: BookListingItem) => book.classId),
-      ]
+      // A merch buyer has nothing to read, so merch orders stay off this page.
+      const allClassIds = [...bookstoreApiStore.listingList, ...bookstoreApiStore.moderatedBookList]
+        .filter((book: BookListingItem) => book.productType !== 'merch')
+        .map((book: BookListingItem) => book.classId)
 
       const uniqueClassIds = [...new Set(allClassIds)]
 

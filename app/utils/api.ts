@@ -1,4 +1,4 @@
-import type { ClassListingPrice } from '~/types/book'
+import type { ClassListingPrice, ProductType } from '~/types/book'
 import type { ShippingDetails } from '~/types/purchase'
 
 export interface FetchLikerInfoResult {
@@ -139,6 +139,9 @@ export interface BookListingItem {
   // neither owns nor moderates the book.
   sold?: number
   pendingNFTCount?: number
+  // Absent means 'book', as on the listing itself.
+  productType?: ProductType
+  pendingShipmentCount?: number
 }
 
 export interface BookListingResponse {
