@@ -2,6 +2,13 @@
 // plugins/buffer.client.ts can install it. The browser build ships its own.
 import { stringify as csvStringify } from 'csv-stringify/browser/esm/sync'
 
+import { neutralizeSpreadsheetFormula } from './csv-escape'
+
+// Quoting alone leaves formulas live in Excel, so every downloaded file defuses
+// its string cells. Not applied to convertArrayOfObjectsToCSV: that also feeds the
+// batch-link sessionStorage handoff, which must round-trip values untouched.
+const FORMULA_SAFE_CAST = { string: neutralizeSpreadsheetFormula }
+
 /**
  * Download array of objects as CSV with BOM for Excel compatibility with Chinese characters
  * @param data - Array of objects to export
@@ -27,6 +34,7 @@ export async function downloadCSV(
   const csvContent = csvStringify(rows, {
     header: true,
     columns: columns.map(col => col.header),
+    cast: FORMULA_SAFE_CAST,
   })
 
   // Add BOM for Excel compatibility with Chinese characters
@@ -43,7 +51,7 @@ export function downloadFile({ data, fileName, fileType }: { data: Record<string
     mimeType = 'application/json'
   }
   else if (fileType === 'csv') {
-    fileData = convertArrayOfObjectsToCSV(Array.isArray(data) ? data : [data])
+    fileData = csvStringify(Array.isArray(data) ? data : [data], { header: true, cast: FORMULA_SAFE_CAST })
     mimeType = 'text/csv'
   }
   else {
