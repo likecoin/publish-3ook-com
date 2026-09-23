@@ -93,7 +93,12 @@
               :label="$t('nft_book_form.copies_label')"
             >
               <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
+                <!-- A good ships by hand, so the API refuses auto-delivery on
+                     it: offering the choice only sets the save up to fail. -->
+                <div
+                  v-if="!isMerch"
+                  class="flex items-center gap-2"
+                >
                   <URadioGroup
                     v-model="p.deliveryMethod"
                     :items="[
@@ -128,7 +133,11 @@
               </div>
             </UFormField>
 
-            <UFormField :label="$t('nft_book_form.enable_custom_message_page')">
+            <!-- The memo and autograph ride on auto-delivered NFTs; a good has neither. -->
+            <UFormField
+              v-if="!isMerch"
+              :label="$t('nft_book_form.enable_custom_message_page')"
+            >
               <div class="space-y-3 w-full">
                 <UFormField
                   :label="$t('nft_book_form.auto_delivery_memo')"
