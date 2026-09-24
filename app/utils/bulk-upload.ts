@@ -5,6 +5,7 @@ import {
   CSV_DEFAULT_AUTO_DELIVER,
   CSV_DEFAULT_ENABLE_DRM,
   CSV_DEFAULT_ENABLE_TTS,
+  CSV_DEFAULT_TTS_LIBRARY_ONLY,
   CSV_DEFAULT_ENABLE_LIBRARY,
   CSV_DEFAULT_ENABLE_PREVIEW,
   CSV_DEFAULT_PREVIEW_PERCENTAGE,
@@ -59,6 +60,7 @@ export const CSV_ALL_COLUMNS = [
   'auto_memo',
   'enable_drm',
   'enable_tts',
+  'tts_library_only',
   'enable_library',
   'enable_preview',
   'preview_percentage',
@@ -72,6 +74,7 @@ export const CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS: Record<string, string> = {
   auto_deliver: String(CSV_DEFAULT_AUTO_DELIVER),
   enable_drm: String(CSV_DEFAULT_ENABLE_DRM),
   enable_tts: String(CSV_DEFAULT_ENABLE_TTS),
+  tts_library_only: String(CSV_DEFAULT_TTS_LIBRARY_ONLY),
   enable_library: String(CSV_DEFAULT_ENABLE_LIBRARY),
   enable_preview: String(CSV_DEFAULT_ENABLE_PREVIEW),
   preview_percentage: String(CSV_DEFAULT_PREVIEW_PERCENTAGE),
@@ -142,6 +145,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     autoMemo: row.auto_memo?.trim() || '',
     enableDRM: row.enable_drm?.trim().toLowerCase() === 'true',
     enableTTS: row.enable_tts?.trim().toLowerCase() !== 'false',
+    ttsLibraryOnly: row.tts_library_only?.trim().toLowerCase() === 'true',
     isPlusReadingEnabled,
     isPreviewEnabled: row.enable_preview?.trim().toLowerCase() !== 'false',
     previewPercentage,
@@ -228,7 +232,7 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
 
   // Validate boolean fields contain valid values
   if (rawRow) {
-    for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'enable_library', 'enable_preview'] as const) {
+    for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'tts_library_only', 'enable_library', 'enable_preview'] as const) {
       const raw = rawRow[field]
       const value = raw?.trim().toLowerCase() ?? ''
       if (value && !VALID_BOOLEAN_VALUES.includes(value)) {
@@ -296,6 +300,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     autoMemo: book.autoMemo,
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
+    ttsLibraryOnly: book.ttsLibraryOnly,
     isPlusReadingEnabled: book.isPlusReadingEnabled,
     isPreviewEnabled: book.isPreviewEnabled,
     previewPercentage: book.previewPercentage,
@@ -389,6 +394,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.autoMemo,
     book.enableDRM ? 'true' : 'false',
     book.enableTTS ? 'true' : 'false',
+    book.ttsLibraryOnly ? 'true' : 'false',
     book.isPlusReadingEnabled ? 'true' : 'false',
     book.isPreviewEnabled ? 'true' : 'false',
     book.previewPercentage,

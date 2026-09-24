@@ -317,6 +317,7 @@
             { accessorKey: 'language', header: $t('form.language') },
             { accessorKey: 'enableDRM', header: $t('bulk_upload.enable_drm') },
             { accessorKey: 'enableTTS', header: $t('bulk_upload.enable_tts') },
+            { accessorKey: 'ttsLibraryOnly', header: $t('bulk_upload.tts_library_only') },
             { accessorKey: 'isPlusReadingEnabled', header: $t('bulk_upload.enable_library') },
             { accessorKey: 'isAutoDeliver', header: $t('bulk_upload.auto_deliver') },
             { accessorKey: 'autoMemo', header: $t('bulk_upload.auto_memo') },
@@ -328,6 +329,9 @@
           </template>
           <template #enableTTS-cell="{ row }">
             <YesNoBadge :value="row.original.enableTTS" />
+          </template>
+          <template #ttsLibraryOnly-cell="{ row }">
+            <YesNoBadge :value="row.original.enableTTS && row.original.isPlusReadingEnabled && row.original.ttsLibraryOnly" />
           </template>
           <template #isPlusReadingEnabled-cell="{ row }">
             <YesNoBadge :value="row.original.isPlusReadingEnabled" />
@@ -565,6 +569,7 @@ const reviewData = computed(() =>
     language: book.language,
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
+    ttsLibraryOnly: book.ttsLibraryOnly,
     isPlusReadingEnabled: book.isPlusReadingEnabled,
     isAutoDeliver: book.isAutoDeliver,
     autoMemo: book.autoMemo,
@@ -606,6 +611,7 @@ async function downloadCSVTemplate() {
     '', // auto_memo
     '', // enable_drm
     '', // enable_tts
+    '', // tts_library_only
     '', // enable_library
     '', // enable_preview
     '', // preview_percentage
