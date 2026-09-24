@@ -49,6 +49,13 @@
                 :show-ladder-hint="isSingleEditionLayout"
                 :class="isSingleEditionLayout ? 'order-1' : ''"
               />
+              <!-- Merch only: a book's Plus discount is the platform-wide
+                   percentage, not a per-edition amount. Shown only when set. -->
+              <PublishEditionPlusPriceField
+                v-if="isMerch"
+                :price="p"
+                :class="isSingleEditionLayout ? 'order-3' : ''"
+              />
             </div>
             <PublishEditionRevenueInline
               v-if="isSingleEditionLayout"
@@ -220,6 +227,7 @@ const {
   hasExistingSignatureImage = false,
   namePlaceholder = '',
   reservedNames = undefined,
+  isMerch = false,
 } = defineProps<{
   // The 新增版本 modal, which holds an edition that does not exist yet.
   isAddingEdition?: boolean
@@ -229,6 +237,8 @@ const {
   // Names already taken by editions this form does not show, so a new one
   // cannot collide with them.
   reservedNames?: string[]
+  // A good prices its members-only amount per edition; a book does not.
+  isMerch?: boolean
 }>()
 
 const prices = defineModel<PriceFormItem[]>('prices', { required: true })

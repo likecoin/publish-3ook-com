@@ -30,6 +30,11 @@ export interface ClassListingPrice {
   description: { en?: string, zh?: string } | string
   price: number | string
   priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
+  // The members-only price, as its own exact amount rather than a percentage
+  // off. One edition carries both: two editions of one physical product would
+  // each hold their own stock and oversell it.
+  plusPriceInDecimal?: number
+  plusPriceInDecimalByCurrency?: BookPriceInDecimalByCurrency
   stock: number
   isAutoDeliver: boolean
   isAllowCustomPrice: boolean

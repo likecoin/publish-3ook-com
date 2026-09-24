@@ -586,6 +586,8 @@
   "nft_book_form.notification_email_header": "Email to receive sales notifications",
   "nft_book_form.notification_email_placeholder": "abc{at}example.com",
   "nft_book_form.page_title": "General settings",
+  "nft_book_form.plus_price_help": "What a yearly Plus or paid Civic member pays; trial members never get it. It cannot be edited here.",
+  "nft_book_form.plus_price_label": "Member price",
   "nft_book_form.plus_reading": "List in Plus Library",
   "nft_book_form.plus_reading_free_forced": "Free books are automatically listed in the Plus Library.",
   "nft_book_form.plus_reading_join": "List — Plus members can read it; earn a share by read time",

@@ -586,6 +586,8 @@
   "nft_book_form.notification_email_header": "欲收到銷售通知的電郵",
   "nft_book_form.notification_email_placeholder": "abc{at}example.com",
   "nft_book_form.page_title": "一般設定",
+  "nft_book_form.plus_price_help": "年費 Plus 或付費 Civic 會員適用的售價，試用會員不適用。此處無法修改。",
+  "nft_book_form.plus_price_label": "會員價",
   "nft_book_form.plus_reading": "上架 Plus 圖書館",
   "nft_book_form.plus_reading_free_forced": "免費書會自動上架 Plus 圖書館。",
   "nft_book_form.plus_reading_join": "上架 — Plus 會員可借閱，按閱讀時間分潤",

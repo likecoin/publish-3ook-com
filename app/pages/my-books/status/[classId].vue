@@ -102,12 +102,15 @@
             :model-value="listingSettings.hideDownload.value"
           />
 
+          <!-- No second edition on a merch item: each edition carries its own stock,
+             and two of them over one shelf of hardware oversells it. The member
+             price rides on the single edition instead. -->
           <BookStatusEditionsCard
             v-model:prices="prices"
             :class-id="classId"
             :stock-balance="stockBalance"
             :locked="changeCount > 0"
-            :can-add-edition="userIsOwner"
+            :can-add-edition="userIsOwner && !isMerch"
             :has-existing-signature-image="hasExistingSignatureImage"
             :is-merch="isMerch"
             @restocked="calculateStock"
@@ -120,6 +123,7 @@
             v-model:prices="editedPrices"
             v-model:signature-image="signatureImage"
             :has-existing-signature-image="hasExistingSignatureImage"
+            :is-merch="isMerch"
           />
           <!-- Adult-only, AI audio and the free preview are all terms of a
              book; none of them means anything on a shipped good. -->
