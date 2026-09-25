@@ -36,6 +36,7 @@ export interface BulkUploadCSVRow {
   auto_memo?: string
   enable_drm?: string
   enable_tts?: string
+  tts_library_only?: string
   enable_library?: string
   enable_preview?: string
   preview_percentage?: string
@@ -80,6 +81,8 @@ export interface BulkUploadBook {
   enableDRM: boolean
   // Text-to-speech (audio narration); maps to inverse of listing `hideAudio`.
   enableTTS: boolean
+  // Maps to listing `isAudioPlusReadingOnly`; ignored unless enableTTS and isPlusReadingEnabled are both true.
+  ttsLibraryOnly: boolean
   // Plus Library membership; maps to listing `isPlusReadingEnabled`.
   isPlusReadingEnabled: boolean
   // Free preview of the first N% for logged-in readers.
@@ -131,6 +134,7 @@ export interface SerializedBulkUploadBook {
   autoMemo: string
   enableDRM: boolean
   enableTTS: boolean
+  ttsLibraryOnly: boolean
   isPlusReadingEnabled: boolean
   isPreviewEnabled: boolean
   previewPercentage: number

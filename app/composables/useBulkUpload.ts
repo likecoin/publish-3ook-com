@@ -310,6 +310,7 @@ export function useBulkUpload() {
       // Only the CSV flag exists here — it is also the flag the upload ran under.
       hideDownload: shouldHideDownload({ encryptEbook: book.enableDRM }),
       hideAudio: !book.enableTTS,
+      isAudioPlusReadingOnly: book.enableTTS && book.isPlusReadingEnabled && book.ttsLibraryOnly,
       isPlusReadingEnabled: book.isPlusReadingEnabled,
       isPreviewEnabled: book.isPreviewEnabled,
       previewPercentage: book.previewPercentage,

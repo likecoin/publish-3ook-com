@@ -64,6 +64,7 @@ export interface ClassListingData {
   enableCustomMessagePage?: boolean
   hideDownload?: boolean
   hideAudio?: boolean
+  isAudioPlusReadingOnly?: boolean
   isAdultOnly?: boolean
   isPlusReadingEnabled?: boolean
   isPreviewEnabled?: boolean

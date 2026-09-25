@@ -75,6 +75,7 @@
       :prices="listingDraft.prices"
       :is-plus-reading-enabled="listingDraft.isPlusReadingEnabled"
       :hide-audio="listingDraft.hideAudio"
+      :is-audio-plus-reading-only="listingDraft.isAudioPlusReadingOnly"
       :is-adult-only="listingDraft.isAdultOnly"
       editable
       @edit="emit('edit', 'pricing')"
