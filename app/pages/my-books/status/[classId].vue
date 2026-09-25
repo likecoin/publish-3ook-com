@@ -26,7 +26,10 @@
         </template>
       </UProgress>
 
-      <template v-if="bookstoreApiStore.isAuthenticated">
+      <!-- Nothing mounts before the listing answers: which panes a listing may
+         even have is its own answer to give, and the book-shaped ones read the
+         chain the moment they mount. -->
+      <template v-if="bookstoreApiStore.isAuthenticated && hasLoadedListing">
         <!-- Labels only: each pane below mounts on its first visit and then stays
            mounted (v-show), so edits survive visiting another tab while they
            wait in the bar and an unopened tab fetches nothing. -->
@@ -37,8 +40,10 @@
           :content="false"
         />
 
+        <!-- Held back for a merch item, not merely hidden: every card here reads the
+           chain, and there is no contract at a merch item's id to read. -->
         <div
-          v-if="visitedTabs.has('details')"
+          v-if="visitedTabs.has('details') && !isMerch"
           v-show="selectedTabItemIndex === 'details'"
           class="space-y-10 mt-4"
         >
@@ -74,21 +79,40 @@
         </div>
 
         <div
+          v-if="visitedTabs.has('description') && isMerch"
+          v-show="selectedTabItemIndex === 'description'"
+          class="space-y-10 mt-4"
+        >
+          <BookStatusMerchDescriptionCard
+            :settings="listingSettings"
+            :can-edit="userIsOwner"
+          />
+        </div>
+
+        <div
           v-if="visitedTabs.has('pricing')"
           v-show="selectedTabItemIndex === 'pricing'"
           class="space-y-10 mt-4"
         >
           <!-- Beside the price, as in the wizard: what a buyer may do with the
-             file is a term of the sale. Locked here — the upload decided it. -->
-          <BookStatusFileProtectionCard :model-value="listingSettings.hideDownload.value" />
+             file is a term of the sale. Locked here — the upload decided it.
+             A good has no file to protect. -->
+          <BookStatusFileProtectionCard
+            v-if="!isMerch"
+            :model-value="listingSettings.hideDownload.value"
+          />
 
+          <!-- No second edition on a merch item: each edition carries its own stock,
+             and two of them over one shelf of hardware oversells it. The member
+             price rides on the single edition instead. -->
           <BookStatusEditionsCard
             v-model:prices="prices"
             :class-id="classId"
             :stock-balance="stockBalance"
             :locked="changeCount > 0"
-            :can-add-edition="userIsOwner"
+            :can-add-edition="userIsOwner && !isMerch"
             :has-existing-signature-image="hasExistingSignatureImage"
+            :is-merch="isMerch"
             @restocked="calculateStock"
             @added="refreshListingInfo"
             @error="(message: string) => (error = message)"
@@ -99,9 +123,12 @@
             v-model:prices="editedPrices"
             v-model:signature-image="signatureImage"
             :has-existing-signature-image="hasExistingSignatureImage"
+            :is-merch="isMerch"
           />
+          <!-- Adult-only, AI audio and the free preview are all terms of a
+             book; none of them means anything on a shipped good. -->
           <BookStatusBookListingSettingsCard
-            v-if="userIsOwner"
+            v-if="userIsOwner && !isMerch"
             :settings="listingSettings"
             :is-book-unlisted="isBookUnlisted"
           />
@@ -123,6 +150,8 @@
             :can-edit="userIsOwner"
             :pending-changes="changes"
             :has-store-metadata-mismatch="hasStoreMetadataMismatch"
+            :is-merch="isMerch"
+            :pending-shipment-count="pendingShipmentCount"
             @go-to-tab="(tab: BookStatusTab) => (selectedTabItemIndex = tab)"
           />
         </div>
@@ -133,17 +162,24 @@
           class="space-y-10 mt-4"
         >
           <UAlert
-            v-if="pendingNFTCount > 0"
+            v-if="isMerch ? pendingShipmentCount > 0 : pendingNFTCount > 0"
             color="warning"
             variant="subtle"
             icon="i-heroicons-exclamation-circle"
-            :title="$t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
-            :description="$t('status_page.pending_send_banner_description')"
+            :title="isMerch
+              ? $t('status_page.pending_ship_banner_title', { count: pendingShipmentCount })
+              : $t('status_page.pending_send_banner_title', { count: pendingNFTCount })"
+            :description="isMerch
+              ? $t('status_page.pending_ship_banner_description')
+              : $t('status_page.pending_send_banner_description')"
           />
           <BookStatusSalesOrdersTab
             :class-id="classId"
             :owner-wallet="ownerWallet"
+            :is-merch="isMerch"
+            :book-name="nftClassName"
             @reduce-pending-nft="handleReducePendingNft"
+            @shipped="handleShipped"
           />
           <BookStatusPurchaseLinksCard
             :class-id="classId"
@@ -199,6 +235,16 @@ const classId = ref<string>(route.params.classId as string)
 const classListingInfo = ref<ClassListingData>({} as ClassListingData)
 const prices = ref<ClassListingPrice[]>([])
 const stockBalance = ref(STOCK_BALANCE_UNKNOWN)
+
+// A good has no ISCN metadata, no file, no lending state and mints nothing, so
+// most of this page is book-shaped and has to be gated. Absent means book, so
+// this stays false until the listing says otherwise.
+const isMerch = computed(() => classListingInfo.value.productType === 'merch')
+
+// Panes wait for the listing: until it answers `isMerch` reads false for a merch item,
+// and 書籍資料 fires its chain reads from an immediate watch during setup, so a
+// guard evaluated in that window would still see the default.
+const hasLoadedListing = ref(false)
 
 // What BookDetailsSection exposes to the save orchestration.
 interface BookDetailsSectionApi {
@@ -286,6 +332,7 @@ const { changes, changeCount, authorChangeCount, changeAudience, needsWalletSign
   settingsChangedKeys: () => listingSettings.changedSettingKeys(),
   editionChanges: getEditionChanges,
   signatureChanged: () => !!signatureImage.value,
+  descriptionTab: () => (isMerch.value ? 'description' : 'details'),
 })
 
 const isSavingChanges = ref(false)
@@ -316,7 +363,9 @@ const tabItems = computed(() => [
     // The unsaved-changes count, as the mock shows it: on the status tab.
     badge: changeCount.value || undefined,
   },
-  { label: $t('status_page.tab_book_details'), value: 'details' },
+  isMerch.value
+    ? { label: $t('status_page.tab_description'), value: 'description' }
+    : { label: $t('status_page.tab_book_details'), value: 'details' },
   { label: $t('status_page.tab_pricing'), value: 'pricing' },
   { label: $t('status_page.tab_sales_orders'), value: 'sales' },
 ])
@@ -333,7 +382,9 @@ const selectedTabItemIndex = ref<BookStatusTab>(initialTab)
 // A pane mounts on its first visit and stays mounted from then on, so an
 // unopened tab costs no fetches while edits still survive tab switches.
 // 'details' is seeded regardless: it owns the chain form whose changed fields,
-// store-metadata conflicts and file links 書籍狀態 renders.
+// store-metadata conflicts and file links 書籍狀態 renders. A good has no chain
+// form, so its pane is held back by `isMerch` in the template — the listing
+// arrives after this runs, which is too late to seed differently.
 const visitedTabs = reactive(new Set<BookStatusTab>([selectedTabItemIndex.value, 'details']))
 
 watch(selectedTabItemIndex, (value) => {
@@ -343,7 +394,19 @@ watch(selectedTabItemIndex, (value) => {
   }
 })
 
-const nftClassName = computed(() => nftStore.getClassMetadataById(classId.value as string)?.name)
+// Same ordering problem from the other side: `?tab=` resolves before the
+// listing says what it sells, and a book and a merch item each lack one of the tabs.
+watch(hasLoadedListing, (loaded) => {
+  if (loaded && !tabItems.value.some(item => item.value === selectedTabItemIndex.value)) {
+    selectedTabItemIndex.value = 'summary'
+  }
+})
+
+// A good has no contract to read a name off, so its title comes from the
+// listing doc, which is the only place it is ever written.
+const nftClassName = computed(() => (isMerch.value
+  ? classListingInfo.value.name
+  : nftStore.getClassMetadataById(classId.value as string)?.name))
 const affiliationLink = computed(() => {
   const baseUrl = `${BOOK3_URL}/store/${classId.value}`
   if (userLikerInfo.value?.user) {
@@ -354,6 +417,8 @@ const affiliationLink = computed(() => {
 const ownerWallet = computed(() => classListingInfo?.value?.ownerWallet)
 const userIsOwner = computed(() => !!sessionWallet.value && ownerWallet.value === sessionWallet.value)
 const pendingNFTCount = computed(() => classListingInfo.value.pendingNFTCount || 0)
+// The merch counterpart: orders paid for but not yet shipped.
+const pendingShipmentCount = computed(() => classListingInfo.value.pendingShipmentCount || 0)
 const soldCount = computed(() => getSoldCount(classListingInfo.value.prices))
 
 watch(sessionWallet, async (newWallet) => {
@@ -378,10 +443,14 @@ onMounted(async () => {
   try {
     await refreshListingInfo()
 
+    // Reads `contractURI` on chain, and a merch item has no contract deployed at its
+    // id — the call fails rather than coming back empty.
+    if (!isMerch.value) {
+      lazyFetchClassMetadataById(classId.value as string)
+    }
     if (sessionWallet.value) {
       await calculateStock()
     }
-    lazyFetchClassMetadataById(classId.value as string)
   }
   catch (err) {
     error.value = (err as Error).toString()
@@ -395,9 +464,18 @@ async function refreshListingInfo() {
   const classData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId.value}`)
   classListingInfo.value = classData
   prices.value = classListingInfo.value.prices
+  hasLoadedListing.value = true
 }
 
 async function calculateStock() {
+  // Guarded here rather than at each caller: `balanceOf` is an on-chain read,
+  // and a merch item has no contract at its id, so the call fails outright. Its stock
+  // is the edition's own number, with no minted supply to reconcile against.
+  // Until the listing answers, `isMerch` reads false; onMounted recalculates after.
+  if (!hasLoadedListing.value || isMerch.value) {
+    stockBalance.value = STOCK_BALANCE_UNKNOWN
+    return
+  }
   const pendingNFTCount = classListingInfo.value.pendingNFTCount || 0
   const count = await getBalanceOf(classId.value, sessionWallet.value as string)
   const manuallyAssignedNFTCount = prices.value
@@ -417,6 +495,10 @@ function handleFilesReplaced(links: IscnFileLinks) {
 
 function handleReducePendingNft() {
   classListingInfo.value.pendingNFTCount = (classListingInfo.value.pendingNFTCount || 0) - 1
+}
+
+function handleShipped() {
+  classListingInfo.value.pendingShipmentCount = (classListingInfo.value.pendingShipmentCount || 0) - 1
 }
 
 // Two-phase save: REST first, the wallet-signed chain tx last, per-group

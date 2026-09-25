@@ -82,6 +82,8 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
       wallet: sessionWallet.value,
       limit: params.limit || 100,
       chain: 'base',
+      // The API defaults to books alone; merch listings are managed here too.
+      productType: 'all',
     }
     if (params.key) {
       qsPayload.key = params.key
@@ -106,6 +108,8 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
       wallet: sessionWallet.value,
       limit: params.limit || 100,
       chain: 'base',
+      // The API defaults to books alone; merch listings are managed here too.
+      productType: 'all',
     }
     if (params.key) {
       qsPayload.key = params.key

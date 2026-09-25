@@ -7,11 +7,17 @@ export interface BookPriceInDecimalByCurrency {
 // never heard of, so no listing ever reports it.
 export type BookListingStatus = 'listed' | 'sold_out' | 'unlisted' | 'pending_review' | 'draft'
 
+// What a listing sells. Absent means 'book': every listing predating the merch
+// SKUs is one, so the discriminator is only ever set on the new ones.
+export type ProductType = 'book' | 'merch'
+
 // The status page's tabs, in display order. Also the values accepted in its
 // `?tab=` query, so an unknown value can fall back instead of hiding every pane.
 // The values are the pre-reshuffle ones on purpose: 'summary' now labels 書籍狀態
 // and 'pricing' 訂價與設定, but renaming them would break every bookmarked link.
-export const BOOK_STATUS_TABS = ['summary', 'details', 'pricing', 'sales'] as const
+// 'description' is merch-only: it stands in for 書籍資料, which is an ISCN form
+// a merch item has nothing to put in.
+export const BOOK_STATUS_TABS = ['summary', 'details', 'description', 'pricing', 'sales'] as const
 export type BookStatusTab = typeof BOOK_STATUS_TABS[number]
 
 // 書檔 was folded into 書籍資料; its links keep working. A Map, not an object:
@@ -24,6 +30,11 @@ export interface ClassListingPrice {
   description: { en?: string, zh?: string } | string
   price: number | string
   priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
+  // The members-only price, as its own exact amount rather than a percentage
+  // off. One edition carries both: two editions of one physical product would
+  // each hold their own stock and oversell it.
+  plusPriceInDecimal?: number
+  plusPriceInDecimalByCurrency?: BookPriceInDecimalByCurrency
   stock: number
   isAutoDeliver: boolean
   isAllowCustomPrice: boolean
@@ -44,6 +55,12 @@ export interface EditionTableRow extends Omit<ClassListingPrice, 'stock'> {
 export interface ClassListingData {
   ownerWallet?: string
   prices: ClassListingPrice[]
+  // Absent on every listing that predates the merch SKUs; readers treat that
+  // as 'book' rather than backfilling it.
+  productType?: ProductType
+  // The merch counterpart of pendingNFTCount: orders paid for but not yet
+  // shipped. Listing-level so the banner has a number before the orders load.
+  pendingShipmentCount?: number
   // The listing's copy of the on-chain metadata, synced chain → store on every
   // refresh. Backfills wrote genre and keywords here directly, so these can
   // hold enrichment the chain never got — see utils/store-metadata-drift.ts.
