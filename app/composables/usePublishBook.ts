@@ -266,6 +266,9 @@ export function usePublishBook() {
           enableCustomMessagePage: shouldEnableCustomMessagePage(prices),
           hideDownload,
           hideAudio: listingDraft.hideAudio,
+          isAudioPlusReadingOnly: !listingDraft.hideAudio
+            && listingDraft.isPlusReadingEnabled
+            && listingDraft.isAudioPlusReadingOnly,
           isAdultOnly: listingDraft.isAdultOnly,
           isPlusReadingEnabled: listingDraft.isPlusReadingEnabled,
           isPreviewEnabled: listingDraft.isPreviewEnabled,

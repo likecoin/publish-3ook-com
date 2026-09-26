@@ -12,8 +12,10 @@
     <BookSettingsFields
       v-model:is-adult-only="settings.isAdultOnly"
       v-model:hide-audio="settings.hideAudio"
+      v-model:is-audio-plus-reading-only="settings.isAudioPlusReadingOnly"
       v-model:is-preview-enabled="settings.isPreviewEnabled"
       v-model:preview-percentage="settings.previewPercentage"
+      :is-plus-reading-enabled="settings.isPlusReadingEnabled"
     />
 
     <!-- Live free-preview cut readout: the straddled chapter is included in

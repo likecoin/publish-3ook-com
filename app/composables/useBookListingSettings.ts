@@ -15,6 +15,7 @@ export function useBookListingSettings(options: {
 }) {
   const isAdultOnly = ref(false)
   const hideAudio = ref(false)
+  const isAudioPlusReadingOnly = ref(false)
   const hideDownload = ref(false)
   const isPlusReadingEnabled = ref(false)
   const isPreviewEnabled = ref(false)
@@ -32,6 +33,7 @@ export function useBookListingSettings(options: {
     return {
       isAdultOnly: isAdultOnly.value,
       hideAudio: hideAudio.value,
+      isAudioPlusReadingOnly: isAudioPlusReadingOnly.value,
       hideDownload: hideDownload.value,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
@@ -53,6 +55,7 @@ export function useBookListingSettings(options: {
     mustClaimToView.value = classListingInfo.mustClaimToView ?? true
     hideDownload.value = classListingInfo.hideDownload ?? false
     hideAudio.value = classListingInfo.hideAudio ?? false
+    isAudioPlusReadingOnly.value = classListingInfo.isAudioPlusReadingOnly ?? false
     isAdultOnly.value = classListingInfo.isAdultOnly ?? false
     // Legacy books default to opt-out; free books always opt in regardless of stored value.
     isPlusReadingEnabled.value = options.isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
@@ -97,6 +100,7 @@ export function useBookListingSettings(options: {
       const snapshot = JSON.parse(listingSnapshot.value)
       isAdultOnly.value = snapshot.isAdultOnly
       hideAudio.value = snapshot.hideAudio
+      isAudioPlusReadingOnly.value = snapshot.isAudioPlusReadingOnly
       hideDownload.value = snapshot.hideDownload
       isPlusReadingEnabled.value = snapshot.isPlusReadingEnabled
       isPreviewEnabled.value = snapshot.isPreviewEnabled
@@ -119,6 +123,9 @@ export function useBookListingSettings(options: {
       connectedWallets: connectedWallets.value,
       hideDownload: hideDownload.value,
       hideAudio: hideAudio.value,
+      // The ref survives narration or the library being switched off,
+      // so switching back restores it; the API only sees it on when both are on.
+      isAudioPlusReadingOnly: !hideAudio.value && isPlusReadingEnabled.value && isAudioPlusReadingOnly.value,
       isAdultOnly: isAdultOnly.value,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
@@ -134,6 +141,7 @@ export function useBookListingSettings(options: {
   return {
     isAdultOnly,
     hideAudio,
+    isAudioPlusReadingOnly,
     hideDownload,
     isPlusReadingEnabled,
     isPreviewEnabled,

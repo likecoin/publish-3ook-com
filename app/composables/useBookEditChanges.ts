@@ -53,6 +53,7 @@ const CHAIN_FIELD_LABEL_KEYS: Record<string, string> = {
 const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
   isAdultOnly: 'nft_book_form.is_adult_only',
   hideAudio: 'nft_book_form.ai_audio',
+  isAudioPlusReadingOnly: 'nft_book_form.ai_audio_plus_only',
   hideDownload: 'upload_form.drm_section_title',
   isPlusReadingEnabled: 'nft_book_form.plus_reading',
   isPreviewEnabled: 'nft_book_form.free_preview',
@@ -76,7 +77,7 @@ const SETTINGS_FIELD_TABS: Record<string, BookStatusTab> = {
 // someone who already paid; everything else is either the next sale's terms or
 // the storefront page.
 const READER_FACING_CHAIN_KEYS = new Set(['contentFingerprints', 'downloadableUrls'])
-const READER_FACING_SETTING_KEYS = new Set(['hideDownload'])
+const READER_FACING_SETTING_KEYS = new Set(['hideDownload', 'isAudioPlusReadingOnly'])
 const FUTURE_PURCHASE_SETTING_KEYS = new Set(['isPreviewEnabled', 'previewPercentage'])
 
 const AUDIENCE_RANK: Record<BookEditChangeAudience, number> = {
