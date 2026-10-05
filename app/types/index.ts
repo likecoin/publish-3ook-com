@@ -1,6 +1,6 @@
 export type { ISCNContentMetadata, ISCNData, PotentialActionTarget, PotentialAction, ClassMetadataHasPart, ClassMetadata, ISCNRegisterPayload, ISCNFormData, ISCNTxPayload, ISCNValidationData } from './iscn'
-export type { BookPriceInDecimalByCurrency, BookListingStatus, ClassListingPrice, ClassListingData, BookRecord, ProductData, EditionTableRow } from './book'
-export type { AffiliationLink, PurchaseItem } from './purchase'
+export type { BookPriceInDecimalByCurrency, BookListingStatus, ProductType, ClassListingPrice, ClassListingData, BookRecord, ProductData, EditionTableRow } from './book'
+export type { AffiliationLink, PurchaseItem, ShippingDetails } from './purchase'
 export type { CommissionRow, PayoutRow, PayoutData, PayoutItemDetail, SubscriptionAffiliateRow, SubscriptionAffiliateReport } from './payout'
 export type { PlusReadingReportEntry, PlusReadingReport, PlusReadingStatsEntry, PlusReadingStats } from './plus-reading'
 export type { FileRecord, EpubMetadata, EpubSpineItem, ArweaveEstimate } from './upload'

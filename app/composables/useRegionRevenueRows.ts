@@ -2,7 +2,7 @@ import type { BookPriceInDecimalByCurrency } from '~/types/book'
 import type { PriceFormItem } from '~/types/publish'
 import { getPriceItemUSDValue } from '~/utils/listing'
 import { estimateAuthorRevenue } from '~/utils/book-revenue'
-import { buildPriceOverride, getRegionReaderPrices, type PricingCurrency } from '~/utils/pricing'
+import { buildPriceOverride, CURRENCY_SYMBOL, getRegionReaderPrices, type PricingCurrency } from '~/utils/pricing'
 
 export interface RegionRevenueRow {
   currency: PricingCurrency
@@ -11,8 +11,6 @@ export interface RegionRevenueRow {
   earnLikerLand: string
   earnDirect: string
 }
-
-const CURRENCY_SYMBOL: Record<PricingCurrency, string> = { usd: 'US$', hkd: 'HK$', twd: 'NT$' }
 
 // The NT$/HK$ ladders are whole units; only USD is ever quoted with cents.
 function formatRegionAmount(currency: PricingCurrency, valueInDecimal: number): string {

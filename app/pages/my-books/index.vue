@@ -287,7 +287,8 @@ const bookRows = computed<BookTableRow[]>(() => (isShowingModeratedList.value ? 
     }),
     editionCount: prices.length,
     unlistedEditionCount: prices.filter(p => p.isUnlisted).length,
-    pendingAction: b.pendingNFTCount,
+    // What the owner still owes buyers: NFTs to send, or parcels to ship.
+    pendingAction: b.productType === 'merch' ? b.pendingShipmentCount : b.pendingNFTCount,
     sold: b.sold,
     timestamp: b.timestamp,
   }
@@ -468,9 +469,10 @@ onMounted(async () => {
     await Promise.all(promises)
 
     // Only legacy listings arrive without a name; the rest render from the list
-    // payload alone, with no per-book on-chain read.
+    // payload alone, with no per-book on-chain read. A merch item has no
+    // contract at its id, so there is nothing to read a name off either.
     const namelessClassIds = new Set(bookList.value.concat(moderatedBookList.value)
-      .filter(b => !b.name)
+      .filter(b => !b.name && b.productType !== 'merch')
       .map(b => b.classId))
     namelessClassIds.forEach(classId => lazyFetchClassNameById(classId))
   }

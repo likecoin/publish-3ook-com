@@ -26,36 +26,11 @@
         <p class="text-xs text-muted">
           {{ $t('nft_book_form.custom_pricing_description') }}
         </p>
-        <UFormField :label="$t('nft_book_form.custom_price_usd')">
-          <UInput
-            :model-value="price.priceUSDInput"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0"
-            @update:model-value="(v: string | number) => { price.priceUSDInput = String(v ?? '') }"
-          />
-        </UFormField>
-        <UFormField :label="$t('nft_book_form.custom_price_hkd')">
-          <UInput
-            :model-value="price.priceHKDInput"
-            type="number"
-            step="1"
-            min="0"
-            placeholder="0"
-            @update:model-value="(v: string | number) => { price.priceHKDInput = String(v ?? '') }"
-          />
-        </UFormField>
-        <UFormField :label="$t('nft_book_form.custom_price_twd')">
-          <UInput
-            :model-value="price.priceTWDInput"
-            type="number"
-            step="1"
-            min="0"
-            placeholder="0"
-            @update:model-value="(v: string | number) => { price.priceTWDInput = String(v ?? '') }"
-          />
-        </UFormField>
+        <PublishEditionPriceCurrencyInputs
+          v-model:usd="price.priceUSDInput"
+          v-model:hkd="price.priceHKDInput"
+          v-model:twd="price.priceTWDInput"
+        />
       </div>
     </div>
   </UFormField>

@@ -1,6 +1,13 @@
 import type { FormError } from '#ui/types'
 import { MINIMAL_PRICE, DEFAULT_PRICE_STRING, DEFAULT_STOCK } from '~/constant'
 import { escapeHtml } from '~/utils/newClass'
+import {
+  isBlank,
+  toPriceCents,
+  toPriceInput,
+  mapPlusPriceToFormInputs,
+  mapFormInputsToPlusPrice,
+} from '~/utils/listing-price'
 import type { ClassListingPrice } from '~/types'
 import type { PriceFormItem, MappedPrice } from '~/types/publish'
 
@@ -31,6 +38,9 @@ export function createDefaultPriceFormItem(overrides: Partial<PriceFormItem> = {
     priceUSDInput: '',
     priceHKDInput: '',
     priceTWDInput: '',
+    plusPriceUSDInput: '',
+    plusPriceHKDInput: '',
+    plusPriceTWDInput: '',
     ...overrides,
   }
 }
@@ -40,10 +50,6 @@ export function createDefaultPriceFormItem(overrides: Partial<PriceFormItem> = {
 export function getListingPriceName(name: ClassListingPrice['name']): string {
   if (typeof name === 'object') { return name.zh || name.en || '' }
   return name || ''
-}
-
-function isBlank(value: unknown): boolean {
-  return String(value ?? '').trim() === ''
 }
 
 function isRealPrice(value: number): boolean {
@@ -99,7 +105,7 @@ export function mapPriceFormItemsToPayload(prices: PriceFormItem[]): MappedPrice
         en: escapeHtml(p.description),
         zh: escapeHtml(p.description),
       },
-      priceInDecimal: Math.round(usdValue * 100),
+      priceInDecimal: toPriceCents(usdValue),
       price: usdValue,
       stock: p.deliveryMethod === 'auto' ? 0 : Number(p.stock),
       isAutoDeliver: p.deliveryMethod === 'auto',
@@ -109,10 +115,14 @@ export function mapPriceFormItemsToPayload(prices: PriceFormItem[]): MappedPrice
     }
     if (p.isCustomPricing) {
       mapped.priceInDecimalByCurrency = {
-        hkd: Math.round(Number(p.priceHKDInput) * 100),
-        twd: Math.round(Number(p.priceTWDInput) * 100),
+        hkd: toPriceCents(p.priceHKDInput),
+        twd: toPriceCents(p.priceTWDInput),
       }
     }
+    // Sent whenever the edition has one, whether or not a field on this form
+    // edited it: the PUT replaces the whole price object, so omitting it here
+    // would erase the member price on an unrelated edit.
+    Object.assign(mapped, mapFormInputsToPlusPrice(p))
     return mapped
   })
 }
@@ -142,8 +152,9 @@ export function mapListingPriceToFormItem(price: ClassListingPrice): PriceFormIt
     oldStock: price.stock,
     isCustomPricing: hasCustomPricing,
     priceUSDInput: hasCustomPricing ? tierPriceStr : '',
-    priceHKDInput: typeof overrideHKD === 'number' ? (overrideHKD / 100).toString() : '',
-    priceTWDInput: typeof overrideTWD === 'number' ? (overrideTWD / 100).toString() : '',
+    priceHKDInput: toPriceInput(overrideHKD),
+    priceTWDInput: toPriceInput(overrideTWD),
+    ...mapPlusPriceToFormInputs(price),
   }
 }
 

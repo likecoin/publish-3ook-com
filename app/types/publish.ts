@@ -39,6 +39,12 @@ export interface PriceFormItem {
   priceUSDInput: string
   priceHKDInput: string
   priceTWDInput: string
+  // The members-only price, merch-only, blank when the edition has none.
+  // Carried through the form even where no field edits it: the edition PUT
+  // sends a whole price object, so a value the form drops is a value erased.
+  plusPriceUSDInput: string
+  plusPriceHKDInput: string
+  plusPriceTWDInput: string
 }
 
 export interface MappedPrice {
@@ -46,6 +52,8 @@ export interface MappedPrice {
   description: { en: string, zh: string }
   priceInDecimal: number
   priceInDecimalByCurrency?: BookPriceInDecimalByCurrency
+  plusPriceInDecimal?: number
+  plusPriceInDecimalByCurrency?: BookPriceInDecimalByCurrency
   price: number
   stock: number
   isAutoDeliver: boolean

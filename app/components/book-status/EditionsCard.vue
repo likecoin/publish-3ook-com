@@ -91,14 +91,20 @@
       </template>
     </UTable>
     <!-- The stock balance lives in a table row, so it needs somewhere else to
-         go once the table is hidden; it is the number 鑄造更多庫存 acts on. -->
+         go once the table is hidden; it is the number 鑄造更多庫存 acts on.
+         A good mints nothing, so it has no minted supply to reconcile against. -->
     <p
-      v-if="prices.length <= 1 && hasManualEdition"
+      v-if="prices.length <= 1 && hasManualEdition && !isMerch"
       class="p-4 text-sm text-muted"
       v-text="stockBalanceLabel"
     />
 
-    <template #footer>
+    <!-- Minting is a book's restock. A good has no contract at its id, so its
+         stock is only ever the edition's own number, edited in the form below. -->
+    <template
+      v-if="!isMerch"
+      #footer
+    >
       <div class="flex justify-end items-center ">
         <UTooltip
           :text="$t('status_page.structural_locked_hint')"
@@ -136,7 +142,10 @@
       </template>
     </UModal>
 
-    <UModal v-model:open="showRestockModal">
+    <UModal
+      v-if="!isMerch"
+      v-model:open="showRestockModal"
+    >
       <template #content>
         <LiteMintNFT
           :is-restock="true"
@@ -160,7 +169,7 @@ const { t: $t } = useI18n()
 const apiFetch = useLikeCoApiFetch()
 const { showSuccessToast } = useToastComposable()
 
-const { classId, stockBalance = 0, locked = false, canAddEdition = false, hasExistingSignatureImage = false } = defineProps<{
+const { classId, stockBalance = 0, locked = false, canAddEdition = false, hasExistingSignatureImage = false, isMerch = false } = defineProps<{
   classId: string
   stockBalance?: number
   // Reorder/add/restock shift the indexes the pending-changes ledger is keyed
@@ -170,6 +179,8 @@ const { classId, stockBalance = 0, locked = false, canAddEdition = false, hasExi
   // the listing to find that out for itself.
   canAddEdition?: boolean
   hasExistingSignatureImage?: boolean
+  // A good has no contract at its id, so nothing here may mint.
+  isMerch?: boolean
 }>()
 
 const prices = defineModel<ClassListingPrice[]>('prices', { required: true })
@@ -240,8 +251,9 @@ const editionsTableRows = computed(() => {
     isStockBalancePlaceholderRow: false,
   }))
 
-  // If it's a manual edition, add a row for stock balance.
-  if (prices.value.some(price => !price.isAutoDeliver)) {
+  // If it's a manual edition, add a row for stock balance. A good has no
+  // minted supply, so there is no balance row to add.
+  if (!isMerch && prices.value.some(price => !price.isAutoDeliver)) {
     rows.push({
       name: '',
       isAutoDeliver: false,

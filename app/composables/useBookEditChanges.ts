@@ -115,6 +115,9 @@ export function useBookEditChanges(options: {
   // Chain fields holding a value taken from the bookstore listing; see
   // utils/store-metadata-drift.ts.
   chainStoreSourcedFields?: () => string[]
+  // 書籍資料 owns the description on a book, but a merch listing has no such
+  // tab, so its host says where the pane that edits it lives instead.
+  descriptionTab?: () => BookStatusTab
 }) {
   const { t } = useI18n()
 
@@ -149,12 +152,15 @@ export function useBookEditChanges(options: {
       })
     })
 
+    const descriptionTab = options.descriptionTab?.()
     options.settingsChangedKeys().forEach((field) => {
       const labelKey = SETTINGS_FIELD_LABEL_KEYS[field]
       push({
         key: `settings.${field}`,
         label: labelKey ? t(labelKey) : field,
-        tab: SETTINGS_FIELD_TABS[field] ?? 'pricing',
+        tab: (field === 'descriptionFull' && descriptionTab)
+          || SETTINGS_FIELD_TABS[field]
+          || 'pricing',
         group: 'settings',
         audience: getSettingAudience(field),
       })

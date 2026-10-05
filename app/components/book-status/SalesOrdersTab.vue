@@ -20,6 +20,19 @@
             icon="i-heroicons-magnifying-glass-20-solid"
             :placeholder="$t('status_page.search_placeholder')"
           />
+          <!-- The fulfilment sheet: every order still to ship, with the address
+               split into its own columns. Ignores the search above on purpose —
+               a filtered export would quietly leave orders unshipped. -->
+          <UButton
+            v-if="isMerch && userIsOwner"
+            icon="i-heroicons-arrow-down-tray"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :label="$t('status_page.export_open_orders')"
+            :disabled="!openOrders.length"
+            @click="exportOpenOrders"
+          />
           <UDropdownMenu :items="columnToggleItems">
             <UButton
               icon="i-heroicons-view-columns"
@@ -171,13 +184,56 @@
         :data="plusReadingStatsRows"
       />
     </UCard>
+
+    <!-- The tracking number is optional: a hand-delivered order is still
+         shipped, and withholding the status until a number exists would leave
+         it counted as outstanding. -->
+    <UModal
+      v-model:open="isShipModalOpen"
+      :title="isEditingTrackingNumber
+        ? $t('status_page.edit_tracking_number')
+        : $t('status_page.mark_shipped')"
+      :description="isEditingTrackingNumber
+        ? $t('status_page.edit_tracking_number_description')
+        : $t('status_page.mark_shipped_description')"
+      :ui="{ body: 'p-4 sm:p-6' }"
+    >
+      <template #body>
+        <UFormField :label="$t('table.tracking_number')">
+          <UInput
+            v-model="trackingNumberInput"
+            class="w-full"
+            :placeholder="$t('status_page.tracking_number_placeholder')"
+          />
+        </UFormField>
+      </template>
+      <template #footer>
+        <div class="w-full flex justify-end gap-2">
+          <UButton
+            :label="$t('common.cancel')"
+            color="neutral"
+            variant="ghost"
+            :disabled="isShipping"
+            @click="isShipModalOpen = false"
+          />
+          <UButton
+            :label="isEditingTrackingNumber
+              ? $t('common.save')
+              : $t('status_page.mark_shipped')"
+            :loading="isShipping"
+            @click="confirmShipment"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getPortfolioURL, convertMsToMinutes } from '~/utils'
+import { downloadCSV } from '~/utils/csv'
 import { formatPriceUSDLabel } from '~/utils/listing'
-import type { PurchaseItem, PlusReadingStats } from '~/types'
+import type { PurchaseItem, PlusReadingStats, ShippingDetails } from '~/types'
 
 const { t: $t, locale } = useI18n()
 
@@ -187,28 +243,38 @@ const bookstoreApiStore = useBookstoreApiStore()
 const ordersStore = useOrdersStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { ordersByClassIdMap } = storeToRefs(ordersStore)
-const { setOrderStatus } = ordersStore
+const { setOrderStatus, setOrderShipped } = ordersStore
 const { reduceListingPendingNFTCountById } = bookstoreApiStore
 
 const route = useRoute()
 const isPlusReadingStatsEnabled = computed(() => route.query.time_stats === '1')
 const localeRoute = useLocaleRoute()
-const { showSuccessToast } = useToastComposable()
+const { showSuccessToast, showErrorToast } = useToastComposable()
 
-const { classId, ownerWallet } = defineProps<{
+const { classId, ownerWallet, isMerch = false, bookName = '' } = defineProps<{
   classId: string
   ownerWallet?: string
+  // A good is shipped rather than sent: no NFT, no wallet, and an address to
+  // fulfil against.
+  isMerch?: boolean
+  bookName?: string
 }>()
 
-const emit = defineEmits<{ reducePendingNft: [] }>()
+const emit = defineEmits<{ reducePendingNft: [], shipped: [] }>()
 
 // Sorting 狀態 by its raw key would scatter the one status the author can act
 // on, so the column sorts by urgency instead.
 const ORDER_STATUS_SORT_ORDER: Record<string, number> = {
   pendingNFT: 0,
   paid: 1,
-  completed: 2,
+  processing: 2,
+  shipped: 3,
+  completed: 4,
 }
+
+// Paid for but not yet handed to the courier: checkout puts a merch item straight
+// here, and it is exactly what the API counts in `pendingShipmentCount`.
+const OPEN_MERCH_ORDER_STATUS = 'processing'
 
 // Search
 const searchInput = ref('')
@@ -353,7 +419,16 @@ const orderColumnDefs = computed(() => [
   { accessorKey: 'coupon', header: $t('table.coupon_applied'), optional: true },
   { accessorKey: 'buyerEmail', header: $t('table.buyer_email'), optional: true },
   { accessorKey: 'readerEmail', header: $t('table.reader_email'), optional: true },
-  { accessorKey: 'wallet', header: $t('table.reader_wallet'), optional: true },
+  { accessorKey: 'buyerPhone', header: $t('table.buyer_phone'), optional: true },
+  // Shipping is the merch workflow, and a merch item has no wallet to deliver to.
+  // The address is not behind the toggle: on a merch listing this table is the
+  // fulfilment console, and the toggle does not persist between visits.
+  ...(isMerch
+    ? [
+        { accessorKey: 'shippingAddress', header: $t('table.shipping_address') },
+        { accessorKey: 'trackingNumber', header: $t('table.tracking_number'), optional: true },
+      ]
+    : [{ accessorKey: 'wallet', header: $t('table.reader_wallet'), optional: true }]),
   { accessorKey: 'message', header: $t('table.reader_message') },
 ])
 
@@ -382,6 +457,26 @@ const columnToggleItems = computed(() => orderColumnDefs.value
 
 function getOrdersTableActionItems(purchaseListItem: PurchaseItem) {
   const actionItems = []
+
+  // A good is shipped, not sent. There is no NFT to deliver and no transaction
+  // to link, and both 寄送提醒 and 直接標示完成 talk about claiming one.
+  if (isMerch) {
+    // The API re-ships a shipped order too, which is how a mistyped tracking
+    // number gets corrected; nothing else is shippable.
+    const isShipped = purchaseListItem.status === 'shipped'
+    if (userIsOwner.value && (isShipped || purchaseListItem.status === OPEN_MERCH_ORDER_STATUS)) {
+      actionItems.push([{
+        label: isShipped
+          ? $t('status_page.edit_tracking_number')
+          : $t('status_page.mark_shipped'),
+        icon: isShipped ? 'i-heroicons-pencil-square' : 'i-heroicons-truck',
+        onSelect: () => {
+          openShipModal(purchaseListItem)
+        },
+      }])
+    }
+    return actionItems
+  }
 
   if (purchaseListItem.status === 'completed' && purchaseListItem.txHash) {
     actionItems.push([{
@@ -439,6 +534,12 @@ function getStatusLabel(purchaseListItem: PurchaseItem) {
     case 'pendingNFT':
       return $t('status.pendingNFT')
 
+    case 'processing':
+      return $t('status.processing')
+
+    case 'shipped':
+      return $t('status.shipped')
+
     case 'completed':
       return $t('status.completed')
 
@@ -453,14 +554,32 @@ function getStatusLabelColor(purchaseListItem: PurchaseItem): 'info' | 'warning'
       return 'info'
 
     case 'pendingNFT':
+    case 'processing':
       return 'warning'
 
+    case 'shipped':
     case 'completed':
       return 'success'
 
     default:
       return 'neutral'
   }
+}
+
+// Structured on the wire so the fulfilment CSV can split it; the table has one
+// cell, so it joins whichever parts the order actually carries. Books never
+// have an address, and this runs per row, so it leaves before allocating.
+function formatShippingAddress(shippingDetails?: ShippingDetails) {
+  const address = shippingDetails?.address
+  if (!address) { return '' }
+  const { line1, line2, city, state, postal_code: postalCode, country } = address
+  return [line1, line2, city, state, postalCode, country].filter(Boolean).join(', ')
+}
+
+// Stripe collects a phone alongside the shipping address, so a merch order can
+// carry it there rather than on the order itself.
+function getBuyerPhone(purchaseListItem: PurchaseItem) {
+  return purchaseListItem.phone || purchaseListItem.shippingDetails?.phone || ''
 }
 
 // Held rather than called through `toLocaleDateString`, which rebuilds the
@@ -483,7 +602,9 @@ function formatOrderDate(timestamp: number) {
 const orderRows = computed(() => ordersData.value.map((p: PurchaseItem) => ({
   readerEmail: p.giftInfo?.toEmail || p.email,
   buyerEmail: p.email,
-  buyerPhone: p.phone || '',
+  buyerPhone: getBuyerPhone(p),
+  shippingAddress: formatShippingAddress(p.shippingDetails),
+  trackingNumber: p.trackingNumber || '',
   status: p.status,
   statusLabel: getStatusLabel(p),
   statusLabelColor: getStatusLabelColor(p),
@@ -508,6 +629,8 @@ const filteredOrderRows = computed(() => {
     p.readerEmail,
     p.buyerEmail,
     p.buyerPhone,
+    p.shippingAddress,
+    p.trackingNumber,
     p.wallet,
     p.priceName,
     p.statusLabel,
@@ -586,5 +709,110 @@ async function hardSetStatusToCompleted(purchase: PurchaseItem) {
     reduceListingPendingNFTCountById(classId, 1)
     emit('reducePendingNft')
   }
+}
+
+const isShipModalOpen = ref(false)
+const isShipping = ref(false)
+const trackingNumberInput = ref('')
+const orderBeingShipped = ref<PurchaseItem | null>(null)
+// Fixed when the dialog opens: a success flips the order to shipped before the
+// dialog has finished closing, which would retitle it on the way out.
+const isEditingTrackingNumber = ref(false)
+
+function openShipModal(purchase: PurchaseItem) {
+  orderBeingShipped.value = purchase
+  isEditingTrackingNumber.value = purchase.status === 'shipped'
+  // Opens on whatever the order already holds, so correcting a typo is an edit
+  // rather than a retype.
+  trackingNumberInput.value = purchase.trackingNumber || ''
+  isShipModalOpen.value = true
+}
+
+async function confirmShipment() {
+  const purchase = orderBeingShipped.value
+  if (!purchase) { return }
+  const trackingNumber = trackingNumberInput.value.trim()
+  const previousStatus = purchase.status
+  if (isEditingTrackingNumber.value && trackingNumber === (purchase.trackingNumber || '')) {
+    isShipModalOpen.value = false
+    return
+  }
+
+  isShipping.value = true
+  try {
+    // Written back only once the API has taken it, unlike the NFT flow above:
+    // there is a spinner on the button here, so there is nothing to roll back.
+    await apiFetch(`/likernft/book/purchase/${classId}/ship/${purchase.id}`, {
+      method: 'POST',
+      body: { trackingNumber },
+    })
+    setOrderShipped(classId, purchase.id, trackingNumber)
+    // Only an order that was still open had been counted as outstanding.
+    if (previousStatus === OPEN_MERCH_ORDER_STATUS) {
+      emit('shipped')
+    }
+    isShipModalOpen.value = false
+    showSuccessToast(isEditingTrackingNumber.value
+      ? $t('status_page.edit_tracking_number_success')
+      : $t('status_page.mark_shipped_success'))
+  }
+  catch (err) {
+    // Said out loud, and the dialog stays open on the order: a silent failure
+    // here reads as a shipped parcel that was never dispatched.
+    // eslint-disable-next-line no-console
+    console.error(err)
+    showErrorToast(err)
+  }
+  finally {
+    isShipping.value = false
+  }
+}
+
+const openOrders = computed(() => (isMerch
+  ? ordersData.value.filter((p: PurchaseItem) => p.status === OPEN_MERCH_ORDER_STATUS)
+  : []))
+
+async function exportOpenOrders() {
+  // Discrete address columns rather than the table's joined cell, so the sheet
+  // can be handed to a courier's importer as it is.
+  const columns = [
+    { accessorKey: 'orderDate', header: $t('table.order_date') },
+    { accessorKey: 'orderId', header: $t('table.id') },
+    { accessorKey: 'priceName', header: $t('table.price_name') },
+    { accessorKey: 'quantity', header: $t('table.quantity') },
+    { accessorKey: 'recipientName', header: $t('table.recipient_name') },
+    { accessorKey: 'buyerEmail', header: $t('table.buyer_email') },
+    { accessorKey: 'buyerPhone', header: $t('table.buyer_phone') },
+    { accessorKey: 'addressLine1', header: $t('table.address_line1') },
+    { accessorKey: 'addressLine2', header: $t('table.address_line2') },
+    { accessorKey: 'addressCity', header: $t('table.address_city') },
+    { accessorKey: 'addressState', header: $t('table.address_state') },
+    { accessorKey: 'addressPostalCode', header: $t('table.address_postal_code') },
+    { accessorKey: 'addressCountry', header: $t('table.address_country') },
+    { accessorKey: 'message', header: $t('table.reader_message') },
+  ]
+
+  const data = openOrders.value.map((p: PurchaseItem) => {
+    const address = p.shippingDetails?.address || {}
+    return {
+      orderDate: formatOrderDate(p.timestamp),
+      orderId: p.id,
+      priceName: p.priceName || '',
+      quantity: p.quantity || 1,
+      recipientName: p.shippingDetails?.name || '',
+      buyerEmail: p.email,
+      buyerPhone: getBuyerPhone(p),
+      addressLine1: address.line1 || '',
+      addressLine2: address.line2 || '',
+      addressCity: address.city || '',
+      addressState: address.state || '',
+      addressPostalCode: address.postal_code || '',
+      addressCountry: address.country || '',
+      message: p.message || '',
+    }
+  })
+
+  const date = new Date().toISOString().split('T')[0]
+  await downloadCSV(data, columns, `open-orders-${bookName || classId}-${date}.csv`)
 }
 </script>

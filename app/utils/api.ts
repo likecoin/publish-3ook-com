@@ -1,4 +1,5 @@
-import type { ClassListingPrice } from '~/types/book'
+import type { ClassListingPrice, ProductType } from '~/types/book'
+import type { ShippingDetails } from '~/types/purchase'
 
 export interface FetchLikerInfoResult {
   user: string
@@ -103,6 +104,11 @@ export interface OrderData {
   // Present on gift purchases,
   // where `email` is the buyer but `wallet` is the recipient's.
   giftInfo?: { toEmail?: string }
+  // Merch only. `trackingNumber` is also written back optimistically when an
+  // order is marked shipped — see stores/orders.ts.
+  phone?: string
+  shippingDetails?: ShippingDetails
+  trackingNumber?: string
 }
 
 export interface OrdersResponse {
@@ -133,6 +139,9 @@ export interface BookListingItem {
   // neither owns nor moderates the book.
   sold?: number
   pendingNFTCount?: number
+  // Absent means 'book', as on the listing itself.
+  productType?: ProductType
+  pendingShipmentCount?: number
 }
 
 export interface BookListingResponse {

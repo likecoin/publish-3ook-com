@@ -301,6 +301,8 @@ export function getCurrencyPriceInDecimal(
 /** The regions a reader is quoted in, in the order the review step lists them. */
 export const REGION_CURRENCIES = ['twd', 'hkd', 'usd'] as const satisfies readonly PricingCurrency[]
 
+export const CURRENCY_SYMBOL: Record<PricingCurrency, string> = { usd: 'US$', hkd: 'HK$', twd: 'NT$' }
+
 export type OverrideCurrency = typeof BOOK_PRICE_OVERRIDE_CURRENCIES[number]
 
 /**
