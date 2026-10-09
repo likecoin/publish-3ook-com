@@ -20,8 +20,10 @@
     <BookSettingsFields
       v-model:is-adult-only="isAdultOnly"
       v-model:hide-audio="hideAudio"
+      v-model:is-audio-plus-reading-only="isAudioPlusReadingOnly"
       v-model:is-preview-enabled="isPreviewEnabled"
       v-model:preview-percentage="previewPercentage"
+      :is-plus-reading-enabled="isPlusReadingEnabled"
     />
   </UCard>
 </template>
@@ -42,6 +44,8 @@ const { settings, isBookUnlisted = false } = defineProps<{
 const {
   isAdultOnly,
   hideAudio,
+  isAudioPlusReadingOnly,
+  isPlusReadingEnabled,
   isPreviewEnabled,
   previewPercentage,
 } = settings

@@ -68,6 +68,7 @@ export const CSV_DEFAULT_LANGUAGE = 'zh'
 export const CSV_DEFAULT_AUTO_DELIVER = true
 export const CSV_DEFAULT_ENABLE_DRM = false
 export const CSV_DEFAULT_ENABLE_TTS = true
+export const CSV_DEFAULT_TTS_LIBRARY_ONLY = false
 export const CSV_DEFAULT_ENABLE_LIBRARY = true
 export const CSV_DEFAULT_ENABLE_PREVIEW = true
 export const CSV_DEFAULT_PREVIEW_PERCENTAGE = PREVIEW_PERCENTAGE_DEFAULT

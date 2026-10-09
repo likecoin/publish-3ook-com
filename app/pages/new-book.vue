@@ -359,6 +359,7 @@ function createDefaultListingDraft(): PublishListingDraft {
     prices: [createDefaultPriceFormItem({ price: '', name: $t('prices.standard_edition') })],
     isAdultOnly: false,
     hideAudio: false,
+    isAudioPlusReadingOnly: false,
     // New titles opt into Plus all-you-can-read by default.
     isPlusReadingEnabled: true,
     // New titles opt into free preview by default.

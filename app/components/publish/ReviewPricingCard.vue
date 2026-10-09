@@ -63,12 +63,14 @@ const {
   prices,
   isPlusReadingEnabled,
   hideAudio,
+  isAudioPlusReadingOnly,
   isAdultOnly,
   editable = false,
 } = defineProps<{
   prices: PriceFormItem[]
   isPlusReadingEnabled: boolean
   hideAudio: boolean
+  isAudioPlusReadingOnly: boolean
   isAdultOnly: boolean
   editable?: boolean
 }>()
@@ -93,7 +95,11 @@ const settingsRows = computed(() => [
   },
   {
     label: $t('nft_book_form.ai_audio'),
-    value: hideAudio ? $t('common.no') : $t('common.yes'),
+    value: hideAudio
+      ? $t('common.no')
+      : isPlusReadingEnabled && isAudioPlusReadingOnly
+        ? $t('nft_book_form.ai_audio_plus_only_value')
+        : $t('common.yes'),
   },
   {
     label: $t('nft_book_form.accept_tipping'),

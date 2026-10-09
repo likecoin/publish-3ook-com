@@ -12,7 +12,19 @@
       name="isAudioAllowed"
       :label="$t('nft_book_form.ai_audio')"
       :description="$t('nft_book_form.ai_audio_hint')"
-    />
+    >
+      <template
+        v-if="isPlusReadingEnabled"
+        #default
+      >
+        <UCheckbox
+          v-model="isAudioPlusReadingOnly"
+          name="isAudioPlusReadingOnly"
+          :label="$t('nft_book_form.ai_audio_plus_only')"
+          :description="$t('nft_book_form.ai_audio_plus_only_hint')"
+        />
+      </template>
+    </BookSettingsToggleRow>
 
     <BookSettingsToggleRow
       v-model="isPreviewEnabled"
@@ -80,8 +92,13 @@ import { PREVIEW_PERCENTAGE_MIN, PREVIEW_PERCENTAGE_MAX } from '~/constant'
 // is not among them: it has a card of its own in both flows.
 const isAdultOnly = defineModel<boolean>('isAdultOnly', { required: true })
 const hideAudio = defineModel<boolean>('hideAudio', { required: true })
+const isAudioPlusReadingOnly = defineModel<boolean>('isAudioPlusReadingOnly', { required: true })
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })
 const previewPercentage = defineModel<number>('previewPercentage', { required: true })
+
+const { isPlusReadingEnabled } = defineProps<{
+  isPlusReadingEnabled: boolean
+}>()
 
 // The stored flag is the prohibition, the control is the permission. Inverting
 // here is what lets the row default to on without changing the stored default.
