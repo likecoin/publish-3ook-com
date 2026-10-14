@@ -19,11 +19,13 @@
 
     <BookSettingsFields
       v-model:is-adult-only="isAdultOnly"
+      v-model:is-liker-land-art="isLikerLandArt"
       v-model:hide-audio="hideAudio"
       v-model:is-audio-plus-reading-only="isAudioPlusReadingOnly"
       v-model:is-preview-enabled="isPreviewEnabled"
       v-model:preview-percentage="previewPercentage"
       :is-plus-reading-enabled="isPlusReadingEnabled"
+      :is-liker-land-art-locked="isLikerLandArtLocked"
     />
   </UCard>
 </template>
@@ -43,6 +45,8 @@ const { settings, isBookUnlisted = false } = defineProps<{
 // pulled out once and bound like local state.
 const {
   isAdultOnly,
+  isLikerLandArt,
+  isLikerLandArtLocked,
   hideAudio,
   isAudioPlusReadingOnly,
   isPlusReadingEnabled,

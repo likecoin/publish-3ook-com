@@ -7,6 +7,16 @@
       :description="$t('nft_book_form.is_adult_only_hint')"
     />
 
+    <!-- Only the book page passes it; the wizard has no such setting. -->
+    <BookSettingsToggleRow
+      v-if="isLikerLandArt !== undefined"
+      v-model="isLikerLandArt"
+      name="isLikerLandArt"
+      :disabled="isLikerLandArtLocked"
+      :label="$t('nft_book_form.is_liker_land_art')"
+      :description="$t('nft_book_form.is_liker_land_art_hint')"
+    />
+
     <BookSettingsToggleRow
       v-model="isAudioAllowed"
       name="isAudioAllowed"
@@ -91,13 +101,15 @@ import { PREVIEW_PERCENTAGE_MIN, PREVIEW_PERCENTAGE_MAX } from '~/constant'
 // used by the wizard's pricing step and the book page's 販售與內容設定. Lending
 // is not among them: it has a card of its own in both flows.
 const isAdultOnly = defineModel<boolean>('isAdultOnly', { required: true })
+const isLikerLandArt = defineModel<boolean | undefined>('isLikerLandArt')
 const hideAudio = defineModel<boolean>('hideAudio', { required: true })
 const isAudioPlusReadingOnly = defineModel<boolean>('isAudioPlusReadingOnly', { required: true })
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })
 const previewPercentage = defineModel<number>('previewPercentage', { required: true })
 
-const { isPlusReadingEnabled } = defineProps<{
+const { isPlusReadingEnabled, isLikerLandArtLocked = false } = defineProps<{
   isPlusReadingEnabled: boolean
+  isLikerLandArtLocked?: boolean
 }>()
 
 // The stored flag is the prohibition, the control is the permission. Inverting
