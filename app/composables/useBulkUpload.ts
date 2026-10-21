@@ -314,6 +314,8 @@ export function useBulkUpload() {
       isPlusReadingEnabled: book.isPlusReadingEnabled,
       isPreviewEnabled: book.isPreviewEnabled,
       previewPercentage: book.previewPercentage,
+      // The API only accepts true, so a false flag is left out of the payload.
+      ...(book.isLikerLandArt ? { isLikerLandArt: true } : {}),
       descriptionFull: book.descriptionFull?.trim() || undefined,
     })
   }
