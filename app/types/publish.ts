@@ -67,6 +67,7 @@ export interface MappedPrice {
 // is edited by whichever step owns it, so no one card speaks for them all.
 export interface PricingFormSettings {
   isAdultOnly: boolean
+  hasAiGeneratedContent: boolean
   hideAudio: boolean
   isAudioPlusReadingOnly: boolean
   isPlusReadingEnabled: boolean

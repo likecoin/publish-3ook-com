@@ -358,6 +358,7 @@ function createDefaultListingDraft(): PublishListingDraft {
     // Seed no price, so an untouched field can't be accidentally saved.
     prices: [createDefaultPriceFormItem({ price: '', name: $t('prices.standard_edition') })],
     isAdultOnly: false,
+    hasAiGeneratedContent: false,
     hideAudio: false,
     isAudioPlusReadingOnly: false,
     // New titles opt into Plus all-you-can-read by default.

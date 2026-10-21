@@ -77,6 +77,7 @@
       :hide-audio="listingDraft.hideAudio"
       :is-audio-plus-reading-only="listingDraft.isAudioPlusReadingOnly"
       :is-adult-only="listingDraft.isAdultOnly"
+      :has-ai-generated-content="listingDraft.hasAiGeneratedContent"
       editable
       @edit="emit('edit', 'pricing')"
     />

@@ -8,6 +8,13 @@
     />
 
     <BookSettingsToggleRow
+      v-model="hasAiGeneratedContent"
+      name="hasAiGeneratedContent"
+      :label="$t('nft_book_form.has_ai_generated_content')"
+      :description="$t('nft_book_form.has_ai_generated_content_hint')"
+    />
+
+    <BookSettingsToggleRow
       v-model="isAudioAllowed"
       name="isAudioAllowed"
       :label="$t('nft_book_form.ai_audio')"
@@ -91,6 +98,7 @@ import { PREVIEW_PERCENTAGE_MIN, PREVIEW_PERCENTAGE_MAX } from '~/constant'
 // used by the wizard's pricing step and the book page's 販售與內容設定. Lending
 // is not among them: it has a card of its own in both flows.
 const isAdultOnly = defineModel<boolean>('isAdultOnly', { required: true })
+const hasAiGeneratedContent = defineModel<boolean>('hasAiGeneratedContent', { required: true })
 const hideAudio = defineModel<boolean>('hideAudio', { required: true })
 const isAudioPlusReadingOnly = defineModel<boolean>('isAudioPlusReadingOnly', { required: true })
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })
