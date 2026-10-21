@@ -14,6 +14,7 @@ export function useBookListingSettings(options: {
   isFreeBook: Ref<boolean>
 }) {
   const isAdultOnly = ref(false)
+  const hasAiGeneratedContent = ref(false)
   const hideAudio = ref(false)
   const isAudioPlusReadingOnly = ref(false)
   const hideDownload = ref(false)
@@ -32,6 +33,7 @@ export function useBookListingSettings(options: {
   function currentListingFields(): Record<string, unknown> {
     return {
       isAdultOnly: isAdultOnly.value,
+      hasAiGeneratedContent: hasAiGeneratedContent.value,
       hideAudio: hideAudio.value,
       isAudioPlusReadingOnly: isAudioPlusReadingOnly.value,
       hideDownload: hideDownload.value,
@@ -57,6 +59,7 @@ export function useBookListingSettings(options: {
     hideAudio.value = classListingInfo.hideAudio ?? false
     isAudioPlusReadingOnly.value = classListingInfo.isAudioPlusReadingOnly ?? false
     isAdultOnly.value = classListingInfo.isAdultOnly ?? false
+    hasAiGeneratedContent.value = classListingInfo.hasAIGeneratedContent ?? false
     // Legacy books default to opt-out; free books always opt in regardless of stored value.
     isPlusReadingEnabled.value = options.isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
     // Existing listings without the field are treated as preview-disabled.
@@ -99,6 +102,7 @@ export function useBookListingSettings(options: {
     try {
       const snapshot = JSON.parse(listingSnapshot.value)
       isAdultOnly.value = snapshot.isAdultOnly
+      hasAiGeneratedContent.value = snapshot.hasAiGeneratedContent
       hideAudio.value = snapshot.hideAudio
       isAudioPlusReadingOnly.value = snapshot.isAudioPlusReadingOnly
       hideDownload.value = snapshot.hideDownload
@@ -127,6 +131,7 @@ export function useBookListingSettings(options: {
       // so switching back restores it; the API only sees it on when both are on.
       isAudioPlusReadingOnly: !hideAudio.value && isPlusReadingEnabled.value && isAudioPlusReadingOnly.value,
       isAdultOnly: isAdultOnly.value,
+      hasAIGeneratedContent: hasAiGeneratedContent.value,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
       previewPercentage: previewPercentage.value,
@@ -140,6 +145,7 @@ export function useBookListingSettings(options: {
 
   return {
     isAdultOnly,
+    hasAiGeneratedContent,
     hideAudio,
     isAudioPlusReadingOnly,
     hideDownload,

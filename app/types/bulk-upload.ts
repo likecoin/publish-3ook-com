@@ -41,6 +41,7 @@ export interface BulkUploadCSVRow {
   enable_preview?: string
   preview_percentage?: string
   is_liker_land_art?: string
+  has_ai_generated_content?: string
   language?: string
   // Resume fields (from result CSV)
   class_id?: string
@@ -91,6 +92,7 @@ export interface BulkUploadBook {
   previewPercentage: number
   // One-way listing flag that only batch mode can switch on: it is sent only when true.
   isLikerLandArt: boolean
+  hasAiGeneratedContent: boolean
   language: string
   // Runtime state
   status: BookUploadStatus
@@ -142,6 +144,7 @@ export interface SerializedBulkUploadBook {
   isPreviewEnabled: boolean
   previewPercentage: number
   isLikerLandArt: boolean
+  hasAiGeneratedContent: boolean
   language: string
   status: BookUploadStatus
   error?: string

@@ -270,6 +270,7 @@ export function usePublishBook() {
             && listingDraft.isPlusReadingEnabled
             && listingDraft.isAudioPlusReadingOnly,
           isAdultOnly: listingDraft.isAdultOnly,
+          hasAIGeneratedContent: listingDraft.hasAiGeneratedContent,
           isPlusReadingEnabled: listingDraft.isPlusReadingEnabled,
           isPreviewEnabled: listingDraft.isPreviewEnabled,
           previewPercentage: listingDraft.previewPercentage,
