@@ -83,7 +83,6 @@ export interface ClassListingData {
   hideAudio?: boolean
   isAudioPlusReadingOnly?: boolean
   isAdultOnly?: boolean
-  isLikerLandArt?: boolean
   isPlusReadingEnabled?: boolean
   isPreviewEnabled?: boolean
   previewPercentage?: number

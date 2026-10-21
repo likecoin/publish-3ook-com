@@ -14,7 +14,6 @@ export function useBookListingSettings(options: {
   isFreeBook: Ref<boolean>
 }) {
   const isAdultOnly = ref(false)
-  const isLikerLandArt = ref(false)
   const hideAudio = ref(false)
   const isAudioPlusReadingOnly = ref(false)
   const hideDownload = ref(false)
@@ -29,13 +28,10 @@ export function useBookListingSettings(options: {
   // Snapshot of the listing fields taken on load/save; save only POSTs when the
   // current values diverge from it.
   const listingSnapshot = ref('')
-  // The API only accepts turning it on, so once stored the switch stays on.
-  const isLikerLandArtLocked = ref(false)
 
   function currentListingFields(): Record<string, unknown> {
     return {
       isAdultOnly: isAdultOnly.value,
-      isLikerLandArt: isLikerLandArt.value,
       hideAudio: hideAudio.value,
       isAudioPlusReadingOnly: isAudioPlusReadingOnly.value,
       hideDownload: hideDownload.value,
@@ -61,8 +57,6 @@ export function useBookListingSettings(options: {
     hideAudio.value = classListingInfo.hideAudio ?? false
     isAudioPlusReadingOnly.value = classListingInfo.isAudioPlusReadingOnly ?? false
     isAdultOnly.value = classListingInfo.isAdultOnly ?? false
-    isLikerLandArt.value = classListingInfo.isLikerLandArt ?? false
-    isLikerLandArtLocked.value = isLikerLandArt.value
     // Legacy books default to opt-out; free books always opt in regardless of stored value.
     isPlusReadingEnabled.value = options.isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
     // Existing listings without the field are treated as preview-disabled.
@@ -98,7 +92,6 @@ export function useBookListingSettings(options: {
   }
 
   function commitListingSnapshot() {
-    isLikerLandArtLocked.value = isLikerLandArt.value
     listingSnapshot.value = currentListingSnapshot()
   }
 
@@ -106,7 +99,6 @@ export function useBookListingSettings(options: {
     try {
       const snapshot = JSON.parse(listingSnapshot.value)
       isAdultOnly.value = snapshot.isAdultOnly
-      isLikerLandArt.value = snapshot.isLikerLandArt
       hideAudio.value = snapshot.hideAudio
       isAudioPlusReadingOnly.value = snapshot.isAudioPlusReadingOnly
       hideDownload.value = snapshot.hideDownload
@@ -135,8 +127,6 @@ export function useBookListingSettings(options: {
       // so switching back restores it; the API only sees it on when both are on.
       isAudioPlusReadingOnly: !hideAudio.value && isPlusReadingEnabled.value && isAudioPlusReadingOnly.value,
       isAdultOnly: isAdultOnly.value,
-      // Omitted rather than false: the API rejects false, and off means unchanged.
-      isLikerLandArt: isLikerLandArt.value ? true : undefined,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
       previewPercentage: previewPercentage.value,
@@ -150,8 +140,6 @@ export function useBookListingSettings(options: {
 
   return {
     isAdultOnly,
-    isLikerLandArt,
-    isLikerLandArtLocked,
     hideAudio,
     isAudioPlusReadingOnly,
     hideDownload,

@@ -52,7 +52,6 @@ const CHAIN_FIELD_LABEL_KEYS: Record<string, string> = {
 
 const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
   isAdultOnly: 'nft_book_form.is_adult_only',
-  isLikerLandArt: 'nft_book_form.is_liker_land_art',
   hideAudio: 'nft_book_form.ai_audio',
   isAudioPlusReadingOnly: 'nft_book_form.ai_audio_plus_only',
   hideDownload: 'upload_form.drm_section_title',

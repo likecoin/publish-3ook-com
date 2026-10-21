@@ -579,8 +579,6 @@
   "nft_book_form.image_requirements": "PNG files only, max 1MB, recommended size 600 x 200",
   "nft_book_form.is_adult_only": "Adult content (18+)",
   "nft_book_form.is_adult_only_hint": "Declare that this book contains adult content. Readers are warned before viewing, and the book is excluded from promotions.",
-  "nft_book_form.is_liker_land_art": "Liker Land Art",
-  "nft_book_form.is_liker_land_art_hint": "Mark this book as a Liker Land Art listing. A 10% Liker Land Art fee applies to each paid sale. Once turned on, it cannot be turned off here.",
   "nft_book_form.limited": "Batch minting, author messages one by one, manual delivery",
   "nft_book_form.link_wallet": "Link my wallet",
   "nft_book_form.loading_progress_text": "Please do not close this window until operation is complete.",
