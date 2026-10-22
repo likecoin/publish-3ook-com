@@ -78,6 +78,7 @@
       :is-audio-plus-reading-only="listingDraft.isAudioPlusReadingOnly"
       :is-adult-only="listingDraft.isAdultOnly"
       :has-ai-generated-content="listingDraft.hasAiGeneratedContent"
+      :is-public-domain="listingDraft.isPublicDomain"
       editable
       @edit="emit('edit', 'pricing')"
     />

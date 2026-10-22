@@ -320,6 +320,7 @@
             { accessorKey: 'ttsLibraryOnly', header: $t('bulk_upload.tts_library_only') },
             { accessorKey: 'isPlusReadingEnabled', header: $t('bulk_upload.enable_library') },
             { accessorKey: 'isLikerLandArt', header: $t('bulk_upload.is_liker_land_art') },
+            { accessorKey: 'isPublicDomain', header: $t('bulk_upload.is_public_domain') },
             { accessorKey: 'hasAiGeneratedContent', header: $t('bulk_upload.has_ai_generated_content') },
             { accessorKey: 'isAutoDeliver', header: $t('bulk_upload.auto_deliver') },
             { accessorKey: 'autoMemo', header: $t('bulk_upload.auto_memo') },
@@ -337,6 +338,9 @@
           </template>
           <template #isLikerLandArt-cell="{ row }">
             <YesNoBadge :value="row.original.isLikerLandArt" />
+          </template>
+          <template #isPublicDomain-cell="{ row }">
+            <YesNoBadge :value="row.original.isPublicDomain" />
           </template>
           <template #hasAiGeneratedContent-cell="{ row }">
             <YesNoBadge :value="row.original.hasAiGeneratedContent" />
@@ -579,6 +583,7 @@ const reviewData = computed(() =>
     enableTTS: book.enableTTS,
     ttsLibraryOnly: book.ttsLibraryOnly,
     isLikerLandArt: book.isLikerLandArt,
+    isPublicDomain: book.isPublicDomain,
     hasAiGeneratedContent: book.hasAiGeneratedContent,
     isPlusReadingEnabled: book.isPlusReadingEnabled,
     isAutoDeliver: book.isAutoDeliver,
@@ -626,6 +631,7 @@ async function downloadCSVTemplate() {
     '', // enable_preview
     '', // preview_percentage
     '', // is_liker_land_art
+    '', // is_public_domain
     '', // has_ai_generated_content
     '', // language
   ]

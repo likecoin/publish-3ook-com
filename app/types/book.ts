@@ -84,6 +84,7 @@ export interface ClassListingData {
   isAudioPlusReadingOnly?: boolean
   isAdultOnly?: boolean
   hasAIGeneratedContent?: boolean
+  isPublicDomain?: boolean
   isPlusReadingEnabled?: boolean
   isPreviewEnabled?: boolean
   previewPercentage?: number

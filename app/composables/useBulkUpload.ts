@@ -316,6 +316,7 @@ export function useBulkUpload() {
       previewPercentage: book.previewPercentage,
       // The API only accepts true, so a false flag is left out of the payload.
       ...(book.isLikerLandArt ? { isLikerLandArt: true } : {}),
+      isPublicDomain: book.isPublicDomain,
       hasAIGeneratedContent: book.hasAiGeneratedContent,
       descriptionFull: book.descriptionFull?.trim() || undefined,
     })

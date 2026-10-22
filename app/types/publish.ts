@@ -68,6 +68,7 @@ export interface MappedPrice {
 export interface PricingFormSettings {
   isAdultOnly: boolean
   hasAiGeneratedContent: boolean
+  isPublicDomain: boolean
   hideAudio: boolean
   isAudioPlusReadingOnly: boolean
   isPlusReadingEnabled: boolean

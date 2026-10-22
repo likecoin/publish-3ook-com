@@ -66,6 +66,7 @@ const {
   isAudioPlusReadingOnly,
   isAdultOnly,
   hasAiGeneratedContent,
+  isPublicDomain,
   editable = false,
 } = defineProps<{
   prices: PriceFormItem[]
@@ -74,6 +75,7 @@ const {
   isAudioPlusReadingOnly: boolean
   isAdultOnly: boolean
   hasAiGeneratedContent: boolean
+  isPublicDomain: boolean
   editable?: boolean
 }>()
 
@@ -114,6 +116,10 @@ const settingsRows = computed(() => [
   {
     label: $t('nft_book_form.has_ai_generated_content'),
     value: hasAiGeneratedContent ? $t('common.yes') : $t('common.no'),
+  },
+  {
+    label: $t('nft_book_form.is_public_domain'),
+    value: isPublicDomain ? $t('common.yes') : $t('common.no'),
   },
 ])
 
