@@ -19,6 +19,7 @@
 
     <BookSettingsFields
       v-model:is-adult-only="isAdultOnly"
+      v-model:has-ai-generated-content="hasAiGeneratedContent"
       v-model:hide-audio="hideAudio"
       v-model:is-audio-plus-reading-only="isAudioPlusReadingOnly"
       v-model:is-preview-enabled="isPreviewEnabled"
@@ -43,6 +44,7 @@ const { settings, isBookUnlisted = false } = defineProps<{
 // pulled out once and bound like local state.
 const {
   isAdultOnly,
+  hasAiGeneratedContent,
   hideAudio,
   isAudioPlusReadingOnly,
   isPlusReadingEnabled,

@@ -10,6 +10,7 @@ import {
   CSV_DEFAULT_ENABLE_PREVIEW,
   CSV_DEFAULT_PREVIEW_PERCENTAGE,
   CSV_DEFAULT_IS_LIKER_LAND_ART,
+  CSV_DEFAULT_HAS_AI_GENERATED_CONTENT,
   CSV_DEFAULT_EDITION_NAME,
   CSV_DEFAULT_EDITION_DESCRIPTION,
   MAX_DESCRIPTION_LENGTH,
@@ -66,6 +67,7 @@ export const CSV_ALL_COLUMNS = [
   'enable_preview',
   'preview_percentage',
   'is_liker_land_art',
+  'has_ai_generated_content',
   'language',
 ]
 
@@ -81,6 +83,7 @@ export const CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS: Record<string, string> = {
   enable_preview: String(CSV_DEFAULT_ENABLE_PREVIEW),
   preview_percentage: String(CSV_DEFAULT_PREVIEW_PERCENTAGE),
   is_liker_land_art: String(CSV_DEFAULT_IS_LIKER_LAND_ART),
+  has_ai_generated_content: String(CSV_DEFAULT_HAS_AI_GENERATED_CONTENT),
   language: CSV_DEFAULT_LANGUAGE,
 }
 
@@ -153,6 +156,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     isPreviewEnabled: row.enable_preview?.trim().toLowerCase() !== 'false',
     previewPercentage,
     isLikerLandArt: row.is_liker_land_art?.trim().toLowerCase() === 'true',
+    hasAiGeneratedContent: row.has_ai_generated_content?.trim().toLowerCase() === 'true',
     language: row.language?.trim() || CSV_DEFAULT_LANGUAGE,
     status: BookUploadStatus.PENDING,
   }
@@ -236,7 +240,7 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
 
   // Validate boolean fields contain valid values
   if (rawRow) {
-    for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'tts_library_only', 'enable_library', 'enable_preview', 'is_liker_land_art'] as const) {
+    for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'tts_library_only', 'enable_library', 'enable_preview', 'is_liker_land_art', 'has_ai_generated_content'] as const) {
       const raw = rawRow[field]
       const value = raw?.trim().toLowerCase() ?? ''
       if (value && !VALID_BOOLEAN_VALUES.includes(value)) {
@@ -309,6 +313,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     isPreviewEnabled: book.isPreviewEnabled,
     previewPercentage: book.previewPercentage,
     isLikerLandArt: book.isLikerLandArt,
+    hasAiGeneratedContent: book.hasAiGeneratedContent,
     language: book.language,
     status: book.status,
     error: book.error,
@@ -404,6 +409,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.isPreviewEnabled ? 'true' : 'false',
     book.previewPercentage,
     book.isLikerLandArt ? 'true' : 'false',
+    book.hasAiGeneratedContent ? 'true' : 'false',
     book.language,
     book.classId || '',
     book.mintTxHash || '',
