@@ -12,6 +12,7 @@
     <BookSettingsFields
       v-model:is-adult-only="settings.isAdultOnly"
       v-model:has-ai-generated-content="settings.hasAiGeneratedContent"
+      v-model:is-public-domain="settings.isPublicDomain"
       v-model:hide-audio="settings.hideAudio"
       v-model:is-audio-plus-reading-only="settings.isAudioPlusReadingOnly"
       v-model:is-preview-enabled="settings.isPreviewEnabled"

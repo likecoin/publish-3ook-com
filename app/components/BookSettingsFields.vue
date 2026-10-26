@@ -15,6 +15,13 @@
     />
 
     <BookSettingsToggleRow
+      v-model="isPublicDomain"
+      name="isPublicDomain"
+      :label="$t('nft_book_form.is_public_domain')"
+      :description="$t('nft_book_form.is_public_domain_hint')"
+    />
+
+    <BookSettingsToggleRow
       v-model="isAudioAllowed"
       name="isAudioAllowed"
       :label="$t('nft_book_form.ai_audio')"
@@ -99,6 +106,7 @@ import { PREVIEW_PERCENTAGE_MIN, PREVIEW_PERCENTAGE_MAX } from '~/constant'
 // is not among them: it has a card of its own in both flows.
 const isAdultOnly = defineModel<boolean>('isAdultOnly', { required: true })
 const hasAiGeneratedContent = defineModel<boolean>('hasAiGeneratedContent', { required: true })
+const isPublicDomain = defineModel<boolean>('isPublicDomain', { required: true })
 const hideAudio = defineModel<boolean>('hideAudio', { required: true })
 const isAudioPlusReadingOnly = defineModel<boolean>('isAudioPlusReadingOnly', { required: true })
 const isPreviewEnabled = defineModel<boolean>('isPreviewEnabled', { required: true })

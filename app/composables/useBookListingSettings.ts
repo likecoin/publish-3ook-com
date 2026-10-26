@@ -15,6 +15,7 @@ export function useBookListingSettings(options: {
 }) {
   const isAdultOnly = ref(false)
   const hasAiGeneratedContent = ref(false)
+  const isPublicDomain = ref(false)
   const hideAudio = ref(false)
   const isAudioPlusReadingOnly = ref(false)
   const hideDownload = ref(false)
@@ -34,6 +35,7 @@ export function useBookListingSettings(options: {
     return {
       isAdultOnly: isAdultOnly.value,
       hasAiGeneratedContent: hasAiGeneratedContent.value,
+      isPublicDomain: isPublicDomain.value,
       hideAudio: hideAudio.value,
       isAudioPlusReadingOnly: isAudioPlusReadingOnly.value,
       hideDownload: hideDownload.value,
@@ -60,6 +62,7 @@ export function useBookListingSettings(options: {
     isAudioPlusReadingOnly.value = classListingInfo.isAudioPlusReadingOnly ?? false
     isAdultOnly.value = classListingInfo.isAdultOnly ?? false
     hasAiGeneratedContent.value = classListingInfo.hasAIGeneratedContent ?? false
+    isPublicDomain.value = classListingInfo.isPublicDomain ?? false
     // Legacy books default to opt-out; free books always opt in regardless of stored value.
     isPlusReadingEnabled.value = options.isFreeBook.value || (classListingInfo.isPlusReadingEnabled ?? false)
     // Existing listings without the field are treated as preview-disabled.
@@ -103,6 +106,7 @@ export function useBookListingSettings(options: {
       const snapshot = JSON.parse(listingSnapshot.value)
       isAdultOnly.value = snapshot.isAdultOnly
       hasAiGeneratedContent.value = snapshot.hasAiGeneratedContent
+      isPublicDomain.value = snapshot.isPublicDomain
       hideAudio.value = snapshot.hideAudio
       isAudioPlusReadingOnly.value = snapshot.isAudioPlusReadingOnly
       hideDownload.value = snapshot.hideDownload
@@ -132,6 +136,7 @@ export function useBookListingSettings(options: {
       isAudioPlusReadingOnly: !hideAudio.value && isPlusReadingEnabled.value && isAudioPlusReadingOnly.value,
       isAdultOnly: isAdultOnly.value,
       hasAIGeneratedContent: hasAiGeneratedContent.value,
+      isPublicDomain: isPublicDomain.value,
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
       previewPercentage: previewPercentage.value,
@@ -146,6 +151,7 @@ export function useBookListingSettings(options: {
   return {
     isAdultOnly,
     hasAiGeneratedContent,
+    isPublicDomain,
     hideAudio,
     isAudioPlusReadingOnly,
     hideDownload,
