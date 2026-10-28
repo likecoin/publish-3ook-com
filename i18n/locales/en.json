@@ -820,6 +820,7 @@
   "publish_wizard.back": "Back",
   "publish_wizard.draft_saved": "Draft saved",
   "publish_wizard.next": "Next",
+  "publish_wizard.publish_interrupted": "Your last publish attempt did not finish. Please retry.",
   "publish_wizard.publishing_do_not_close": "Please keep this page open until publishing completes",
   "publish_wizard.publishing_title": "Publishing your book",
   "publish_wizard.reselect_before_publish": "Please re-select these files before publishing: {files}",
