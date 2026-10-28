@@ -820,6 +820,7 @@
   "publish_wizard.back": "上一步",
   "publish_wizard.draft_saved": "草稿已儲存",
   "publish_wizard.next": "下一步",
+  "publish_wizard.publish_interrupted": "上次發佈未完成，請重試",
   "publish_wizard.publishing_do_not_close": "發佈完成前請勿關閉此頁面",
   "publish_wizard.publishing_title": "正在發佈你的書籍",
   "publish_wizard.reselect_before_publish": "發佈前請重新選擇以下檔案：{files}",

@@ -457,7 +457,12 @@ function resumeDraft() {
     if (session.status !== BookUploadStatus.PENDING) {
       lastStepStatus.value = session.status
       hasPublishStarted.value = true
-      isPublishFailed.value = !!session.error
+      // Nothing in flight survives a reload, so a step saved mid-run was
+      // interrupted; left unmarked, it would spin with nothing behind it.
+      if (!publishError.value && session.status !== BookUploadStatus.COMPLETED) {
+        publishError.value = $t('publish_wizard.publish_interrupted')
+      }
+      isPublishFailed.value = !!publishError.value
       isPublishProgressOpen.value = true
     }
     maxVisitedStepIndex.value = STEP_KEYS.length - 1
