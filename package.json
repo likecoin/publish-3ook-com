@@ -34,7 +34,7 @@
     "@wagmi/vue": "^0.5.1",
     "@walletconnect/ethereum-provider": "~2.23.8",
     "bignumber.js": "^9.1.0",
-    "csv-parse": "^6.1.0",
+    "csv-parse": "^7.0.2",
     "csv-stringify": "^6.5.1",
     "dompurify": "^3.4.12",
     "file-saver": "^2.0.5",
