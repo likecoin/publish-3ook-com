@@ -15,6 +15,9 @@ export interface PublishFileRecord {
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
+  // Kept so a resumed draft still blocks publishing on unacknowledged errors.
+  validationErrors?: string
+  hasAcknowledgedValidationErrors?: boolean
 }
 
 // A record paired with its in-memory blob; blobs never persist to storage.

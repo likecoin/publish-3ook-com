@@ -534,6 +534,8 @@ function serializeDraft(): PublishSession {
       arweaveId: record.arweaveId,
       arweaveLink: record.arweaveLink,
       arweaveKey: record.arweaveKey,
+      validationErrors: record.validationErrors,
+      hasAcknowledgedValidationErrors: record.hasAcknowledgedValidationErrors,
     })),
     // contentExcerpt is regenerable and large; keep it out of the quota-bound
     // draft like coverData (a resumed draft just suggests without an excerpt).
@@ -833,7 +835,8 @@ async function handlePublish() {
           if (!target) { return }
           Object.assign(target, rec)
         })
-        updatePublishSession({ fileRecords: updates.fileRecords })
+        // Saved from the merged records: the pipeline's copies lack the EPUB check state.
+        updatePublishSession({ fileRecords: serializeDraft().fileRecords })
         return
       }
       updatePublishSession(updates)
