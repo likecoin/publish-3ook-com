@@ -533,6 +533,8 @@ function serializeDraft(): PublishSession {
       arweaveId: record.arweaveId,
       arweaveLink: record.arweaveLink,
       arweaveKey: record.arweaveKey,
+      validationErrors: record.validationErrors,
+      hasAcknowledgedValidationErrors: record.hasAcknowledgedValidationErrors,
     })),
     // contentExcerpt is regenerable and large; keep it out of the quota-bound
     // draft like coverData (a resumed draft just suggests without an excerpt).
