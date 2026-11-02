@@ -92,7 +92,7 @@
             <UButton
               v-if="advisoryOf(record)"
               variant="ghost"
-              color="warning"
+              :color="advisoryOf(record) === 'epub-errors' ? 'error' : 'warning'"
               size="xs"
               icon="i-heroicons-exclamation-triangle"
               :aria-expanded="isExpanded(record)"
@@ -120,8 +120,8 @@
           </div>
         </div>
 
-        <!-- Issues are advisory: the file still publishes. Shown in place rather
-             than in a modal, which stole focus while files were still going in. -->
+        <!-- Shown in place rather than in a modal, which stole focus while files
+             were still going in. -->
         <div
           v-if="isExpanded(record)"
           class="px-3 pb-3 space-y-2 text-sm"
@@ -149,6 +149,17 @@
             <pre class="whitespace-pre-wrap text-xs">{{ record.validationWarnings }}</pre>
           </div>
         </div>
+
+        <!-- Outside the collapsible panel: collapsing the details must not hide
+             what the next step is waiting on. -->
+        <UCheckbox
+          v-if="record.validationErrors"
+          :model-value="!!record.hasAcknowledgedValidationErrors"
+          :label="$t('upload_form.epub_errors_acknowledge')"
+          color="error"
+          class="px-3 pb-3"
+          @update:model-value="(value: boolean | 'indeterminate') => emit('acknowledgeErrors', index, value === true)"
+        />
       </li>
     </ul>
   </div>
@@ -172,6 +183,7 @@ const emit = defineEmits<{
   delete: [index: number]
   reselect: [index: number]
   revertCover: []
+  acknowledgeErrors: [index: number, isAcknowledged: boolean]
 }>()
 
 // Both covers are kept — 復原 needs the ebook's own — but only one of them is
@@ -195,14 +207,14 @@ const coverEntry = computed(() =>
 // record that has no blob, so two drops of one filename coexist as two rows.
 const collapsed = ref(new Set<FileRecord>())
 
-// Every advisory is non-blocking and they share one row, which shows the first
-// that applies: a record can carry more than one condition, since a scan has no
-// legible text either. Named rather than tested in the template — the label and
-// the body would otherwise each re-derive which of them this is.
-type FileAdvisory = 'epub-validation' | 'pdf-no-text-layer' | 'pdf-garbled-text' | undefined
+// One row shows the first advisory that applies, since a scan has no legible text either.
+// Only EPUB errors block, and only until acknowledged.
+// Named rather than tested in the template, so the label and body need not each re-derive it.
+type FileAdvisory = 'epub-errors' | 'epub-warnings' | 'pdf-no-text-layer' | 'pdf-garbled-text' | undefined
 
 const advisoryOf = (record: FileRecord): FileAdvisory => {
-  if (record.hasValidationIssues) { return 'epub-validation' }
+  if (record.validationErrors) { return 'epub-errors' }
+  if (record.hasValidationIssues) { return 'epub-warnings' }
   // Ordered: a file with no text layer has no legible text either, and would
   // otherwise be told it is merely garbled.
   if (record.hasSearchableText === false) { return 'pdf-no-text-layer' }
@@ -213,7 +225,11 @@ const advisoryOf = (record: FileRecord): FileAdvisory => {
 // The notice key does not follow from the label key, so both are listed. One
 // table, so a further advisory cannot inherit another's copy by omission.
 const ADVISORY_COPY: Record<NonNullable<FileAdvisory>, { label: string, notice: string }> = {
-  'epub-validation': {
+  'epub-errors': {
+    label: 'upload_form.epub_has_errors',
+    notice: 'upload_form.epub_errors_notice',
+  },
+  'epub-warnings': {
     label: 'upload_form.epub_has_issues',
     notice: 'upload_form.epub_validation_notice',
   },
