@@ -27,6 +27,7 @@
         @delete="handleDeleteFile"
         @reselect="openFilePicker"
         @revert-cover="revertCover"
+        @acknowledge-errors="acknowledgeValidationErrors"
       />
 
       <form
@@ -420,6 +421,13 @@ const handleDeleteFile = (index: number) => {
   if (!removedFile) { return }
   dropGeneratedCoverOf(removedFile)
   removeMetadataForDeletedFile(removedFile)
+  emitFileReady()
+}
+
+const acknowledgeValidationErrors = (index: number, isAcknowledged: boolean) => {
+  const record = fileRecords.value[index]
+  if (!record) { return }
+  record.hasAcknowledgedValidationErrors = isAcknowledged
   emitFileReady()
 }
 
