@@ -131,14 +131,14 @@
         <template v-if="record.hasValidationIssues">
           <div
             role="status"
-            class="flex flex-wrap items-center justify-between gap-x-2 border-t border-default bg-warning/10 ps-3 pe-2 py-1.5"
+            :class="['flex flex-wrap items-center justify-between gap-x-2 border-t border-default ps-3 pe-2 py-1.5', epubStatusOf(record).tint]"
           >
-            <p class="flex items-center gap-2 text-sm font-semibold text-warning-700">
+            <p :class="['flex items-center gap-2 text-sm font-semibold', epubStatusOf(record).text]">
               <UIcon
                 name="i-heroicons-exclamation-triangle"
                 class="shrink-0 size-5"
               />
-              {{ $t('upload_form.epub_has_issues') }}
+              {{ $t(epubStatusOf(record).title) }}
             </p>
             <div class="flex items-center gap-2 ms-auto">
               <span
@@ -156,8 +156,17 @@
           </div>
           <div class="px-3 py-3 space-y-3 border-t border-default">
             <p
+              :id="`${noticeIdPrefix}-${index}`"
               class="text-sm text-muted"
-              v-text="$t('upload_form.epub_validation_notice')"
+              v-text="$t(epubStatusOf(record).notice)"
+            />
+            <UCheckbox
+              v-if="record.validationErrors"
+              :model-value="!!record.hasAcknowledgedValidationErrors"
+              :label="$t('upload_form.epub_errors_acknowledge')"
+              :aria-describedby="`${noticeIdPrefix}-${index}`"
+              color="error"
+              @update:model-value="(value: boolean | 'indeterminate') => emit('acknowledgeErrors', index, value === true)"
             />
           </div>
         </template>
@@ -221,6 +230,7 @@ const emit = defineEmits<{
   delete: [index: number]
   reselect: [index: number]
   revertCover: []
+  acknowledgeErrors: [index: number, isAcknowledged: boolean]
 }>()
 
 // Both covers are kept — 復原 needs the ebook's own — but only one of them is
@@ -278,6 +288,27 @@ const isExpanded = (record: FileRecord) =>
 function toggleIssues(record: FileRecord) {
   if (!collapsed.value.delete(record)) { collapsed.value.add(record) }
 }
+
+// Errors outrank warnings: the panel takes the colour and copy of the worse.
+const EPUB_STATUS = {
+  errors: {
+    tint: 'bg-error/10',
+    text: 'text-error-700',
+    title: 'upload_form.epub_has_errors',
+    notice: 'upload_form.epub_errors_notice',
+  },
+  warnings: {
+    tint: 'bg-warning/10',
+    text: 'text-warning-700',
+    title: 'upload_form.epub_has_issues',
+    notice: 'upload_form.epub_validation_notice',
+  },
+}
+
+const epubStatusOf = (record: FileRecord) =>
+  EPUB_STATUS[record.validationErrors ? 'errors' : 'warnings']
+
+const noticeIdPrefix = useId()
 
 // validateEpub joins one "• " line per message; a message may itself span lines.
 const splitIssues = (text?: string) => text ? text.split(/\n(?=• )/) : []
