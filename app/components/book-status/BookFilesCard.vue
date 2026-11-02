@@ -183,7 +183,7 @@
         >
           <UButton
             color="primary"
-            :disabled="!pickedRecords.length || !!uploadStatus"
+            :disabled="!pickedRecords.length || !!uploadStatus || pickedRecords.some(needsValidationErrorAck)"
             :label="$t('iscn_form.confirm_upload')"
             @click="startReplacementUpload"
           />
@@ -197,6 +197,7 @@
 import type { FileRecord } from '~/types'
 import { parseImageURLFromMetadata } from '~/utils'
 import { isManualCoverRecord } from '~/utils/arweave'
+import { needsValidationErrorAck } from '~/utils/epub-validation'
 import { isContentFingerprintEncrypted } from '~/utils/iscn'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'

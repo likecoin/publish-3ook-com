@@ -237,6 +237,7 @@ import {
 import { validatePriceFormItems, createDefaultPriceFormItem, hasFreeEditionDraft } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
+import { needsValidationErrorAck } from '~/utils/epub-validation'
 
 const { t: $t } = useI18n()
 
@@ -340,7 +341,10 @@ const pendingSessionNeedsReselect = computed(() =>
 const hasEbookFile = computed(() => fileRecords.value.some(
   record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
 ))
-const shouldDisableNext = computed(() => step.value === 'files' && !hasEbookFile.value)
+const shouldDisableNext = computed(() => (
+  step.value === 'files'
+  && (!hasEbookFile.value || fileRecords.value.some(needsValidationErrorAck))
+))
 // A free price tier (0) always opts the book into Plus all-you-can-read. The
 // book page forces the same value from useBookListingSettings; the wizard has
 // no such composable, so the rule is owned here, beside the control it greys out.
@@ -752,6 +756,12 @@ async function handlePublish() {
     showErrorToast($t('publish_wizard.reselect_before_publish', {
       files: missingFiles.map(r => r.fileName).join(', '),
     }))
+    return
+  }
+  // The stepper can skip past 下一步, so the files step's gate is checked again.
+  if (fileRecords.value.some(needsValidationErrorAck)) {
+    showErrorToast($t('publish_wizard.acknowledge_epub_errors_before_publish'))
+    goToStep('files')
     return
   }
   // A resumed draft loses the signature blob; remind once so it isn't dropped
