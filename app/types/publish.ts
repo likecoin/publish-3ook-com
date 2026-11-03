@@ -15,8 +15,11 @@ export interface PublishFileRecord {
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
-  // Kept so a resumed draft still blocks publishing on unacknowledged errors.
+  // Kept so a resumed draft still shows the epubcheck result, and still blocks
+  // publishing on unacknowledged errors.
   validationErrors?: string
+  validationWarnings?: string
+  hasValidationIssues?: boolean
   hasAcknowledgedValidationErrors?: boolean
 }
 

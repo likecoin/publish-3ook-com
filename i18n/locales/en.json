@@ -817,7 +817,6 @@
   "publish_review.revenue_title": "Revenue share (estimated)",
   "publish_review.revenue_you_earn": "Revenue share (approx.)",
   "publish_review.tipping_partial": "{count} of {total} editions",
-  "publish_wizard.acknowledge_epub_errors_before_publish": "Your EPUB file has errors. Confirm you want to use it in the files step before publishing.",
   "publish_wizard.back": "Back",
   "publish_wizard.draft_saved": "Draft saved",
   "publish_wizard.next": "Next",

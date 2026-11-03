@@ -817,7 +817,6 @@
   "publish_review.revenue_title": "銷售分成（估算）",
   "publish_review.revenue_you_earn": "銷售分成（約）",
   "publish_review.tipping_partial": "{total} 個版本中的 {count} 個",
-  "publish_wizard.acknowledge_epub_errors_before_publish": "EPUB 檔案有錯誤，請先在檔案步驟確認仍要使用，才可發佈。",
   "publish_wizard.back": "上一步",
   "publish_wizard.draft_saved": "草稿已儲存",
   "publish_wizard.next": "下一步",

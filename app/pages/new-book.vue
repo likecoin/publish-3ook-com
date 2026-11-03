@@ -237,7 +237,7 @@ import {
 import { validatePriceFormItems, createDefaultPriceFormItem, hasFreeEditionDraft } from '~/utils/listing'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { isRecordUploaded, needsFileReselect, isManualCoverRecord } from '~/utils/arweave'
-import { needsValidationErrorAck } from '~/utils/epub-validation'
+import { needsValidationErrorAck, getReachableStepIndex } from '~/utils/epub-validation'
 
 const { t: $t } = useI18n()
 
@@ -303,10 +303,12 @@ useSeoMeta({
 const steps = computed(() => STEP_KEYS.map((key, index) => ({
   value: key,
   title: $t(PUBLISH_WIZARD_STEP_LABEL_KEYS[key]),
-  disabled: index > maxVisitedStepIndex.value,
+  disabled: index > maxReachableStepIndex.value,
 })))
 
 const currentStepIndex = computed(() => STEP_KEYS.indexOf(step.value))
+const maxReachableStepIndex = computed(() =>
+  getReachableStepIndex(maxVisitedStepIndex.value, fileRecords.value))
 const pendingSessionTitle = computed(() =>
   (pendingSession.value ? getPublishSessionTitle(pendingSession.value, $t) : ''))
 // Bytes recovered from the draft file store, by fileSHA256. Held apart from
@@ -342,8 +344,8 @@ const hasEbookFile = computed(() => fileRecords.value.some(
   record => EBOOK_FILE_TYPES.includes(record.fileType || ''),
 ))
 const shouldDisableNext = computed(() => (
-  step.value === 'files'
-  && (!hasEbookFile.value || fileRecords.value.some(needsValidationErrorAck))
+  (step.value === 'files' && !hasEbookFile.value)
+  || fileRecords.value.some(needsValidationErrorAck)
 ))
 // A free price tier (0) always opts the book into Plus all-you-can-read. The
 // book page forces the same value from useBookListingSettings; the wizard has
@@ -534,6 +536,8 @@ function serializeDraft(): PublishSession {
       arweaveLink: record.arweaveLink,
       arweaveKey: record.arweaveKey,
       validationErrors: record.validationErrors,
+      validationWarnings: record.validationWarnings,
+      hasValidationIssues: record.hasValidationIssues,
       hasAcknowledgedValidationErrors: record.hasAcknowledgedValidationErrors,
     })),
     // contentExcerpt is regenerable and large; keep it out of the quota-bound
@@ -626,8 +630,8 @@ watch(() => route.query.step, (value) => {
   const key = STEP_KEYS.find(k => k === value)
   if (!key || key === step.value) { return }
   // Snap back when the history entry points at a step that isn't reachable
-  // (beyond the furthest visited step, or while a publish is running).
-  if (isPublishing.value || STEP_KEYS.indexOf(key) > maxVisitedStepIndex.value) {
+  // (beyond the furthest reachable step, or while a publish is running).
+  if (isPublishing.value || STEP_KEYS.indexOf(key) > maxReachableStepIndex.value) {
     navigateTo(localeRoute({ query: { ...route.query, step: step.value } }), { replace: true })
     return
   }
@@ -636,9 +640,14 @@ watch(() => route.query.step, (value) => {
 
 function goToStep(key: string) {
   const index = STEP_KEYS.indexOf(key as PublishWizardStep)
-  if (index < 0 || index > maxVisitedStepIndex.value || isPublishing.value) { return }
+  if (index < 0 || index > maxReachableStepIndex.value || isPublishing.value) { return }
   step.value = key as PublishWizardStep
 }
+
+// Catches a resumed draft that saved a later step while errors were unticked.
+watch([currentStepIndex, maxReachableStepIndex], ([current, reachable]) => {
+  if (current > reachable) { step.value = STEP_KEYS[reachable] as PublishWizardStep }
+})
 
 function goToPreviousStep() {
   const index = currentStepIndex.value
@@ -758,12 +767,6 @@ async function handlePublish() {
     showErrorToast($t('publish_wizard.reselect_before_publish', {
       files: missingFiles.map(r => r.fileName).join(', '),
     }))
-    return
-  }
-  // The stepper can skip past 下一步, so the files step's gate is checked again.
-  if (fileRecords.value.some(needsValidationErrorAck)) {
-    showErrorToast($t('publish_wizard.acknowledge_epub_errors_before_publish'))
-    goToStep('files')
     return
   }
   // A resumed draft loses the signature blob; remind once so it isn't dropped
