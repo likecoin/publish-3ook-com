@@ -30,6 +30,7 @@
             <UButton
               icon="i-heroicons-arrow-path"
               variant="outline"
+              :aria-label="$t('common.refresh')"
               :disabled="isLoading"
               @click="loadReport"
             />
