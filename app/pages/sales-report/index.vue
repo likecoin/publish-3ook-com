@@ -15,6 +15,7 @@
     <PageBody class="[--sales-report-sticky-top:129px]">
       <SalesReportPlusReading v-if="selectedTabValue === 'plus'" />
       <SalesReportSubscriptionAffiliate v-else-if="selectedTabValue === 'affiliate'" />
+      <SalesReportDistributionRoyalty v-else-if="selectedTabValue === 'distribution'" />
       <SalesReportPayoutHistory v-else-if="selectedTabValue === 'payout'" />
       <SalesReportCommissionHistory v-else />
     </PageBody>
@@ -28,6 +29,7 @@ const tabItems = computed(() => [
   { label: $t('user_settings.commission_history'), value: 'commission' },
   { label: $t('plus_reading_report.title'), value: 'plus' },
   { label: $t('subscription_affiliate_report.title'), value: 'affiliate' },
+  { label: $t('distribution_royalty_report.title'), value: 'distribution' },
   { label: $t('user_settings.payout_history'), value: 'payout' },
 ])
 
