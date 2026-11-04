@@ -62,3 +62,23 @@ export interface SubscriptionAffiliateReport {
     subscriptionCount: number
   }
 }
+
+export interface DistributionRoyaltyPayment {
+  paymentId: string
+  transferId: string
+  paidAt: number
+  amountUsd: number
+  payoutId?: string
+}
+
+/** One quarter of royalties from other distribution platforms, amounts in USD. */
+export interface DistributionRoyalty {
+  period: string
+  periodStart: number
+  grossUsd: number
+  feeUsd: number
+  payableUsd: number
+  status: 'unpaid' | 'paid'
+  payments: DistributionRoyaltyPayment[]
+  updatedAt?: number
+}
