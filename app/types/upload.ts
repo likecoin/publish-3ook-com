@@ -18,6 +18,7 @@ export interface FileRecord {
   validationErrors?: string
   validationWarnings?: string
   hasValidationIssues?: boolean
+  hasAcknowledgedValidationErrors?: boolean
   // PDFs only, and undefined means undetermined — the file would not open, or
   // reading it threw. Only an explicit false is a scan the author is told about.
   hasSearchableText?: boolean
