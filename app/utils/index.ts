@@ -133,6 +133,13 @@ export function getImageResizeURL(url: string, { width = 300 }: { width?: number
   return `${LIKE_CO_STATIC_ENDPOINT}/thumbnail/?url=${encodeURIComponent(url)}&width=${width}`
 }
 
+// A chain cover (`ar://` / `ipfs://`) as an <img> src, through the thumbnail
+// proxy rather than the gateway: some endpoint antivirus blocks the Arweave
+// gateway outright. Empty stays empty, so the caller's placeholder shows.
+export function getCoverThumbnailURL(cover: string | undefined, { width }: { width: number }) {
+  return cover ? getImageResizeURL(parseImageURLFromMetadata(cover), { width }) : ''
+}
+
 export function fileToArrayBuffer(file: Blob): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

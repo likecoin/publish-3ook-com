@@ -195,7 +195,7 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
-import { parseImageURLFromMetadata } from '~/utils'
+import { getCoverThumbnailURL } from '~/utils'
 import { isManualCoverRecord } from '~/utils/arweave'
 import { isContentFingerprintEncrypted } from '~/utils/iscn'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
@@ -285,8 +285,9 @@ const displayedFileRows = computed(() => {
 })
 
 // The chain form's cover, which a replacement writes the moment it uploads, so
-// the picture here is already the pending one.
-const coverSrc = computed(() => parseImageURLFromMetadata(coverUrl || fetchedCoverUrl.value))
+// the picture here is already the pending one. 240 is the 120px `lg` box at 2x.
+const coverSrc = computed(() =>
+  getCoverThumbnailURL(coverUrl || fetchedCoverUrl.value, { width: 240 }))
 
 // The stored cover, as a row: what the list shows is storage ids, and the
 // cover has one like every other file.

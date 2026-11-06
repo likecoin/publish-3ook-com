@@ -85,7 +85,7 @@ import { getBookEditChangeIcon, type BookEditChangeEntry } from '~/composables/u
 import type { PriceFormItem } from '~/types/publish'
 import { getSoldCount } from '~/utils/listing'
 import { isBookUnlistedDraft } from '~/utils/listing-status'
-import { parseImageURLFromMetadata } from '~/utils'
+import { getCoverThumbnailURL } from '~/utils'
 import { createEmptyISCNFormData } from '~/utils/iscn'
 import { getStoreMetadataDrift } from '~/utils/store-metadata-drift'
 import { BOOK_CATEGORY_VALUES, MAX_BOOK_KEYWORDS } from '~/constant'
@@ -140,9 +140,9 @@ const {
 } = settings
 
 // The chain metadata stores the cover as `ar://` / `ipfs://`, which no browser
-// can fetch, so the gateway rewrite has to happen before it reaches an <img>.
+// can fetch, so it has to be rewritten before it reaches an <img>.
 const coverImageSrc = computed(() =>
-  parseImageURLFromMetadata(iscnFormData.value.coverUrl))
+  getCoverThumbnailURL(iscnFormData.value.coverUrl, { width: 240 }))
 
 // Cached after any other tab loaded it; the summary reads, never writes. Never
 // for a merch item: this reads `contractURI` on chain and nothing is deployed at a
