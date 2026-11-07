@@ -41,7 +41,7 @@
     "ipfs-unixfs-importer": "^15.3.1",
     "jszip": "^3.10.1",
     "jwt-decode": "^4.0.0",
-    "md-editor-v3": "^4.2.2",
+    "md-editor-v3": "^6.5.4",
     "pdfjs-dist": "5.4.624",
     "pinia": "^3.0.1",
     "posthog-js": "^1.372.3",
