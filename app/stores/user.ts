@@ -70,7 +70,7 @@ export const useUserStore = defineStore('user', () => {
 
   // Both writes need `write:profile` in the session token, hence the
   // `canEditProfile` gate on the UI that calls them.
-  async function updateUserProfile(payload: { displayName: string }) {
+  async function updateUserProfile(payload: { displayName?: string, description?: string }) {
     await apiFetch('/users/update', {
       method: 'POST',
       body: payload,
