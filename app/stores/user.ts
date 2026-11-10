@@ -41,13 +41,15 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function fetchUserLikerInfo({ nocache = false } = {}) {
+  async function fetchUserLikerInfo() {
     if (!isAuthenticated.value) {
       return null
     }
     try {
       isFetchingUserLikerInfo.value = true
-      const likerInfo = await likerStore.fetchLikerInfoByWallet(wallet.value, { nocache })
+      // The endpoint allows a day of stale-while-revalidate, so a cached copy
+      // would show the user's own profile as it was before their edits.
+      const likerInfo = await likerStore.fetchLikerInfoByWallet(wallet.value, { nocache: true })
       return likerInfo
     }
     finally {
@@ -73,7 +75,7 @@ export const useUserStore = defineStore('user', () => {
       method: 'POST',
       body: payload,
     })
-    await fetchUserLikerInfo({ nocache: true })
+    await fetchUserLikerInfo()
   }
 
   async function uploadUserAvatar(file: File) {
@@ -83,7 +85,7 @@ export const useUserStore = defineStore('user', () => {
       method: 'POST',
       body: formData,
     })
-    await fetchUserLikerInfo({ nocache: true })
+    await fetchUserLikerInfo()
     return data
   }
 
