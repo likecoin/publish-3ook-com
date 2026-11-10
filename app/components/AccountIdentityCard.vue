@@ -108,11 +108,9 @@ const userStore = useUserStore()
 const { userLikerInfo, bookUser } = storeToRefs(userStore)
 const { isRequestingPermission, requestProfilePermission } = useProfilePermission()
 
-// `useOverlay`'s registry is module-level and only drops entries on unmount,
-// so an instance created per mount would accumulate across page visits.
+// A `destroyOnClose` overlay leaves `useOverlay`'s shared registry once it has closed,
+// so every open needs a fresh instance; one created per mount fails on the second open.
 const overlay = useOverlay()
-const displayNameModal = overlay.create(AccountDisplayNameModal, { destroyOnClose: true })
-onUnmounted(() => overlay.unmount(displayNameModal.id))
 
 const notificationEmail = computed(() => bookUser.value?.notificationEmail || '')
 const isEmailVerified = computed(() => !!bookUser.value?.isEmailVerified)
@@ -121,7 +119,7 @@ const accountUrl = computed(() => `${BOOK3_URL}/account`)
 async function handleDisplayNameEditButtonClick() {
   useLogEvent('account_display_name_edit_click')
   if (await requestProfilePermission()) {
-    displayNameModal.open()
+    overlay.create(AccountDisplayNameModal, { destroyOnClose: true }).open()
   }
 }
 
