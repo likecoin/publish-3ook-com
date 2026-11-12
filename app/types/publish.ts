@@ -15,6 +15,12 @@ export interface PublishFileRecord {
   arweaveId?: string
   arweaveLink?: string
   arweaveKey?: string
+  // Kept so a resumed draft still shows the epubcheck result, and still blocks
+  // publishing on unacknowledged errors.
+  validationErrors?: string
+  validationWarnings?: string
+  hasValidationIssues?: boolean
+  hasAcknowledgedValidationErrors?: boolean
 }
 
 // A record paired with its in-memory blob; blobs never persist to storage.
