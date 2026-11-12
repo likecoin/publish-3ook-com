@@ -23,6 +23,33 @@
     </AccountSettingsItem>
 
     <AccountSettingsItem
+      icon="i-heroicons-document-text"
+      :label="$t('user_settings.description')"
+    >
+      <p
+        v-if="userLikerInfo?.description"
+        class="text-sm whitespace-pre-wrap break-words line-clamp-4"
+        v-text="userLikerInfo.description"
+      />
+      <span
+        v-else
+        class="text-sm text-(--ui-text-muted)"
+        v-text="$t('user_settings.description_not_setup')"
+      />
+
+      <template #right>
+        <UButton
+          :label="$t('common.edit')"
+          icon="i-heroicons-pencil-square"
+          variant="outline"
+          color="neutral"
+          :loading="isRequestingPermission || isFetchingUserLikerInfo"
+          @click="handleDescriptionEditButtonClick"
+        />
+      </template>
+    </AccountSettingsItem>
+
+    <AccountSettingsItem
       icon="i-heroicons-envelope"
       :label="$t('user_settings.liker_id_email')"
     >
@@ -98,21 +125,20 @@
 </template>
 
 <script setup lang="ts">
-import { AccountDisplayNameModal } from '#components'
+import { AccountDescriptionModal, AccountDisplayNameModal } from '#components'
 
 const { t: $t } = useI18n()
 const { BOOK3_URL } = useRuntimeConfig().public
 
 const { wallet } = storeToRefs(useBookstoreApiStore())
 const userStore = useUserStore()
-const { userLikerInfo, bookUser } = storeToRefs(userStore)
+const { userLikerInfo, bookUser, isFetchingUserLikerInfo } = storeToRefs(userStore)
+const { showErrorToast } = useToastComposable()
 const { isRequestingPermission, requestProfilePermission } = useProfilePermission()
 
-// `useOverlay`'s registry is module-level and only drops entries on unmount,
-// so an instance created per mount would accumulate across page visits.
+// A `destroyOnClose` overlay leaves `useOverlay`'s shared registry once it has closed,
+// so every open needs a fresh instance; one created per mount fails on the second open.
 const overlay = useOverlay()
-const displayNameModal = overlay.create(AccountDisplayNameModal, { destroyOnClose: true })
-onUnmounted(() => overlay.unmount(displayNameModal.id))
 
 const notificationEmail = computed(() => bookUser.value?.notificationEmail || '')
 const isEmailVerified = computed(() => !!bookUser.value?.isEmailVerified)
@@ -121,8 +147,20 @@ const accountUrl = computed(() => `${BOOK3_URL}/account`)
 async function handleDisplayNameEditButtonClick() {
   useLogEvent('account_display_name_edit_click')
   if (await requestProfilePermission()) {
-    displayNameModal.open()
+    overlay.create(AccountDisplayNameModal, { destroyOnClose: true }).open()
   }
+}
+
+async function handleDescriptionEditButtonClick() {
+  useLogEvent('account_description_edit_click')
+  if (!await requestProfilePermission()) { return }
+  // The editor is seeded from the loaded profile; opening it earlier
+  // would let an untouched save clear the stored description.
+  if (!await userStore.lazyFetchUserLikerInfo()) {
+    showErrorToast($t('user_settings.profile_load_failed'))
+    return
+  }
+  overlay.create(AccountDescriptionModal, { destroyOnClose: true }).open()
 }
 
 function handleManageAccountClick() {
