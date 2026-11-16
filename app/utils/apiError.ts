@@ -39,6 +39,12 @@ const API_ERROR_I18N_KEYS: Record<string, string> = {
   STAGED_FILE_NOT_FOUND: 'errors.api_upload_incomplete',
   PLAINTEXT_HASH_MISMATCH: 'errors.api_upload_corrupted',
   NOT_OWNER: 'errors.api_not_owner',
+  NOT_OWNER_OF_NFT_CLASS: 'errors.api_not_owner_of_nft_class',
+  CLASS_ID_NOT_FOUND: 'errors.api_class_id_not_found',
+  OWNERSHIP_TRANSFER_NOT_SUPPORTED: 'errors.api_ownership_transfer_not_supported',
+  NEW_OWNER_STRIPE_CONNECT_NOT_READY: 'errors.api_new_owner_stripe_connect_not_ready',
+  ON_CHAIN_OWNER_MISMATCH: 'errors.api_on_chain_owner_mismatch',
+  SAME_OWNER_WALLET: 'errors.api_same_owner_wallet',
   OPEN_BUCKET_NOT_CONFIGURED: 'errors.api_upload_unavailable',
   PROTECTED_BUCKET_NOT_CONFIGURED: 'errors.api_upload_unavailable',
 }

@@ -117,6 +117,13 @@ export function checkJwtTokenValidity(token: string) {
   return !isExpired && isMatchPermissions
 }
 
+// Valid for at least `marginMs` more, so the session cannot lapse while a wallet flow it gates is still running.
+export function checkJwtTokenValidFor(token: string, marginMs: number) {
+  if (!checkJwtTokenValidity(token)) { return false }
+  const exp = decodeToken(token)?.exp
+  return !exp || exp * 1000 - marginMs > Date.now()
+}
+
 export interface MigrateMagicEmailUserResponseData {
   isMigratedBookUser: boolean
   isMigratedBookOwner: boolean
