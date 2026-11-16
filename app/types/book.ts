@@ -61,15 +61,17 @@ export interface ClassListingData {
   // The merch counterpart of pendingNFTCount: orders paid for but not yet
   // shipped. Listing-level so the banner has a number before the orders load.
   pendingShipmentCount?: number
-  // The listing's copy of the on-chain metadata, synced chain → store on every
-  // refresh. Backfills wrote genre and keywords here directly, so these can
-  // hold enrichment the chain never got — see utils/store-metadata-drift.ts.
+  // The listing's copy of the on-chain metadata, synced chain → store on every refresh.
+  // Backfills and manual fixes write here directly,
+  // so these can hold enrichment the chain never got (see utils/store-metadata-drift.ts).
   name?: string
+  alternativeHeadline?: string
   description?: string
   // Older listings and chain metadata alike can hold a comma-separated string.
   keywords?: string | string[]
   genre?: string
   isbn?: string
+  datePublished?: string
   inLanguage?: string
   thumbnailUrl?: string
   usageInfo?: string
