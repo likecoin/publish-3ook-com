@@ -1,21 +1,29 @@
-// Compares the bookstore listing's copy of a book's metadata against the
-// on-chain metadata the edit form loaded. Backfill scripts wrote genre and
-// keywords straight into the listing doc (a class `update` needs the owner's
-// signature, which a script has none of), so the store can hold enrichment the
-// chain never got.
+// Compares the bookstore listing's copy of a book's metadata
+// against the on-chain metadata the edit form loaded.
+// Backfill scripts and manual fixes write straight into the listing doc
+// (a class `update` needs the owner's signature, which a script has none of),
+// so the store can hold enrichment or corrections the chain never got.
 //
-// Kept free of runtime imports — only types, which erase — so
-// test/store-metadata-drift.test.mjs can run it under `node --test` without
-// Nuxt's alias resolution. That is also why the keyword rules below live here
-// rather than in a util of their own, and why the genre vocabulary and the
-// keyword cap are injected.
+// Kept free of `~` alias imports so `node --test` can run it from the test file:
+// types erase, and publicationDate comes in by relative path.
+// That is also why the keyword rules live here rather than in a util of their own,
+// and why the genre vocabulary and the keyword cap are injected.
 import type { ClassListingData } from '~/types/book'
 import type { ISCNFormData } from '~/types/iscn'
+import { normalizePublicationDate } from './publicationDate.ts'
 
 // The form keys this compares. Only ISCNFormData's own keys are ever staged:
 // `mapClassMetadataToISCNForm` spreads raw metadata (`keywords`, `name`, …)
 // into the form beside them, and those have no label in the change ledger.
-export type StoreMetadataDriftField = 'genre' | 'tags'
+export type StoreMetadataDriftField
+  = | 'genre'
+    | 'tags'
+    | 'title'
+    | 'alternativeHeadline'
+    | 'publicationDate'
+    | 'isbn'
+
+type StoreMetadataTextField = Exclude<StoreMetadataDriftField, 'genre' | 'tags'>
 
 export interface StoreMetadataConflict {
   field: StoreMetadataDriftField
@@ -33,6 +41,33 @@ export interface StoreMetadataDrift {
   conflicts: StoreMetadataConflict[]
 }
 
+function trimText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+// The API stores an ISBN without hyphens, while the chain keeps what the author typed,
+// so 978-626-… and 978626… are one ISBN.
+function compactISBN(value: string): string {
+  return value.replace(/[\s-]/g, '').toUpperCase()
+}
+
+// Date-only, as the date input and the save both want it.
+// A value that does not parse counts as empty: the save would drop it from the chain anyway.
+function toPublicationDate(value: unknown): string {
+  return typeof value === 'string' ? normalizePublicationDate(value) || '' : ''
+}
+
+const TEXT_FIELD_RULES: Record<StoreMetadataTextField, {
+  listingKey: keyof ClassListingData
+  normalize: (value: unknown) => string
+  compareKey?: (value: string) => string
+}> = {
+  title: { listingKey: 'name', normalize: trimText },
+  alternativeHeadline: { listingKey: 'alternativeHeadline', normalize: trimText },
+  publicationDate: { listingKey: 'datePublished', normalize: toPublicationDate },
+  isbn: { listingKey: 'isbn', normalize: trimText, compareKey: compactISBN },
+}
+
 /**
  * What the store knows that the chain does not.
  *
@@ -40,6 +75,7 @@ export interface StoreMetadataDrift {
  * - fill — empty on chain, set on the store → stage the store value
  * - union — keywords → chain ∪ store, capped, chain's own order and casing kept
  * - conflict — both set and different → offered, not staged
+ * Values are compared normalized, so formatting alone is never a conflict.
  */
 export function getStoreMetadataDrift({
   listing,
@@ -54,6 +90,19 @@ export function getStoreMetadataDrift({
 }): StoreMetadataDrift {
   const staged: StoreMetadataDrift['staged'] = {}
   const conflicts: StoreMetadataConflict[] = []
+
+  for (const field of Object.keys(TEXT_FIELD_RULES) as StoreMetadataTextField[]) {
+    const { listingKey, normalize, compareKey = value => value } = TEXT_FIELD_RULES[field]
+    const storeValue = normalize(listing[listingKey])
+    if (!storeValue) { continue }
+    const chainValue = normalize(formData[field])
+    if (!chainValue) {
+      staged[field] = storeValue
+    }
+    else if (compareKey(chainValue) !== compareKey(storeValue)) {
+      conflicts.push({ field, storeValue })
+    }
+  }
 
   const storeGenre = (listing.genre || '').trim()
   const chainGenre = (formData.genre || '').trim()

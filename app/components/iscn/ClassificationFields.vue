@@ -120,8 +120,7 @@ const {
   // The author writes the full description first and may leave the short one
   // empty, so the suggestion reads whichever they actually filled in.
   descriptionFull?: string
-  // Genre and keywords are the two fields the bookstore backfills wrote, so the
-  // drift hints land here rather than in any other field group.
+  // Genre and keywords only; the identity and identifier groups take the other drift fields.
   storeSourcedFields?: StoreMetadataDriftField[]
   storeConflicts?: StoreMetadataConflict[]
 }>()

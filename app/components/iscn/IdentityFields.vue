@@ -3,12 +3,17 @@
     name="title"
     :label="$t('common.title')"
     class="flex-1 text-left"
-    :help="prefilledHint('title')"
+    :help="storeHint('title') || prefilledHint('title')"
     required
   >
     <UInput
       v-model="formData.title"
       :placeholder="$t('iscn_form.enter_iscn_title')"
+    />
+    <IscnStoreValueButton
+      field="title"
+      :conflicts="storeConflicts"
+      @apply="(field: StoreMetadataDriftField) => emit('applyStoreValue', field)"
     />
   </UFormField>
 
@@ -17,10 +22,16 @@
     :label="$t('iscn_form.subtitle')"
     class="flex-1 text-left"
     :hint="`${(formData.alternativeHeadline || '').length}/${MAX_ALTERNATIVE_HEADLINE_LENGTH}`"
+    :help="storeHint('alternativeHeadline')"
   >
     <UInput
       v-model="formData.alternativeHeadline"
       :placeholder="$t('iscn_form.enter_subtitle')"
+    />
+    <IscnStoreValueButton
+      field="alternativeHeadline"
+      :conflicts="storeConflicts"
+      @apply="(field: StoreMetadataDriftField) => emit('applyStoreValue', field)"
     />
   </UFormField>
 
@@ -98,6 +109,7 @@
 <script setup lang="ts">
 import type { ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
+import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -107,15 +119,20 @@ import {
 
 const { t: $t } = useI18n()
 
-const { prefilledFields = [] } = defineProps<{
+const { prefilledFields = [], storeSourcedFields = [], storeConflicts = [] } = defineProps<{
   prefilledFields?: ISCNPrefillableField[]
+  storeSourcedFields?: StoreMetadataDriftField[]
+  storeConflicts?: StoreMetadataConflict[]
 }>()
+
+const emit = defineEmits<{ applyStoreValue: [field: StoreMetadataDriftField] }>()
 
 const formData = defineModel<ISCNFormData>({ required: true })
 
 const descriptionFull = defineModel<string>('descriptionFull')
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
+const storeHint = useIscnStoreHint(() => storeSourcedFields)
 
 // What the catalog line becomes when it is not written by hand. ISCNForm
 // resolves the same value at submit, so this is a readout, not the source.
