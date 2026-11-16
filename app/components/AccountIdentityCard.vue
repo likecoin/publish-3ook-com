@@ -14,6 +14,20 @@
         size="xs"
         @click="handleLikerIdClick"
       />
+
+      <template
+        v-if="!hasLikerIdChanged"
+        #right
+      >
+        <UButton
+          :label="$t('common.edit')"
+          icon="i-heroicons-pencil-square"
+          variant="outline"
+          color="neutral"
+          :loading="isRequestingPermission"
+          @click="handleLikerIdEditButtonClick"
+        />
+      </template>
     </AccountSettingsItem>
 
     <AccountSettingsItem
@@ -125,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { AccountDescriptionModal, AccountDisplayNameModal } from '#components'
+import { AccountDescriptionModal, AccountDisplayNameModal, AccountLikerIdModal } from '#components'
 
 const { t: $t } = useI18n()
 const { BOOK3_URL } = useRuntimeConfig().public
@@ -133,7 +147,7 @@ const { BOOK3_URL } = useRuntimeConfig().public
 const { wallet } = storeToRefs(useBookstoreApiStore())
 const userStore = useUserStore()
 const { userLikerInfo, bookUser, isFetchingUserLikerInfo } = storeToRefs(userStore)
-const { publicLikerId } = usePublicLikerId()
+const { publicLikerId, hasLikerIdChanged } = usePublicLikerId()
 const { showErrorToast } = useToastComposable()
 const { isRequestingPermission, requestProfilePermission } = useProfilePermission()
 
@@ -144,6 +158,13 @@ const overlay = useOverlay()
 const notificationEmail = computed(() => bookUser.value?.notificationEmail || '')
 const isEmailVerified = computed(() => !!bookUser.value?.isEmailVerified)
 const accountUrl = computed(() => `${BOOK3_URL}/account`)
+
+async function handleLikerIdEditButtonClick() {
+  useLogEvent('account_liker_id_edit_click')
+  if (await requestProfilePermission()) {
+    overlay.create(AccountLikerIdModal, { destroyOnClose: true }).open()
+  }
+}
 
 async function handleDisplayNameEditButtonClick() {
   useLogEvent('account_display_name_edit_click')
