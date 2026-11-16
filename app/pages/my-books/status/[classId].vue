@@ -17,6 +17,21 @@
 
       <AppErrorAlert v-model="error" />
 
+      <UAlert
+        v-if="pendingSyncWallet"
+        color="warning"
+        variant="subtle"
+        icon="i-heroicons-arrows-right-left"
+        :title="$t('ownership_transfer.sync_title')"
+        :description="$t('ownership_transfer.sync_description', { wallet: pendingSyncWallet })"
+        :actions="[{
+          label: $t('ownership_transfer.sync_action'),
+          color: 'warning',
+          loading: isSyncingOwnership,
+          onClick: syncPendingOwnership,
+        }]"
+      />
+
       <UProgress
         v-if="isLoading"
         animation="carousel"
@@ -191,6 +206,15 @@
             v-model="listingSettings.moderatorWallets.value"
             :can-edit="userIsOwner"
           />
+          <!-- Owner only: the contract takes the owner's signature, and a good has no contract. -->
+          <BookStatusOwnershipTransferCard
+            v-if="userIsOwner && !isMerch && !pendingSyncWallet"
+            :class-id="classId"
+            :owner-wallet="sessionWallet!"
+            :needs-stripe-connect="classListingInfo.connectedWallets?.[ownerWallet!] !== undefined"
+            @transferred="handleOwnershipTransferred"
+            @sync-needed="handleOwnershipSyncNeeded"
+          />
         </div>
       </template>
     </PageBody>
@@ -223,6 +247,7 @@ const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
 const { getBalanceOf } = useNFTContractReader()
 const { showSuccessToast, showErrorToast } = useToastComposable()
+const { syncOwnership, fetchPendingSyncWallet } = useBookOwnershipTransfer()
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
@@ -451,6 +476,9 @@ onMounted(async () => {
     if (sessionWallet.value) {
       await calculateStock()
     }
+    if (userIsOwner.value && !isMerch.value) {
+      checkPendingOwnershipSync()
+    }
   }
   catch (err) {
     error.value = (err as Error).toString()
@@ -491,6 +519,58 @@ function handleCoverReplaced(coverUrl: string) {
 
 function handleFilesReplaced(links: IscnFileLinks) {
   detailsSectionRef.value?.setFiles(links)
+}
+
+// Set when the contract already names another owner but the listing still names us.
+const pendingSyncWallet = ref<string | null>(null)
+const pendingSyncTxHash = ref<`0x${string}`>()
+const isSyncingOwnership = ref(false)
+
+async function checkPendingOwnershipSync() {
+  try {
+    pendingSyncWallet.value = await fetchPendingSyncWallet({
+      classId: classId.value,
+      listingOwner: ownerWallet.value,
+      sessionWallet: sessionWallet.value,
+    })
+  }
+  catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err)
+  }
+}
+
+function handleOwnershipSyncNeeded(newOwnerWallet: string, txHash?: `0x${string}`) {
+  pendingSyncWallet.value = newOwnerWallet
+  pendingSyncTxHash.value = txHash
+}
+
+async function syncPendingOwnership() {
+  if (!pendingSyncWallet.value || isSyncingOwnership.value) { return }
+  isSyncingOwnership.value = true
+  try {
+    await syncOwnership(classId.value, {
+      newOwnerWallet: pendingSyncWallet.value,
+      txHash: pendingSyncTxHash.value,
+    })
+    await handleOwnershipTransferred(pendingSyncWallet.value)
+  }
+  catch (err) {
+    showErrorToast(err)
+  }
+  finally {
+    isSyncingOwnership.value = false
+  }
+}
+
+// Refreshed before leaving: the unsaved-changes guard can cancel the navigation,
+// and the page must not keep offering owner controls to the former owner.
+async function handleOwnershipTransferred(recipient: string) {
+  showSuccessToast($t('ownership_transfer.success', { recipient }), { duration: 5000 })
+  pendingSyncWallet.value = null
+  pendingSyncTxHash.value = undefined
+  await refreshListingInfo().catch(() => {})
+  await navigateTo(localeRoute({ name: 'my-books' }))
 }
 
 function handleReducePendingNft() {
