@@ -1,6 +1,22 @@
 <template>
   <UCard :ui="{ body: 'p-0! sm:p-0! divide-y-1 divide-(--ui-border)' }">
     <AccountSettingsItem
+      v-if="publicLikerId"
+      icon="i-heroicons-identification"
+      :label="$t('user_settings.liker_id')"
+    >
+      <UButton
+        class="-ml-2 text-sm font-mono"
+        :label="publicLikerId"
+        trailing-icon="i-heroicons-clipboard-document"
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        @click="handleLikerIdClick"
+      />
+    </AccountSettingsItem>
+
+    <AccountSettingsItem
       icon="i-heroicons-user-circle"
       :label="$t('user_settings.display_name')"
     >
@@ -86,22 +102,6 @@
           @click="handleManageAccountClick"
         />
       </template>
-    </AccountSettingsItem>
-
-    <AccountSettingsItem
-      v-if="publicLikerId"
-      icon="i-heroicons-identification"
-      :label="$t('user_settings.liker_id')"
-    >
-      <UButton
-        class="-ml-2 text-sm font-mono"
-        :label="publicLikerId"
-        trailing-icon="i-heroicons-clipboard-document"
-        variant="ghost"
-        color="neutral"
-        size="xs"
-        @click="handleLikerIdClick"
-      />
     </AccountSettingsItem>
 
     <AccountSettingsItem
