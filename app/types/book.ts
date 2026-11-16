@@ -1,3 +1,5 @@
+import type { RestrictedTerritoriesSource } from '~/utils/restricted-territories'
+
 export interface BookPriceInDecimalByCurrency {
   hkd?: number
   twd?: number
@@ -88,6 +90,9 @@ export interface ClassListingData {
   isPlusReadingEnabled?: boolean
   isPreviewEnabled?: boolean
   previewPercentage?: number
+  restrictedTerritories?: string[]
+  // Only returned to the owner and moderators.
+  restrictedTerritoriesSetBy?: RestrictedTerritoriesSource
   pendingNFTCount?: number
   enableSignatureImage?: boolean | 'signed'
   isHidden?: boolean

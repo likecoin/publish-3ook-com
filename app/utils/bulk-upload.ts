@@ -21,6 +21,7 @@ import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUp
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 import { normalizePublicationDate } from '~/utils/publicationDate'
+import { parseTerritoryCodes } from '~/utils/restricted-territories'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -70,6 +71,7 @@ export const CSV_ALL_COLUMNS = [
   'is_liker_land_art',
   'is_public_domain',
   'has_ai_generated_content',
+  'restricted_territories',
   'language',
 ]
 
@@ -161,6 +163,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     isLikerLandArt: row.is_liker_land_art?.trim().toLowerCase() === 'true',
     isPublicDomain: row.is_public_domain?.trim().toLowerCase() === 'true',
     hasAiGeneratedContent: row.has_ai_generated_content?.trim().toLowerCase() === 'true',
+    restrictedTerritories: parseTerritoryCodes(row.restricted_territories).codes,
     language: row.language?.trim() || CSV_DEFAULT_LANGUAGE,
     status: BookUploadStatus.PENDING,
   }
@@ -242,8 +245,13 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
     errors.push({ rowIndex, field: 'publish_date', message: 'bulk_upload.error_invalid_publish_date', params: { value: book.publishDate } })
   }
 
-  // Validate boolean fields contain valid values
   if (rawRow) {
+    const { invalidCodes } = parseTerritoryCodes(rawRow.restricted_territories)
+    if (invalidCodes.length) {
+      errors.push({ rowIndex, field: 'restricted_territories', message: 'bulk_upload.error_invalid_territory', params: { codes: invalidCodes.join(', ') } })
+    }
+
+    // Validate boolean fields contain valid values
     for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'tts_library_only', 'enable_library', 'enable_preview', 'is_liker_land_art', 'has_ai_generated_content', 'is_public_domain'] as const) {
       const raw = rawRow[field]
       const value = raw?.trim().toLowerCase() ?? ''
@@ -319,6 +327,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     isLikerLandArt: book.isLikerLandArt,
     isPublicDomain: book.isPublicDomain,
     hasAiGeneratedContent: book.hasAiGeneratedContent,
+    restrictedTerritories: book.restrictedTerritories,
     language: book.language,
     status: book.status,
     error: book.error,
@@ -338,6 +347,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
 export function deserializeBook(serialized: SerializedBulkUploadBook): BulkUploadBook {
   return {
     ...serialized,
+    restrictedTerritories: serialized.restrictedTerritories ?? [],
     coverFile: undefined,
     pdfFile: undefined,
     epubFile: undefined,
@@ -416,6 +426,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.isLikerLandArt ? 'true' : 'false',
     book.isPublicDomain ? 'true' : 'false',
     book.hasAiGeneratedContent ? 'true' : 'false',
+    book.restrictedTerritories.join(','),
     book.language,
     book.classId || '',
     book.mintTxHash || '',
