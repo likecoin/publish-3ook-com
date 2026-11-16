@@ -367,6 +367,7 @@
             { accessorKey: 'isLikerLandArt', header: $t('bulk_upload.is_liker_land_art') },
             { accessorKey: 'isPublicDomain', header: $t('bulk_upload.is_public_domain') },
             { accessorKey: 'hasAiGeneratedContent', header: $t('bulk_upload.has_ai_generated_content') },
+            { accessorKey: 'restrictedTerritories', header: $t('bulk_upload.restricted_territories') },
             { accessorKey: 'isAutoDeliver', header: $t('bulk_upload.auto_deliver') },
             { accessorKey: 'autoMemo', header: $t('bulk_upload.auto_memo') },
           ]"
@@ -701,6 +702,7 @@ const reviewData = computed(() =>
     isLikerLandArt: book.isLikerLandArt,
     isPublicDomain: book.isPublicDomain,
     hasAiGeneratedContent: book.hasAiGeneratedContent,
+    restrictedTerritories: book.restrictedTerritories.join(', ') || '—',
     isPlusReadingEnabled: book.isPlusReadingEnabled,
     isAutoDeliver: book.isAutoDeliver,
     autoMemo: book.autoMemo,
@@ -755,6 +757,7 @@ async function downloadCSVTemplate() {
     '', // is_liker_land_art
     '', // is_public_domain
     '', // has_ai_generated_content
+    '', // restricted_territories
     '', // language
   ]
 
