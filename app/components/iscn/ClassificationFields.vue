@@ -120,8 +120,7 @@ const {
   // The author writes the full description first and may leave the short one
   // empty, so the suggestion reads whichever they actually filled in.
   descriptionFull?: string
-  // Genre and keywords are the two fields the bookstore backfills wrote, so the
-  // drift hints land here rather than in any other field group.
+  // Genre and keywords only; the identity and identifier groups take the other drift fields.
   storeSourcedFields?: StoreMetadataDriftField[]
   storeConflicts?: StoreMetadataConflict[]
 }>()
@@ -134,11 +133,7 @@ const hasSuggested = defineModel<boolean>('hasSuggested', { default: false })
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
 
-// Same job as prefilledHint, for a value the host filled in from the bookstore
-// listing rather than from an uploaded file.
-function storeHint(field: StoreMetadataDriftField): string | undefined {
-  return storeSourcedFields.includes(field) ? $t('iscn_form.from_store_data') : undefined
-}
+const storeHint = useIscnStoreHint(() => storeSourcedFields)
 
 // Reka UI's SelectItem rejects an empty-string value (it is reserved for the
 // cleared state), so the reset option uses a sentinel mapped back to '' below.

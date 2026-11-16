@@ -49,9 +49,9 @@
       v-else
       class="flex flex-col gap-6 text-left"
     >
-      <!-- Backfills wrote genre and keywords into the bookstore listing, which
-           no signature reaches the chain from. Filled in here so the author's
-           next save carries them, said out loud so the save is not a surprise. -->
+      <!-- Backfills and manual fixes write into the bookstore listing,
+           which no signature carries to the chain. Filled in here so the next save does,
+           and said out loud so that save is not a surprise. -->
       <UAlert
         v-if="storeSourcedFields.length"
         color="info"
@@ -202,17 +202,16 @@ function stageStoreValue(field: StoreMetadataDriftField, value: string | string[
   writeFormField(field, copyFieldValue(value))
 }
 
-function copyFieldValue(value: string | string[]) {
+function copyFieldValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? [...value] : value
 }
 
-// Per field rather than an indexed write: the two staged fields hold different
-// types, and matching them here is what keeps the staging maps cast-free. Total
-// on purpose — a missing value clears the field rather than silently doing
-// nothing, which would leave a staged value in place while claiming it was undone.
+// Keywords are the one array among the staged fields,
+// and branching on them alone keeps the staging maps cast-free. Total on purpose:
+// a missing value clears the field rather than leave a staged value claiming it was undone.
 function writeFormField(field: StoreMetadataDriftField, value: string | string[] | undefined) {
   if (field === 'tags') { iscnFormData.value.tags = Array.isArray(value) ? value : [] }
-  else { iscnFormData.value.genre = typeof value === 'string' ? value : '' }
+  else { iscnFormData.value[field] = typeof value === 'string' ? value : '' }
 }
 
 // The conflict cases: the author asked for the store's value, so it is staged

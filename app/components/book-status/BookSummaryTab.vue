@@ -27,8 +27,8 @@
 
     <BookStatusBookTodoCard
       :class-id="classId"
-      :genre="iscnFormData.genre || storeGenre"
-      :isbn="iscnFormData.isbn"
+      :genre="iscnFormData.genre || storeStaged.genre"
+      :isbn="iscnFormData.isbn || storeStaged.isbn"
       :pending-nft-count="classListingInfo.pendingNFTCount"
       :has-store-metadata-mismatch="hasStoreMetadataMismatch"
       :is-merch="isMerch"
@@ -111,15 +111,15 @@ const { classId, classListingInfo, storeUrl, settings, isFreeBook = false, canEd
 
 const soldCount = computed(() => getSoldCount(classListingInfo.prices))
 
-// Asked of the drift rules rather than re-derived: only a category they would
-// actually offer counts as having one, or 尚未設定分類 and the details form
-// would disagree about the same book.
-const storeGenre = computed(() => getStoreMetadataDrift({
+// Asked of the drift rules rather than re-derived:
+// only a category or ISBN they would actually fill in counts as having one,
+// or 尚未設定分類 and the details form would disagree about the same book.
+const storeStaged = computed(() => getStoreMetadataDrift({
   listing: classListingInfo,
   formData: iscnFormData.value,
   genreVocabulary: BOOK_CATEGORY_VALUES,
   maxKeywords: MAX_BOOK_KEYWORDS,
-}).staged.genre || '')
+}).staged)
 
 const emit = defineEmits<{ goToTab: [tab: BookStatusTab] }>()
 
