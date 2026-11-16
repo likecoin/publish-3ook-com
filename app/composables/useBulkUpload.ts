@@ -318,6 +318,7 @@ export function useBulkUpload() {
       ...(book.isLikerLandArt ? { isLikerLandArt: true } : {}),
       isPublicDomain: book.isPublicDomain,
       hasAIGeneratedContent: book.hasAiGeneratedContent,
+      restrictedTerritories: book.restrictedTerritories,
       descriptionFull: book.descriptionFull?.trim() || undefined,
     })
   }

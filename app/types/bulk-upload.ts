@@ -43,6 +43,7 @@ export interface BulkUploadCSVRow {
   is_liker_land_art?: string
   is_public_domain?: string
   has_ai_generated_content?: string
+  restricted_territories?: string
   language?: string
   // Resume fields (from result CSV)
   class_id?: string
@@ -95,6 +96,8 @@ export interface BulkUploadBook {
   isLikerLandArt: boolean
   isPublicDomain: boolean
   hasAiGeneratedContent: boolean
+  // Valid codes only; validateBook reports the rest from the raw cell.
+  restrictedTerritories: string[]
   language: string
   // Runtime state
   status: BookUploadStatus
@@ -148,6 +151,8 @@ export interface SerializedBulkUploadBook {
   isLikerLandArt: boolean
   isPublicDomain: boolean
   hasAiGeneratedContent: boolean
+  // Absent from sessions saved before the column existed.
+  restrictedTerritories?: string[]
   language: string
   status: BookUploadStatus
   error?: string
