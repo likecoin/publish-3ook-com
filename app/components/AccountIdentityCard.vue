@@ -89,13 +89,13 @@
     </AccountSettingsItem>
 
     <AccountSettingsItem
-      v-if="userLikerInfo?.user"
+      v-if="publicLikerId"
       icon="i-heroicons-identification"
       :label="$t('user_settings.liker_id')"
     >
       <UButton
         class="-ml-2 text-sm font-mono"
-        :label="userLikerInfo.user"
+        :label="publicLikerId"
         trailing-icon="i-heroicons-clipboard-document"
         variant="ghost"
         color="neutral"
@@ -133,6 +133,7 @@ const { BOOK3_URL } = useRuntimeConfig().public
 const { wallet } = storeToRefs(useBookstoreApiStore())
 const userStore = useUserStore()
 const { userLikerInfo, bookUser, isFetchingUserLikerInfo } = storeToRefs(userStore)
+const { publicLikerId } = usePublicLikerId()
 const { showErrorToast } = useToastComposable()
 const { isRequestingPermission, requestProfilePermission } = useProfilePermission()
 
@@ -169,7 +170,7 @@ function handleManageAccountClick() {
 
 function handleLikerIdClick() {
   useLogEvent('account_liker_id_copy')
-  copyToClipboard(userLikerInfo.value?.user || '', $t('user_settings.liker_id_copied'))
+  copyToClipboard(publicLikerId.value, $t('user_settings.liker_id_copied'))
 }
 
 function handleEVMWalletClick() {

@@ -3,6 +3,7 @@ import type { ShippingDetails } from '~/types/purchase'
 
 export interface FetchLikerInfoResult {
   user: string
+  handle?: string
   displayName: string
   avatar: string
   wallet: string
