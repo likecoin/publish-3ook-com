@@ -367,6 +367,7 @@ function createDefaultListingDraft(): PublishListingDraft {
     // New titles opt into free preview by default.
     isPreviewEnabled: true,
     previewPercentage: PREVIEW_PERCENTAGE_DEFAULT,
+    restrictedTerritories: [],
     tableOfContents: '',
     descriptionFull: '',
     // No moderator wallet by default: a moderator is owner-equivalent on the

@@ -275,6 +275,7 @@ export function usePublishBook() {
           isPlusReadingEnabled: listingDraft.isPlusReadingEnabled,
           isPreviewEnabled: listingDraft.isPreviewEnabled,
           previewPercentage: listingDraft.previewPercentage,
+          restrictedTerritories: listingDraft.restrictedTerritories,
           tableOfContents: listingDraft.tableOfContents || undefined,
           descriptionFull: listingDraft.descriptionFull?.trim() || undefined,
         })
