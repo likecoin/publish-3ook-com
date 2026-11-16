@@ -20,6 +20,8 @@
       :is-plus-reading-enabled="settings.isPlusReadingEnabled"
     />
 
+    <BookRestrictedTerritoriesField v-model="settings.restrictedTerritories" />
+
     <!-- Live free-preview cut readout: the straddled chapter is included in
          full where that stays under the ceiling, so the actual range can
          exceed the nominal %; past it the chapter ships part-way. -->

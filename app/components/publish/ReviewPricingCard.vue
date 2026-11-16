@@ -57,7 +57,7 @@
 import type { PriceFormItem } from '~/types/publish'
 import { getPriceItemUSDValue, formatPriceUSDLabel } from '~/utils/listing'
 
-const { t: $t } = useI18n()
+const { t: $t, localeProperties } = useI18n()
 
 const {
   prices,
@@ -67,6 +67,7 @@ const {
   isAdultOnly,
   hasAiGeneratedContent,
   isPublicDomain,
+  restrictedTerritories,
   editable = false,
 } = defineProps<{
   prices: PriceFormItem[]
@@ -76,6 +77,7 @@ const {
   isAdultOnly: boolean
   hasAiGeneratedContent: boolean
   isPublicDomain: boolean
+  restrictedTerritories: string[]
   editable?: boolean
 }>()
 
@@ -120,6 +122,12 @@ const settingsRows = computed(() => [
   {
     label: $t('nft_book_form.is_public_domain'),
     value: isPublicDomain ? $t('common.yes') : $t('common.no'),
+  },
+  {
+    label: $t('nft_book_form.restricted_territories'),
+    value: restrictedTerritories.length
+      ? restrictedTerritories.map(createTerritoryLabeler(localeProperties.value.language || 'zh-TW')).join(', ')
+      : $t('nft_book_form.restricted_territories_none'),
   },
 ])
 

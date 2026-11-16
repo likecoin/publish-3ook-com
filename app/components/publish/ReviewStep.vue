@@ -79,6 +79,7 @@
       :is-adult-only="listingDraft.isAdultOnly"
       :has-ai-generated-content="listingDraft.hasAiGeneratedContent"
       :is-public-domain="listingDraft.isPublicDomain"
+      :restricted-territories="listingDraft.restrictedTerritories"
       editable
       @edit="emit('edit', 'pricing')"
     />

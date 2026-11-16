@@ -22,6 +22,8 @@ export function useBookListingSettings(options: {
   const isPlusReadingEnabled = ref(false)
   const isPreviewEnabled = ref(false)
   const previewPercentage = ref(PREVIEW_PERCENTAGE_DEFAULT)
+  const restrictedTerritories = ref<string[]>([])
+  const isRestrictedTerritoriesReadOnly = computed(() => isRestrictedTerritoriesLocked(options.classListingInfo()))
   const mustClaimToView = ref(true)
   const descriptionFull = ref<string | undefined>('')
   const tableOfContents = ref('')
@@ -42,6 +44,7 @@ export function useBookListingSettings(options: {
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
       previewPercentage: previewPercentage.value,
+      restrictedTerritories: restrictedTerritories.value,
       descriptionFull: descriptionFull.value ?? '',
       tableOfContents: tableOfContents.value,
       moderatorWallets: moderatorWallets.value,
@@ -68,6 +71,7 @@ export function useBookListingSettings(options: {
     // Existing listings without the field are treated as preview-disabled.
     isPreviewEnabled.value = classListingInfo.isPreviewEnabled ?? false
     previewPercentage.value = clampPreviewPercentage(classListingInfo.previewPercentage ?? PREVIEW_PERCENTAGE_DEFAULT)
+    restrictedTerritories.value = [...(classListingInfo.restrictedTerritories || [])]
     tableOfContents.value = classListingInfo.tableOfContents ?? ''
     descriptionFull.value = classListingInfo.descriptionFull ?? ''
     listingSnapshot.value = currentListingSnapshot()
@@ -113,6 +117,7 @@ export function useBookListingSettings(options: {
       isPlusReadingEnabled.value = snapshot.isPlusReadingEnabled
       isPreviewEnabled.value = snapshot.isPreviewEnabled
       previewPercentage.value = snapshot.previewPercentage
+      restrictedTerritories.value = snapshot.restrictedTerritories
       descriptionFull.value = snapshot.descriptionFull
       tableOfContents.value = snapshot.tableOfContents
       moderatorWallets.value = snapshot.moderatorWallets
@@ -140,6 +145,8 @@ export function useBookListingSettings(options: {
       isPlusReadingEnabled: isPlusReadingEnabled.value,
       isPreviewEnabled: isPreviewEnabled.value,
       previewPercentage: previewPercentage.value,
+      // The API rejects any change to a locked geoblock, so a locked one is left out.
+      ...(isRestrictedTerritoriesReadOnly.value ? {} : { restrictedTerritories: restrictedTerritories.value }),
       mustClaimToView: mustClaimToView.value,
       tableOfContents: tableOfContents.value,
       // Toggling the field off sets this to undefined; send '' so the listing
@@ -158,6 +165,8 @@ export function useBookListingSettings(options: {
     isPlusReadingEnabled,
     isPreviewEnabled,
     previewPercentage,
+    restrictedTerritories,
+    isRestrictedTerritoriesReadOnly,
     descriptionFull,
     tableOfContents,
     moderatorWallets,

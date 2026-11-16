@@ -27,6 +27,12 @@
       v-model:preview-percentage="previewPercentage"
       :is-plus-reading-enabled="isPlusReadingEnabled"
     />
+
+    <BookRestrictedTerritoriesField
+      v-model="restrictedTerritories"
+      class="mt-4"
+      :locked="isRestrictedTerritoriesReadOnly"
+    />
   </UCard>
 </template>
 
@@ -52,5 +58,7 @@ const {
   isPlusReadingEnabled,
   isPreviewEnabled,
   previewPercentage,
+  restrictedTerritories,
+  isRestrictedTerritoriesReadOnly,
 } = settings
 </script>

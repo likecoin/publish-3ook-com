@@ -74,6 +74,7 @@ export interface PricingFormSettings {
   isPlusReadingEnabled: boolean
   isPreviewEnabled: boolean
   previewPercentage: number
+  restrictedTerritories: string[]
   tableOfContents: string
   connectedWallets: Record<string, number> | null
 }
