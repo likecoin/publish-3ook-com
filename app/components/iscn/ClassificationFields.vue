@@ -134,11 +134,7 @@ const hasSuggested = defineModel<boolean>('hasSuggested', { default: false })
 
 const prefilledHint = useIscnPrefilledHint(() => prefilledFields)
 
-// Same job as prefilledHint, for a value the host filled in from the bookstore
-// listing rather than from an uploaded file.
-function storeHint(field: StoreMetadataDriftField): string | undefined {
-  return storeSourcedFields.includes(field) ? $t('iscn_form.from_store_data') : undefined
-}
+const storeHint = useIscnStoreHint(() => storeSourcedFields)
 
 // Reka UI's SelectItem rejects an empty-string value (it is reserved for the
 // cleared state), so the reset option uses a sentinel mapped back to '' below.
