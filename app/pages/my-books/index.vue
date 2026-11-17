@@ -170,7 +170,7 @@ import type { PublishSession } from '~/types/publish'
 import { PUBLISH_WIZARD_STEP_LABEL_KEYS } from '~/types/publish'
 import { formatPriceUSDLabel, getLowestPriceUSD } from '~/utils/listing'
 import { getBookListingStatus, hasListedEdition, isBookSoldOut } from '~/utils/listing-status'
-import { getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
+import { getCoverThumbnailURL, getImageResizeURL, parseImageURLFromMetadata } from '~/utils'
 import {
   PUBLISH_RESUME_QUERY,
   clearPublishDraft,
@@ -276,9 +276,8 @@ const bookRows = computed<BookTableRow[]>(() => (isShowingModeratedList.value ? 
     // Fall back to the ID so nameless rows still sort by their visible text.
     className: className || b.classId,
     hasClassName: Boolean(className),
-    // Covers are stored as `ar://`/`ipfs://` URLs a browser can't fetch, and at
-    // full size for a 40px-wide box.
-    coverSrc: b.thumbnailUrl ? getImageResizeURL(parseImageURLFromMetadata(b.thumbnailUrl), { width: 100 }) : undefined,
+    // `productImageUrl` is full size; resize it for a 40px-wide box.
+    coverSrc: getCoverThumbnailURL(b.productImageUrl, { width: 100 }) || undefined,
     priceInUSD: b.minPrice ?? prices[0]?.price,
     status: getBookListingStatus({
       ...b,
