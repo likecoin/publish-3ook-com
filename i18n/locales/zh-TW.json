@@ -108,7 +108,7 @@
   "bulk_upload.csv_col_desc_book_description": "目錄用短描述（選填，最多 1000 字；留空時由書籍描述截取）",
   "bulk_upload.csv_col_desc_book_description_full": "書籍描述（最多 5000 字；未填 book_description 時為必填）",
   "bulk_upload.csv_col_desc_book_title": "書籍標題",
-  "bulk_upload.csv_col_desc_category": "分類，只可填一個。中英文名稱均可（如 小說 或 Fiction），完整清單可按「下載分類清單」取得；留空則不設分類",
+  "bulk_upload.csv_col_desc_category": "分類，只可填一個。中英文名稱均可（如 小說 或 Fiction），可{categoryList}查看完整列表；留空則不設分類",
   "bulk_upload.csv_col_desc_cover_image_filename": "封面圖片檔案名稱",
   "bulk_upload.csv_col_desc_edition_description": "版本描述",
   "bulk_upload.csv_col_desc_edition_name": "版本名稱",

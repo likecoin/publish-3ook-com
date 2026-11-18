@@ -57,12 +57,6 @@
             icon="i-heroicons-arrow-down-tray"
             @click="downloadCSVTemplate"
           />
-          <UButton
-            :label="$t('bulk_upload.download_category_list')"
-            variant="outline"
-            icon="i-heroicons-arrow-down-tray"
-            @click="downloadCategoryList"
-          />
         </div>
 
         <details class="text-sm">
@@ -73,7 +67,28 @@
             class="mt-2"
             :columns="csvColumnRefColumns"
             :data="csvColumnRefData"
-          />
+          >
+            <template #description-cell="{ row }">
+              <i18n-t
+                v-if="row.original.column === 'category'"
+                keypath="bulk_upload.csv_col_desc_category"
+                tag="span"
+              >
+                <template #categoryList>
+                  <UButton
+                    variant="link"
+                    size="sm"
+                    class="p-0 align-baseline"
+                    :label="$t('bulk_upload.download_category_list')"
+                    @click="downloadCategoryList"
+                  />
+                </template>
+              </i18n-t>
+              <template v-else>
+                {{ row.original.description }}
+              </template>
+            </template>
+          </UTable>
         </details>
       </UCard>
 
