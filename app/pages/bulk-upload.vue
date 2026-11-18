@@ -57,6 +57,12 @@
             icon="i-heroicons-arrow-down-tray"
             @click="downloadCSVTemplate"
           />
+          <UButton
+            :label="$t('bulk_upload.download_category_list')"
+            variant="outline"
+            icon="i-heroicons-arrow-down-tray"
+            @click="downloadCategoryList"
+          />
         </div>
 
         <details class="text-sm">
@@ -604,9 +610,14 @@ useSeoMeta({
   ogTitle: $t('bulk_upload.page_title'),
 })
 
-async function downloadCSVTemplate() {
+// The BOM makes Excel read the file as UTF-8 rather than mangling the Chinese.
+async function saveCSV(csvContent: string, filename: string) {
   const { saveAs } = await import('file-saver')
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  saveAs(blob, filename)
+}
 
+async function downloadCSVTemplate() {
   // Keep aligned with CSV_ALL_COLUMNS order (positional).
   const sampleRow = [
     'My Book Title', // book_title
@@ -649,9 +660,16 @@ async function downloadCSVTemplate() {
     columns: CSV_ALL_COLUMNS,
   })
 
-  const bom = '\uFEFF'
-  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
-  saveAs(blob, 'bulk-upload-template.csv')
+  await saveCSV(csvContent, 'bulk-upload-template.csv')
+}
+
+async function downloadCategoryList() {
+  const csvContent = csvStringify(
+    BOOK_CATEGORIES.map(category => [category.value, category.value, category.zh]),
+    { header: true, columns: ['category', 'name_en', 'name_zh'] },
+  )
+
+  await saveCSV(csvContent, 'categories.csv')
 }
 
 async function goToReview() {
