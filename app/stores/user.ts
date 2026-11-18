@@ -89,6 +89,28 @@ export const useUserStore = defineStore('user', () => {
     return data
   }
 
+  // A malformed username also reads as unavailable, so the form checks format itself.
+  function checkLikerIdAvailability(likerId: string, options: { signal?: AbortSignal } = {}) {
+    return apiFetch<{ handle: string, isAvailable: boolean }>(
+      `/users/handle/${encodeURIComponent(likerId)}/available`,
+      options,
+    )
+  }
+
+  // One-time rename of the public username; like the writes above, it needs `write:profile`.
+  // The old username stays a permanent alias, so existing links keep resolving.
+  async function updateUserLikerId(likerId: string) {
+    const { handle } = await apiFetch<{ handle: string }>('/users/handle', {
+      method: 'POST',
+      body: { handle: likerId },
+    })
+    // The rename is committed now, so show it even if the refresh below fails.
+    if (userLikerInfo.value) {
+      userLikerInfo.value.handle = handle
+    }
+    await fetchUserLikerInfo()
+  }
+
   watch(isAuthenticated, () => {
     if (isAuthenticated.value) {
       lazyFetchUserLikerInfo()
@@ -109,5 +131,7 @@ export const useUserStore = defineStore('user', () => {
     lazyFetchUserLikerInfo,
     updateUserProfile,
     uploadUserAvatar,
+    checkLikerIdAvailability,
+    updateUserLikerId,
   }
 })

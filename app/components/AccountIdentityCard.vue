@@ -1,6 +1,36 @@
 <template>
   <UCard :ui="{ body: 'p-0! sm:p-0! divide-y-1 divide-(--ui-border)' }">
     <AccountSettingsItem
+      v-if="publicLikerId"
+      icon="i-heroicons-identification"
+      :label="$t('user_settings.liker_id')"
+    >
+      <UButton
+        class="-ml-2 text-sm font-mono"
+        :label="publicLikerId"
+        trailing-icon="i-heroicons-clipboard-document"
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        @click="handleLikerIdClick"
+      />
+
+      <template
+        v-if="!hasLikerIdChanged"
+        #right
+      >
+        <UButton
+          :label="$t('common.edit')"
+          icon="i-heroicons-pencil-square"
+          variant="outline"
+          color="neutral"
+          :loading="isRequestingPermission"
+          @click="handleLikerIdEditButtonClick"
+        />
+      </template>
+    </AccountSettingsItem>
+
+    <AccountSettingsItem
       icon="i-heroicons-user-circle"
       :label="$t('user_settings.display_name')"
     >
@@ -89,22 +119,6 @@
     </AccountSettingsItem>
 
     <AccountSettingsItem
-      v-if="userLikerInfo?.user"
-      icon="i-heroicons-identification"
-      :label="$t('user_settings.liker_id')"
-    >
-      <UButton
-        class="-ml-2 text-sm font-mono"
-        :label="userLikerInfo.user"
-        trailing-icon="i-heroicons-clipboard-document"
-        variant="ghost"
-        color="neutral"
-        size="xs"
-        @click="handleLikerIdClick"
-      />
-    </AccountSettingsItem>
-
-    <AccountSettingsItem
       v-if="wallet"
       icon="i-heroicons-key"
       :label="$t('user_settings.evm_wallet')"
@@ -125,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { AccountDescriptionModal, AccountDisplayNameModal } from '#components'
+import { AccountDescriptionModal, AccountDisplayNameModal, AccountLikerIdModal } from '#components'
 
 const { t: $t } = useI18n()
 const { BOOK3_URL } = useRuntimeConfig().public
@@ -133,6 +147,7 @@ const { BOOK3_URL } = useRuntimeConfig().public
 const { wallet } = storeToRefs(useBookstoreApiStore())
 const userStore = useUserStore()
 const { userLikerInfo, bookUser, isFetchingUserLikerInfo } = storeToRefs(userStore)
+const { publicLikerId, hasLikerIdChanged } = usePublicLikerId()
 const { showErrorToast } = useToastComposable()
 const { isRequestingPermission, requestProfilePermission } = useProfilePermission()
 
@@ -143,6 +158,13 @@ const overlay = useOverlay()
 const notificationEmail = computed(() => bookUser.value?.notificationEmail || '')
 const isEmailVerified = computed(() => !!bookUser.value?.isEmailVerified)
 const accountUrl = computed(() => `${BOOK3_URL}/account`)
+
+async function handleLikerIdEditButtonClick() {
+  useLogEvent('account_liker_id_edit_click')
+  if (await requestProfilePermission()) {
+    overlay.create(AccountLikerIdModal, { destroyOnClose: true }).open()
+  }
+}
 
 async function handleDisplayNameEditButtonClick() {
   useLogEvent('account_display_name_edit_click')
@@ -169,7 +191,7 @@ function handleManageAccountClick() {
 
 function handleLikerIdClick() {
   useLogEvent('account_liker_id_copy')
-  copyToClipboard(userLikerInfo.value?.user || '', $t('user_settings.liker_id_copied'))
+  copyToClipboard(publicLikerId.value, $t('user_settings.liker_id_copied'))
 }
 
 function handleEVMWalletClick() {
