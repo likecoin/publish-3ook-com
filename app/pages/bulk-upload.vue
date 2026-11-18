@@ -77,8 +77,7 @@
                 <template #categoryList>
                   <UButton
                     variant="link"
-                    size="sm"
-                    class="p-0 align-baseline"
+                    class="p-0 align-baseline text-[length:inherit] font-[weight:inherit] leading-[inherit]"
                     :label="$t('bulk_upload.download_category_list')"
                     @click="downloadCategoryList"
                   />
