@@ -113,7 +113,9 @@ export const useUserStore = defineStore('user', () => {
 
   watch(isAuthenticated, () => {
     if (isAuthenticated.value) {
-      lazyFetchUserLikerInfo()
+      // Not the lazy fetch: the store may already hold this user from before sign-in,
+      // and the profile may have been edited on 3ook.com since.
+      fetchUserLikerInfo()
       lazyFetchBookUserProfile()
     }
     else {

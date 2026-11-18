@@ -35,7 +35,13 @@
 const { t: $t } = useI18n()
 
 const bookstoreApiStore = useBookstoreApiStore()
+const userStore = useUserStore()
 const { canEditProfile, isRequestingPermission, requestProfilePermission } = useProfilePermission()
+
+// The username and display name can be changed on 3ook.com while this tab stays open.
+onMounted(() => {
+  userStore.fetchUserLikerInfo()
+})
 
 async function handleAuthorizeClick() {
   await requestProfilePermission()
