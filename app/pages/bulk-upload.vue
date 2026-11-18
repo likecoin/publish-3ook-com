@@ -348,6 +348,22 @@
           ]"
           :data="reviewData"
         >
+          <template #genre-cell="{ row }">
+            <USelectMenu
+              v-if="row.original.isGenreEditable"
+              :model-value="row.original.genre || GENRE_NONE_VALUE"
+              value-key="value"
+              :items="genreOptions"
+              size="xs"
+              class="min-w-32"
+              :search-input="{ placeholder: $t('iscn_form.search_genre') }"
+              :ui="{ content: 'w-fit min-w-(--reka-combobox-trigger-width)' }"
+              @update:model-value="value => setBookGenre(row.original.id, value)"
+            />
+            <template v-else>
+              {{ row.original.genreLabel }}
+            </template>
+          </template>
           <template #enableDRM-cell="{ row }">
             <YesNoBadge :value="row.original.enableDRM" />
           </template>
@@ -597,15 +613,36 @@ function getBookCategoryLabel(genre: string): string {
   return category ? getBookCategoryName(category, locale.value) : genre
 }
 
+// Reka UI's SelectItem rejects an empty-string value, so "none" needs a sentinel.
+const GENRE_NONE_VALUE = '__none__'
+const genreOptions = computed(() => [
+  { label: $t('iscn_form.genre_none'), value: GENRE_NONE_VALUE },
+  ...BOOK_CATEGORIES.map(category => ({
+    label: getBookCategoryName(category, locale.value),
+    value: category.value as string,
+  })),
+])
+
+function setBookGenre(bookId: string, value: string) {
+  const book = books.value.find(entry => entry.id === bookId)
+  if (!book) { return }
+  book.genre = value === GENRE_NONE_VALUE ? undefined : value
+  book.genreSource = 'manual'
+}
+
 const reviewData = computed(() =>
   books.value.map(book => ({
+    id: book.id,
     rowIndex: book.rowIndex,
     title: book.title,
     authorName: book.authorName,
     listPrice: formatPriceCell(book),
     editionName: book.editionName,
     language: book.language,
-    genre: book.genre ? getBookCategoryLabel(book.genre) : '',
+    genre: book.genre,
+    genreLabel: book.genre ? getBookCategoryLabel(book.genre) : '',
+    // Once the NFT class exists, its genre is already on chain.
+    isGenreEditable: !book.classId && book.genreSource !== 'csv',
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
     ttsLibraryOnly: book.ttsLibraryOnly,

@@ -13,6 +13,8 @@ export enum BookUploadStatus {
   FAILED = 'failed',
 }
 
+export type BulkUploadGenreSource = 'csv' | 'manual'
+
 export interface BulkUploadCSVRow {
   book_title: string
   book_description: string
@@ -77,6 +79,8 @@ export interface BulkUploadBook {
   tags: string[]
   // A BOOK_CATEGORIES value; sessions saved before the column existed lack it.
   genre?: string
+  // A CSV category is the author's own pick, so only the others stay editable in review.
+  genreSource?: BulkUploadGenreSource
   coverImageFilename: string
   pdfFilename?: string
   epubFilename?: string
@@ -136,6 +140,7 @@ export interface SerializedBulkUploadBook {
   listPriceTWD?: number
   tags: string[]
   genre?: string
+  genreSource?: BulkUploadGenreSource
   coverImageFilename: string
   pdfFilename?: string
   epubFilename?: string

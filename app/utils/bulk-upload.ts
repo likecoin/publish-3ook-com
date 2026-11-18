@@ -132,6 +132,8 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     ? clampPreviewPercentage(parsedPreviewPercentage)
     : CSV_DEFAULT_PREVIEW_PERCENTAGE
 
+  const genre = resolveBookCategory(row.category, BOOK_CATEGORIES)
+
   return {
     id: crypto.randomUUID(),
     rowIndex,
@@ -148,7 +150,8 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     listPriceHKD,
     listPriceTWD,
     tags,
-    genre: resolveBookCategory(row.category, BOOK_CATEGORIES),
+    genre,
+    genreSource: genre ? 'csv' : undefined,
     coverImageFilename: row.cover_image_filename?.trim() || '',
     pdfFilename: row.pdf_filename?.trim() || undefined,
     epubFilename: row.epub_filename?.trim() || undefined,
@@ -315,6 +318,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     listPriceTWD: book.listPriceTWD,
     tags: book.tags,
     genre: book.genre,
+    genreSource: book.genreSource,
     coverImageFilename: book.coverImageFilename,
     pdfFilename: book.pdfFilename,
     epubFilename: book.epubFilename,
