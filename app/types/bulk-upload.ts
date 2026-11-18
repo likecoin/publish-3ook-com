@@ -27,6 +27,7 @@ export interface BulkUploadCSVRow {
   list_price_hkd?: string
   list_price_twd?: string
   tags?: string
+  category?: string
   cover_image_filename: string
   pdf_filename?: string
   epub_filename?: string
@@ -74,6 +75,8 @@ export interface BulkUploadBook {
   listPriceHKD?: number
   listPriceTWD?: number
   tags: string[]
+  // A BOOK_CATEGORIES value; sessions saved before the column existed lack it.
+  genre?: string
   coverImageFilename: string
   pdfFilename?: string
   epubFilename?: string
@@ -132,6 +135,7 @@ export interface SerializedBulkUploadBook {
   listPriceHKD?: number
   listPriceTWD?: number
   tags: string[]
+  genre?: string
   coverImageFilename: string
   pdfFilename?: string
   epubFilename?: string

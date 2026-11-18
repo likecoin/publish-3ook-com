@@ -315,6 +315,7 @@
             { accessorKey: 'listPrice', header: $t('common.price') },
             { accessorKey: 'editionName', header: $t('form.edition') },
             { accessorKey: 'language', header: $t('form.language') },
+            { accessorKey: 'genre', header: $t('form.genre') },
             { accessorKey: 'enableDRM', header: $t('bulk_upload.enable_drm') },
             { accessorKey: 'enableTTS', header: $t('bulk_upload.enable_tts') },
             { accessorKey: 'ttsLibraryOnly', header: $t('bulk_upload.tts_library_only') },
@@ -496,7 +497,7 @@
 
 <script setup lang="ts">
 import { stringify as csvStringify } from 'csv-stringify/browser/esm/sync'
-import { UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
+import { BOOK_CATEGORIES, UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { generateResultCSV, getStatusColor, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -505,7 +506,7 @@ import {
   saveBulkUploadSession,
 } from '~/utils/bulkUploadSession'
 
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 const { showSuccessToast, showErrorToast } = useToastComposable()
 const { processBooksSequentially, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
 
@@ -571,6 +572,11 @@ function formatPriceCell(book: BulkUploadBook): string {
   return `${base} (${overrides.join(', ')})`
 }
 
+function getBookCategoryLabel(genre: string): string {
+  const category = BOOK_CATEGORIES.find(entry => entry.value === genre)
+  return category ? getBookCategoryName(category, locale.value) : genre
+}
+
 const reviewData = computed(() =>
   books.value.map(book => ({
     rowIndex: book.rowIndex,
@@ -579,6 +585,7 @@ const reviewData = computed(() =>
     listPrice: formatPriceCell(book),
     editionName: book.editionName,
     language: book.language,
+    genre: book.genre ? getBookCategoryLabel(book.genre) : '',
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
     ttsLibraryOnly: book.ttsLibraryOnly,
@@ -617,6 +624,7 @@ async function downloadCSVTemplate() {
     '', // list_price_hkd
     '', // list_price_twd
     'fiction,novel', // tags
+    'Fiction', // category
     'cover.jpg', // cover_image_filename
     '', // pdf_filename
     'book.epub', // epub_filename

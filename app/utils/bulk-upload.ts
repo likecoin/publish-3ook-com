@@ -16,11 +16,13 @@ import {
   CSV_DEFAULT_EDITION_DESCRIPTION,
   MAX_DESCRIPTION_LENGTH,
   MAX_DESCRIPTION_FULL_LENGTH,
+  BOOK_CATEGORIES,
 } from '~/constant'
 import type { BulkUploadBook, BulkUploadCSVRow, SerializedBulkUploadBook, BulkUploadValidationError, ValidatedProgressFields } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 import { normalizePublicationDate } from '~/utils/publicationDate'
+import { resolveBookCategory } from '~/utils/bookCategory'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -54,6 +56,7 @@ export const CSV_ALL_COLUMNS = [
   'list_price_hkd',
   'list_price_twd',
   'tags',
+  'category',
   'cover_image_filename',
   'pdf_filename',
   'epub_filename',
@@ -145,6 +148,7 @@ export function parseCSVRow(row: BulkUploadCSVRow, rowIndex: number): BulkUpload
     listPriceHKD,
     listPriceTWD,
     tags,
+    genre: resolveBookCategory(row.category, BOOK_CATEGORIES),
     coverImageFilename: row.cover_image_filename?.trim() || '',
     pdfFilename: row.pdf_filename?.trim() || undefined,
     epubFilename: row.epub_filename?.trim() || undefined,
@@ -242,6 +246,13 @@ export function validateBook(book: BulkUploadBook, rawRow?: BulkUploadCSVRow): B
     errors.push({ rowIndex, field: 'publish_date', message: 'bulk_upload.error_invalid_publish_date', params: { value: book.publishDate } })
   }
 
+  // An unmatched cell resolves to no genre,
+  // which would publish the book uncategorised without a word to the author.
+  const rawCategory = rawRow?.category?.trim()
+  if (rawCategory && !book.genre) {
+    errors.push({ rowIndex, field: 'category', message: 'bulk_upload.error_invalid_category', params: { value: rawCategory } })
+  }
+
   // Validate boolean fields contain valid values
   if (rawRow) {
     for (const field of ['auto_deliver', 'enable_drm', 'enable_tts', 'tts_library_only', 'enable_library', 'enable_preview', 'is_liker_land_art', 'has_ai_generated_content', 'is_public_domain'] as const) {
@@ -303,6 +314,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     listPriceHKD: book.listPriceHKD,
     listPriceTWD: book.listPriceTWD,
     tags: book.tags,
+    genre: book.genre,
     coverImageFilename: book.coverImageFilename,
     pdfFilename: book.pdfFilename,
     epubFilename: book.epubFilename,
@@ -400,6 +412,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.listPriceHKD ?? '',
     book.listPriceTWD ?? '',
     book.tags.join(','),
+    book.genre || '',
     book.coverImageFilename,
     book.pdfFilename || '',
     book.epubFilename || '',
