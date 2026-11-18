@@ -327,6 +327,30 @@
           {{ $t('bulk_upload.total_transactions', { count: books.length }) }}
         </p>
 
+        <UAlert
+          v-if="isSuggestingGenres"
+          icon="i-heroicons-sparkles"
+          color="info"
+          variant="soft"
+          :title="$t('bulk_upload.genre_suggesting', { done: genreSuggestDoneCount, total: genreSuggestTotalCount })"
+        >
+          <template #actions>
+            <UButton
+              :label="$t('bulk_upload.genre_suggest_stop')"
+              variant="outline"
+              size="xs"
+              @click="stopSuggestingGenres"
+            />
+          </template>
+        </UAlert>
+        <UAlert
+          v-else-if="hasUnfilledGenres"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          :title="$t('bulk_upload.genre_suggest_incomplete')"
+        />
+
         <UTable
           :columns="[
             { accessorKey: 'rowIndex', header: '#' },
@@ -349,17 +373,30 @@
           :data="reviewData"
         >
           <template #genre-cell="{ row }">
-            <USelectMenu
+            <div
               v-if="row.original.isGenreEditable"
-              :model-value="row.original.genre || GENRE_NONE_VALUE"
-              value-key="value"
-              :items="genreOptions"
-              size="xs"
-              class="min-w-32"
-              :search-input="{ placeholder: $t('iscn_form.search_genre') }"
-              :ui="{ content: 'w-fit min-w-(--reka-combobox-trigger-width)' }"
-              @update:model-value="value => setBookGenre(row.original.id, value)"
-            />
+              class="flex items-center gap-1"
+            >
+              <USelectMenu
+                :model-value="row.original.genre || GENRE_NONE_VALUE"
+                value-key="value"
+                :items="genreOptions"
+                size="xs"
+                class="min-w-32"
+                :loading="row.original.id === suggestingGenreBookId"
+                :search-input="{ placeholder: $t('iscn_form.search_genre') }"
+                :ui="{ content: 'w-fit min-w-(--reka-combobox-trigger-width)' }"
+                @update:model-value="value => setBookGenre(row.original.id, value)"
+              />
+              <UBadge
+                v-if="row.original.isGenreSuggested"
+                icon="i-heroicons-sparkles"
+                :label="$t('bulk_upload.genre_ai_suggested')"
+                size="sm"
+                variant="soft"
+                class="shrink-0"
+              />
+            </div>
             <template v-else>
               {{ row.original.genreLabel }}
             </template>
@@ -399,7 +436,7 @@
           <UButton
             :label="$t('bulk_upload.start_upload')"
             color="primary"
-            :disabled="isEvaluatingQuota || isQuotaInsufficient"
+            :disabled="isEvaluatingQuota || isQuotaInsufficient || isSuggestingGenres"
             :loading="isEvaluatingQuota"
             @click="startProcessing"
           />
@@ -582,6 +619,20 @@ const {
   evaluateArweaveQuota,
 } = useArweaveQuota({ books })
 
+const {
+  isSuggesting: isSuggestingGenres,
+  suggestingBookId: suggestingGenreBookId,
+  totalCount: genreSuggestTotalCount,
+  doneCount: genreSuggestDoneCount,
+  hasUnfilledBooks: hasUnfilledGenres,
+  suggestGenres,
+  stopSuggesting: stopSuggestingGenres,
+} = useBulkUploadGenreSuggest(books)
+
+watch(currentStep, (step) => {
+  if (step !== 'review') { stopSuggestingGenres() }
+})
+
 const csvColumnRefColumns = [
   { accessorKey: 'column', header: $t('bulk_upload.csv_col_column') },
   { accessorKey: 'required', header: $t('bulk_upload.csv_col_required') },
@@ -643,6 +694,7 @@ const reviewData = computed(() =>
     genreLabel: book.genre ? getBookCategoryLabel(book.genre) : '',
     // Once the NFT class exists, its genre is already on chain.
     isGenreEditable: !book.classId && book.genreSource !== 'csv',
+    isGenreSuggested: book.genreSource === 'ai',
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
     ttsLibraryOnly: book.ttsLibraryOnly,
@@ -725,6 +777,7 @@ async function downloadCategoryList() {
 
 async function goToReview() {
   currentStep.value = 'review'
+  suggestGenres()
   await evaluateArweaveQuota()
 }
 

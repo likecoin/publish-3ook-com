@@ -13,7 +13,7 @@ export enum BookUploadStatus {
   FAILED = 'failed',
 }
 
-export type BulkUploadGenreSource = 'csv' | 'manual'
+export type BulkUploadGenreSource = 'csv' | 'ai' | 'manual'
 
 export interface BulkUploadCSVRow {
   book_title: string
