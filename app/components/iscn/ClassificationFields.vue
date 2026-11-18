@@ -102,7 +102,7 @@ import { mergeBookKeywords, type StoreMetadataConflict, type StoreMetadataDriftF
 
 import { MAX_BOOK_KEYWORDS, BOOK_CATEGORIES, BOOK_CATEGORY_VALUES } from '~/constant/index'
 
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 
 // contentExcerpt/tableOfContents enrich the AI suggestion where the host has
 // them (the wizard); the edit flow suggests from title and description alone.
@@ -146,7 +146,7 @@ const GENRE_NONE_VALUE = '__none__'
 const bookCategoryOptions = [
   { label: $t('iscn_form.genre_none'), value: GENRE_NONE_VALUE },
   ...BOOK_CATEGORIES.map(cat => ({
-    label: $t(cat.i18nKey),
+    label: getBookCategoryName(cat, locale.value),
     value: cat.value as string,
   })),
 ]

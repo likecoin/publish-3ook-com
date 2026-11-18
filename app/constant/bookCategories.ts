@@ -1,0 +1,66 @@
+// Import-free so `node --test` can run it.
+
+// The stored value doubles as the English name, so only the Chinese one is added.
+// Kept out of the lazy-loaded locale files, so both names resolve in any page language.
+export const BOOK_CATEGORIES = [
+  { value: 'Antiques & Collectibles', zh: '古董與收藏' },
+  { value: 'Architecture', zh: '建築' },
+  { value: 'Art', zh: '藝術' },
+  { value: 'Bibles', zh: '聖經' },
+  { value: 'Biography & Autobiography', zh: '傳記與自傳' },
+  { value: 'Business & Economics', zh: '商業與經濟' },
+  { value: 'Comics & Graphic Novels', zh: '漫畫與圖像小說' },
+  { value: 'Computers', zh: '電腦' },
+  { value: 'Cooking', zh: '烹飪' },
+  { value: 'Crafts & Hobbies', zh: '工藝與嗜好' },
+  { value: 'Design', zh: '設計' },
+  { value: 'Drama', zh: '戲劇' },
+  { value: 'Education', zh: '教育' },
+  { value: 'Family & Relationships', zh: '家庭與關係' },
+  { value: 'Fiction', zh: '小說' },
+  { value: 'Games & Activities', zh: '遊戲與活動' },
+  { value: 'Gardening', zh: '園藝' },
+  { value: 'Health & Fitness', zh: '健康與健身' },
+  { value: 'History', zh: '歷史' },
+  { value: 'House & Home', zh: '房屋與家園' },
+  { value: 'Humor', zh: '幽默' },
+  { value: 'Juvenile Fiction', zh: '青少年小說' },
+  { value: 'Juvenile Nonfiction', zh: '青少年非文學' },
+  { value: 'Language Arts & Disciplines', zh: '語言藝術與學科' },
+  { value: 'Language Study', zh: '語言學習' },
+  { value: 'Law', zh: '法律' },
+  { value: 'Literary Collections', zh: '文學選集' },
+  { value: 'Literary Criticism', zh: '文學評論' },
+  { value: 'Mathematics', zh: '數學' },
+  { value: 'Medical', zh: '醫學' },
+  { value: 'Mind, Body, Spirit', zh: '身心靈' },
+  { value: 'Music', zh: '音樂' },
+  { value: 'Nature', zh: '自然' },
+  { value: 'Performing Arts', zh: '表演藝術' },
+  { value: 'Pets', zh: '寵物' },
+  { value: 'Philosophy', zh: '哲學' },
+  { value: 'Photography', zh: '攝影' },
+  { value: 'Poetry', zh: '詩歌' },
+  { value: 'Political Science', zh: '政治學' },
+  { value: 'Psychology', zh: '心理學' },
+  { value: 'Reference', zh: '參考書' },
+  { value: 'Religion', zh: '宗教' },
+  { value: 'Science', zh: '科學' },
+  { value: 'Self-Help', zh: '自助' },
+  { value: 'Social Science', zh: '社會科學' },
+  { value: 'Sports & Recreation', zh: '體育與休閒' },
+  { value: 'Study Aids', zh: '學習輔助' },
+  { value: 'Technology & Engineering', zh: '科技與工程' },
+  { value: 'Transportation', zh: '交通運輸' },
+  { value: 'Travel', zh: '旅行' },
+  { value: 'True Crime', zh: '真實犯罪' },
+  { value: 'Young Adult Fiction', zh: '青年小說' },
+  { value: 'Young Adult Nonfiction', zh: '青年非文學' },
+  { value: 'Other', zh: '其他' },
+] as const
+
+export type BookCategory = typeof BOOK_CATEGORIES[number]
+
+// The category vocabulary on its own, for the callers that only validate a genre
+// against it rather than render the list.
+export const BOOK_CATEGORY_VALUES: readonly string[] = BOOK_CATEGORIES.map(category => category.value)
