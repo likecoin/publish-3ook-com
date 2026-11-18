@@ -226,7 +226,7 @@ export function useBulkUpload() {
       bookInfoUrl: '',
       tags: book.tags,
       coverUrl,
-      genre: '',
+      genre: book.genre || '',
     })
 
     const { classId } = await createNFTClass({ iscnFormData })

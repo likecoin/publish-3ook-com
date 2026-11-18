@@ -67,7 +67,27 @@
             class="mt-2"
             :columns="csvColumnRefColumns"
             :data="csvColumnRefData"
-          />
+          >
+            <template #description-cell="{ row }">
+              <i18n-t
+                v-if="row.original.column === 'category'"
+                keypath="bulk_upload.csv_col_desc_category"
+                tag="span"
+              >
+                <template #categoryList>
+                  <UButton
+                    variant="link"
+                    class="p-0 align-baseline text-[length:inherit] font-[weight:inherit] leading-[inherit]"
+                    :label="$t('bulk_upload.download_category_list')"
+                    @click="downloadCategoryList"
+                  />
+                </template>
+              </i18n-t>
+              <template v-else>
+                {{ row.original.description }}
+              </template>
+            </template>
+          </UTable>
         </details>
       </UCard>
 
@@ -307,6 +327,30 @@
           {{ $t('bulk_upload.total_transactions', { count: books.length }) }}
         </p>
 
+        <UAlert
+          v-if="isSuggestingGenres"
+          icon="i-heroicons-sparkles"
+          color="info"
+          variant="soft"
+          :title="$t('bulk_upload.genre_suggesting', { done: genreSuggestDoneCount, total: genreSuggestTotalCount })"
+        >
+          <template #actions>
+            <UButton
+              :label="$t('bulk_upload.genre_suggest_stop')"
+              variant="outline"
+              size="xs"
+              @click="stopSuggestingGenres"
+            />
+          </template>
+        </UAlert>
+        <UAlert
+          v-else-if="hasUnfilledGenres"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          :title="$t('bulk_upload.genre_suggest_incomplete')"
+        />
+
         <UTable
           :columns="[
             { accessorKey: 'rowIndex', header: '#' },
@@ -315,6 +359,7 @@
             { accessorKey: 'listPrice', header: $t('common.price') },
             { accessorKey: 'editionName', header: $t('form.edition') },
             { accessorKey: 'language', header: $t('form.language') },
+            { accessorKey: 'genre', header: $t('form.genre') },
             { accessorKey: 'enableDRM', header: $t('bulk_upload.enable_drm') },
             { accessorKey: 'enableTTS', header: $t('bulk_upload.enable_tts') },
             { accessorKey: 'ttsLibraryOnly', header: $t('bulk_upload.tts_library_only') },
@@ -327,6 +372,35 @@
           ]"
           :data="reviewData"
         >
+          <template #genre-cell="{ row }">
+            <div
+              v-if="row.original.isGenreEditable"
+              class="flex items-center gap-1"
+            >
+              <USelectMenu
+                :model-value="row.original.genre || GENRE_NONE_VALUE"
+                value-key="value"
+                :items="genreOptions"
+                size="xs"
+                class="min-w-32"
+                :loading="row.original.id === suggestingGenreBookId"
+                :search-input="{ placeholder: $t('iscn_form.search_genre') }"
+                :ui="{ content: 'w-fit min-w-(--reka-combobox-trigger-width)' }"
+                @update:model-value="value => setBookGenre(row.original.id, value)"
+              />
+              <UBadge
+                v-if="row.original.isGenreSuggested"
+                icon="i-heroicons-sparkles"
+                :label="$t('bulk_upload.genre_ai_suggested')"
+                size="sm"
+                variant="soft"
+                class="shrink-0"
+              />
+            </div>
+            <template v-else>
+              {{ row.original.genreLabel }}
+            </template>
+          </template>
           <template #enableDRM-cell="{ row }">
             <YesNoBadge :value="row.original.enableDRM" />
           </template>
@@ -362,7 +436,7 @@
           <UButton
             :label="$t('bulk_upload.start_upload')"
             color="primary"
-            :disabled="isEvaluatingQuota || isQuotaInsufficient"
+            :disabled="isEvaluatingQuota || isQuotaInsufficient || isSuggestingGenres"
             :loading="isEvaluatingQuota"
             @click="startProcessing"
           />
@@ -496,7 +570,7 @@
 
 <script setup lang="ts">
 import { stringify as csvStringify } from 'csv-stringify/browser/esm/sync'
-import { UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
+import { BOOK_CATEGORIES, UPLOAD_ACCEPT_ATTRIBUTE } from '~/constant'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
 import { generateResultCSV, getStatusColor, CSV_ALL_COLUMNS, CSV_REQUIRED_COLUMNS, CSV_OPTIONAL_COLUMNS_WITH_DEFAULTS } from '~/utils/bulk-upload'
@@ -505,7 +579,7 @@ import {
   saveBulkUploadSession,
 } from '~/utils/bulkUploadSession'
 
-const { t: $t } = useI18n()
+const { t: $t, locale } = useI18n()
 const { showSuccessToast, showErrorToast } = useToastComposable()
 const { processBooksSequentially, currentStep: currentProcessingStep, currentBook: currentProcessingBook } = useBulkUpload()
 
@@ -545,6 +619,20 @@ const {
   evaluateArweaveQuota,
 } = useArweaveQuota({ books })
 
+const {
+  isSuggesting: isSuggestingGenres,
+  suggestingBookId: suggestingGenreBookId,
+  totalCount: genreSuggestTotalCount,
+  doneCount: genreSuggestDoneCount,
+  hasUnfilledBooks: hasUnfilledGenres,
+  suggestGenres,
+  stopSuggesting: stopSuggestingGenres,
+} = useBulkUploadGenreSuggest(books)
+
+watch(currentStep, (step) => {
+  if (step !== 'review') { stopSuggestingGenres() }
+})
+
 const csvColumnRefColumns = [
   { accessorKey: 'column', header: $t('bulk_upload.csv_col_column') },
   { accessorKey: 'required', header: $t('bulk_upload.csv_col_required') },
@@ -571,14 +659,42 @@ function formatPriceCell(book: BulkUploadBook): string {
   return `${base} (${overrides.join(', ')})`
 }
 
+function getBookCategoryLabel(genre: string): string {
+  const category = BOOK_CATEGORIES.find(entry => entry.value === genre)
+  return category ? getBookCategoryName(category, locale.value) : genre
+}
+
+// Reka UI's SelectItem rejects an empty-string value, so "none" needs a sentinel.
+const GENRE_NONE_VALUE = '__none__'
+const genreOptions = computed(() => [
+  { label: $t('iscn_form.genre_none'), value: GENRE_NONE_VALUE },
+  ...BOOK_CATEGORIES.map(category => ({
+    label: getBookCategoryName(category, locale.value),
+    value: category.value as string,
+  })),
+])
+
+function setBookGenre(bookId: string, value: string) {
+  const book = books.value.find(entry => entry.id === bookId)
+  if (!book) { return }
+  book.genre = value === GENRE_NONE_VALUE ? undefined : value
+  book.genreSource = 'manual'
+}
+
 const reviewData = computed(() =>
   books.value.map(book => ({
+    id: book.id,
     rowIndex: book.rowIndex,
     title: book.title,
     authorName: book.authorName,
     listPrice: formatPriceCell(book),
     editionName: book.editionName,
     language: book.language,
+    genre: book.genre,
+    genreLabel: book.genre ? getBookCategoryLabel(book.genre) : '',
+    // Once the NFT class exists, its genre is already on chain.
+    isGenreEditable: !book.classId && book.genreSource !== 'csv',
+    isGenreSuggested: book.genreSource === 'ai',
     enableDRM: book.enableDRM,
     enableTTS: book.enableTTS,
     ttsLibraryOnly: book.ttsLibraryOnly,
@@ -597,9 +713,14 @@ useSeoMeta({
   ogTitle: $t('bulk_upload.page_title'),
 })
 
-async function downloadCSVTemplate() {
+// The BOM makes Excel read the file as UTF-8 rather than mangling the Chinese.
+async function saveCSV(csvContent: string, filename: string) {
   const { saveAs } = await import('file-saver')
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  saveAs(blob, filename)
+}
 
+async function downloadCSVTemplate() {
   // Keep aligned with CSV_ALL_COLUMNS order (positional).
   const sampleRow = [
     'My Book Title', // book_title
@@ -617,6 +738,7 @@ async function downloadCSVTemplate() {
     '', // list_price_hkd
     '', // list_price_twd
     'fiction,novel', // tags
+    'Fiction', // category
     'cover.jpg', // cover_image_filename
     '', // pdf_filename
     'book.epub', // epub_filename
@@ -641,13 +763,21 @@ async function downloadCSVTemplate() {
     columns: CSV_ALL_COLUMNS,
   })
 
-  const bom = '\uFEFF'
-  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
-  saveAs(blob, 'bulk-upload-template.csv')
+  await saveCSV(csvContent, 'bulk-upload-template.csv')
+}
+
+async function downloadCategoryList() {
+  const csvContent = csvStringify(
+    BOOK_CATEGORIES.map(category => [category.value, category.value, category.zh]),
+    { header: true, columns: ['category', 'name_en', 'name_zh'] },
+  )
+
+  await saveCSV(csvContent, 'categories.csv')
 }
 
 async function goToReview() {
   currentStep.value = 'review'
+  suggestGenres()
   await evaluateArweaveQuota()
 }
 

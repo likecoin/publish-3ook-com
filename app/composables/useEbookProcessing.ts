@@ -89,6 +89,35 @@ async function extractSpineData(
   return { spineItems, contentExcerpt: excerpt.slice(0, CONTENT_EXCERPT_MAX_CHARS).trim() }
 }
 
+function tocToMarkdown(items: NavItem[], indent = 0): string {
+  return items.map((item) => {
+    const prefix = ' '.repeat(indent * 2) + '- '
+    const line = prefix + (item.label?.trim() || '')
+    const subLines = item.subitems?.length ? tocToMarkdown(item.subitems, indent + 1) : ''
+    return subLines ? line + '\n' + subLines : line
+  }).join('\n')
+}
+
+// The EPUB context the AI metadata suggestion reads, for hosts that need only that, not all of processEPub.
+export async function readEpubSuggestionContext(
+  file: Blob,
+): Promise<{ tableOfContents?: string, contentExcerpt?: string }> {
+  const { default: ePub } = await import('@likecoin/epub-ts')
+  const book = ePub(await file.arrayBuffer())
+  try {
+    await book.ready
+    const toc = book.navigation?.toc
+    const { contentExcerpt } = await extractSpineData(book)
+    return {
+      tableOfContents: toc?.length ? tocToMarkdown(toc) : undefined,
+      contentExcerpt: contentExcerpt || undefined,
+    }
+  }
+  finally {
+    book.destroy()
+  }
+}
+
 async function readPdfPageText(pdf: PDFDocumentProxy, pageNumber: number): Promise<string> {
   const page = await pdf.getPage(pageNumber)
   const { items } = await page.getTextContent()
@@ -355,18 +384,6 @@ export function useEbookProcessing(options: UseEbookProcessingOptions) {
 
       // Get table of contents
       if (book.navigation?.toc?.length) {
-        interface TocItem {
-          label?: string
-          subitems?: TocItem[]
-        }
-        const tocToMarkdown = (items: TocItem[], indent = 0): string => {
-          return items.map((item) => {
-            const prefix = ' '.repeat(indent * 2) + '- '
-            const line = prefix + (item.label?.trim() || '')
-            const subLines = item.subitems?.length ? tocToMarkdown(item.subitems, indent + 1) : ''
-            return subLines ? line + '\n' + subLines : line
-          }).join('\n')
-        }
         epubMetadata.tableOfContents = tocToMarkdown(book.navigation.toc)
       }
 
