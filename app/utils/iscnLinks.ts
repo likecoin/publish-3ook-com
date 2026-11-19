@@ -15,13 +15,9 @@ export interface IscnLinkSourceRecord {
 }
 
 function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
-  // Encrypted ebooks are only reachable via their keyed link, and GCS-direct
-  // records (no arweaveId at all) via their API link; everything else uses
-  // the plain ar:// id.
-  if (record.arweaveLink && (record.arweaveKey || !record.arweaveId)) {
-    return record.arweaveLink
-  }
-  return `ar://${record.arweaveId}`
+  // Encrypted ebooks are only reachable via their keyed link.
+  if (record.arweaveKey && record.arweaveLink) { return record.arweaveLink }
+  return getRecordContentUri(record)
 }
 
 // Derives the ISCN downloadable URLs, content fingerprints and cover URL from
