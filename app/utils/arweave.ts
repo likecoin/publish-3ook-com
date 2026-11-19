@@ -1,8 +1,18 @@
 import { getApiEndpoints } from '~/constant/api'
 import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES, GENERATED_COVER_SUFFIX } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
+import { hasOpenTierResult, isBulkEbookUploaded } from '~/utils/contentUri'
 
 export type UploadTier = 'protected' | 'open'
+
+// Protected links are only ours when they sit on the configured API origin.
+function getTrustedLinkOrigin(): string {
+  return new URL(getApiEndpoints().API_GET_ARWEAVE_V2_LINK).origin
+}
+
+export function isBulkEbookUploadedInApp(book: Parameters<typeof isBulkEbookUploaded>[0]): boolean {
+  return isBulkEbookUploaded(book, getTrustedLinkOrigin())
+}
 
 /**
  * Which storage tier a record belongs in, or null when its type has no tier.
@@ -51,8 +61,8 @@ export function isManualCoverRecord(
   return isCoverRecord(record) && !isGeneratedCoverRecord(record)
 }
 
-// A record with an upload result: Arweave results always carry arweaveId;
-// GCS-direct results only ever carry the API link.
+// A record with an upload result: Arweave results carry arweaveId; GCS-only
+// results (open tier kept in GCS, or protected tier) only carry a link.
 export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: string }): boolean {
   return !!(record.arweaveId || record.arweaveLink)
 }
@@ -61,16 +71,15 @@ export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: str
  * Drops the public Arweave result from a record that now belongs in the
  * protected tier, so isRecordUploaded() stops reporting it as uploaded.
  *
- * arweaveLink goes with the id: it is written alongside every open-tier id, so
- * clearing the id alone would still skip the upload and leave a protected book
- * resolving to its public copy. A GCS-protected record carries a link and no
- * id, so the id guard leaves it untouched.
+ * arweaveLink goes with the id, or the upload would still be skipped and a
+ * protected book would resolve to its public copy. A GCS-protected record
+ * carries a protected-tier link and no id, so the guard leaves it untouched.
  *
  * ipfsHash stays — only the open path reads it, and keeping it saves re-hashing
  * a 200MB file if the author toggles back.
  */
 export function clearOpenTierResult(record: { arweaveId?: string, arweaveLink?: string }): void {
-  if (!record.arweaveId) { return }
+  if (!hasOpenTierResult(record, getTrustedLinkOrigin())) { return }
   record.arweaveId = undefined
   record.arweaveLink = undefined
 }
@@ -213,8 +222,10 @@ export async function uploadEbookToGcsDirect(
  *
  * The browser uploads once, to GCS; the server reads those bytes back, signs the
  * ANS-104 DataItem, uploads to Irys and blocks on the node's receipt before
- * returning the arweaveId — so the client needs no signer, public key or ANS-104
- * implementation.
+ * returning — so the client needs no signer, public key or ANS-104 implementation.
+ *
+ * The server may also keep the file in GCS only: then there is no arweaveId and
+ * the link is the permanent public URL.
  *
  * Always sponsored: the Arweave fee is settled against the publisher's daily
  * quota, never an on-chain payment. A batch the quota cannot cover fails at
@@ -225,12 +236,12 @@ export async function uploadFileToGcsOpen(
   {
     fileType, fileName, fileSHA256, token, ipfsHash,
   }: GcsStageParams & { ipfsHash: string },
-): Promise<{ id: string, arweaveId: string, link: string }> {
+): Promise<{ id: string, arweaveId?: string, link: string }> {
   const apiEndpoints = getApiEndpoints()
   const id = await stageFileInGcs(file, {
     fileType, fileName, fileSHA256, token, tier: 'open',
   })
-  const { arweaveId, link } = await $fetch<{ id: string, arweaveId: string, link: string }>(
+  const { arweaveId, link } = await $fetch<{ id: string, arweaveId?: string, link: string }>(
     `${apiEndpoints.API_POST_ARWEAVE_V2_GCS_ARWEAVE}/${id}`,
     {
       method: 'POST',
@@ -238,8 +249,5 @@ export async function uploadFileToGcsOpen(
       headers: { Authorization: `Bearer ${token}` },
     },
   )
-  if (!arweaveId) {
-    throw new Error('Server did not return an Arweave ID for the DRM-free upload')
-  }
   return { id, arweaveId, link }
 }

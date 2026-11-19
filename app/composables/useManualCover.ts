@@ -35,7 +35,7 @@ export function useManualCover({ fileRecords, resolveTarget }: UseManualCoverOpt
     target.coverData = record?.fileData ?? null
     // Cleared with the rest: a stale id would publish the cover that was just
     // replaced, since the edit flow derives coverUrl straight from it.
-    target.thumbnailArweaveId = record?.arweaveId ?? null
+    target.thumbnailArweaveId = record?.arweaveId || record?.arweaveLink || null
   }
 
   // The generated cover is kept rather than replaced: it is what 復原 reverts

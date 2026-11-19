@@ -1,4 +1,4 @@
-import { estimateBundlrFilePrice, canSponsorArweaveUpload, getUploadTier, clearStaleOpenTierResults } from '~/utils/arweave'
+import { estimateBundlrFilePrice, canSponsorArweaveUpload, getUploadTier, isRecordUploaded, clearStaleOpenTierResults } from '~/utils/arweave'
 import type { FileRecord } from '~/types'
 
 interface UseArweaveUploadPrecheckOptions {
@@ -51,7 +51,7 @@ export function useArweaveUploadPrecheck(options: UseArweaveUploadPrecheckOption
 
     // Both tiers count: upload_init reserves quota for whatever it stages and
     // only the open tier ever releases it, so a DRM ebook costs a slot too.
-    const pendingRecords = options.fileRecords.value.filter(r => r.fileBlob && !r.arweaveId)
+    const pendingRecords = options.fileRecords.value.filter(r => r.fileBlob && !isRecordUploaded(r))
     if (!pendingRecords.length) {
       quota.value = { ...EMPTY_QUOTA }
       return

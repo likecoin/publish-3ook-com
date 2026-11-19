@@ -51,6 +51,7 @@ export interface BulkUploadCSVRow {
   class_id?: string
   mint_tx_hash?: string
   cover_arweave_id?: string
+  cover_file_link?: string
   book_arweave_id?: string
   book_arweave_key?: string
   book_arweave_link?: string
@@ -113,6 +114,7 @@ export interface BulkUploadBook {
   detectedFileType?: EbookType
   // Progress tracking (persisted for resume)
   coverArweaveId?: string
+  coverFileLink?: string
   coverIpfsHash?: string
   bookArweaveId?: string
   bookArweaveKey?: string
@@ -163,6 +165,7 @@ export interface SerializedBulkUploadBook {
   // Progress tracking
   detectedFileType?: EbookType
   coverArweaveId?: string
+  coverFileLink?: string
   coverIpfsHash?: string
   bookArweaveId?: string
   bookArweaveKey?: string
@@ -189,6 +192,7 @@ export interface BulkUploadValidationError {
 
 export interface ValidatedProgressFields {
   coverArweaveId?: string
+  coverFileLink?: string
   bookArweaveId?: string
   bookArweaveKey?: string
   bookArweaveLink?: string

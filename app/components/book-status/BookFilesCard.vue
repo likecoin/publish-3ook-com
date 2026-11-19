@@ -196,7 +196,8 @@
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
 import { getCoverThumbnailURL } from '~/utils'
-import { isManualCoverRecord } from '~/utils/arweave'
+import { isManualCoverRecord, isRecordUploaded } from '~/utils/arweave'
+import { getRecordContentUri } from '~/utils/contentUri'
 import { isContentFingerprintEncrypted } from '~/utils/iscn'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
@@ -341,10 +342,10 @@ async function startReplacementUpload() {
 // Both changes land as pending edits, so the tx still waits for 儲存變更.
 function handleReplacementUploaded({ fileRecords }: { fileRecords: FileRecord[] }) {
   const manualCover = fileRecords.find(
-    record => isManualCoverRecord(record) && record.arweaveId,
+    record => isManualCoverRecord(record) && isRecordUploaded(record),
   )
   if (manualCover) {
-    emit('coverReplaced', `ar://${manualCover.arweaveId}`)
+    emit('coverReplaced', getRecordContentUri(manualCover))
     useLogEvent('book_cover_replaced', { class_id: classId })
   }
 
