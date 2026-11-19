@@ -130,7 +130,7 @@ export interface AuthResponse {
 export interface BookListingItem {
   classId: string
   name?: string
-  thumbnailUrl?: string
+  productImageUrl?: string
   minPrice?: number
   prices?: ClassListingPrice[]
   timestamp?: number
