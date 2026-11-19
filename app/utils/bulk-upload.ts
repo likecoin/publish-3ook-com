@@ -23,6 +23,7 @@ import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 import { normalizePublicationDate } from '~/utils/publicationDate'
 import { resolveBookCategory } from '~/utils/bookCategory'
+import { isBulkCoverUploaded, isBulkEbookUploaded } from '~/utils/contentUri'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -31,10 +32,10 @@ export function normalizeFilename(filename: string | undefined): string {
   return filename?.trim().toLowerCase() || ''
 }
 
-// Bytes already on Arweave: nothing re-uploads them and nothing needs them on
+// Bytes already uploaded: nothing re-uploads them and nothing needs them on
 // disk.
 export function hasArweaveUploads(book: BulkUploadBook): boolean {
-  return !!book.coverArweaveId && !!book.bookArweaveId
+  return isBulkCoverUploaded(book) && isBulkEbookUploaded(book)
 }
 
 // book_description is absent because either description column satisfies the
@@ -105,6 +106,7 @@ export const CSV_RESULT_COLUMNS = [
   'class_id',
   'mint_tx_hash',
   'cover_arweave_id',
+  'cover_file_link',
   'book_arweave_id',
   'book_arweave_key',
   'book_arweave_link',
@@ -340,6 +342,7 @@ export function serializeBook(book: BulkUploadBook): SerializedBulkUploadBook {
     error: book.error,
     detectedFileType: book.detectedFileType,
     coverArweaveId: book.coverArweaveId,
+    coverFileLink: book.coverFileLink,
     coverIpfsHash: book.coverIpfsHash,
     bookArweaveId: book.bookArweaveId,
     bookArweaveKey: book.bookArweaveKey,
@@ -369,6 +372,10 @@ export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedPr
 
   if (row.cover_arweave_id && ARWEAVE_ID_REGEX.test(row.cover_arweave_id)) {
     result.coverArweaveId = row.cover_arweave_id
+  }
+
+  if (row.cover_file_link && row.cover_file_link.trim()) {
+    result.coverFileLink = row.cover_file_link.trim()
   }
 
   if (row.book_arweave_id && ARWEAVE_ID_REGEX.test(row.book_arweave_id)) {
@@ -437,6 +444,7 @@ export async function generateResultCSV(books: BulkUploadBook[]): Promise<void> 
     book.classId || '',
     book.mintTxHash || '',
     book.coverArweaveId || '',
+    book.coverFileLink || '',
     book.bookArweaveId || '',
     book.bookArweaveKey || '',
     book.bookArweaveLink || '',

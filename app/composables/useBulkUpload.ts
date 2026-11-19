@@ -6,6 +6,7 @@ import { createBookTokenMetadataBuilder, shouldHideDownload } from '~/utils/iscn
 import { shouldEnableCustomMessagePage } from '~/utils/listing'
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
+import { getRecordContentUri, isBulkCoverUploaded, isBulkEbookUploaded } from '~/utils/contentUri'
 import { getApiErrorMessage, isBatchFatalApiError } from '~/utils/apiError'
 import { resolveShortDescription } from '~/utils/description'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
@@ -59,7 +60,7 @@ export function useBulkUpload() {
       }
 
       // Step 1: Upload files to Arweave
-      if (!book.coverArweaveId || !book.bookArweaveId) {
+      if (!isBulkCoverUploaded(book) || !isBulkEbookUploaded(book)) {
         onStatusChange?.(book.id, BookUploadStatus.UPLOADING_FILES)
         await uploadFilesToArweave(book, callbacks)
       }
@@ -105,7 +106,7 @@ export function useBulkUpload() {
     const { onProgress } = callbacks
     const records: PublishFileRecordWithBlob[] = []
 
-    if (!book.coverArweaveId) {
+    if (!isBulkCoverUploaded(book)) {
       if (!book.coverFile) {
         throw new Error('No cover image file found')
       }
@@ -116,7 +117,7 @@ export function useBulkUpload() {
       })
     }
 
-    if (!book.bookArweaveId) {
+    if (!isBulkEbookUploaded(book)) {
       const ebookFile = book.epubFile || book.pdfFile
       if (!ebookFile) {
         throw new Error('No ebook file found')
@@ -148,9 +149,11 @@ export function useBulkUpload() {
       onRecordUploaded: (record) => {
         if (record.fileType.startsWith('image/')) {
           book.coverArweaveId = record.arweaveId
+          book.coverFileLink = record.arweaveLink
           book.coverIpfsHash = record.ipfsHash
           onProgress?.(book.id, {
             coverArweaveId: record.arweaveId,
+            coverFileLink: record.arweaveLink,
             coverIpfsHash: record.ipfsHash,
           })
         }
@@ -187,6 +190,7 @@ export function useBulkUpload() {
         fileName: book.coverImageFilename,
         fileType: 'image/jpeg',
         arweaveId: book.coverArweaveId,
+        arweaveLink: book.coverFileLink,
       },
       {
         fileName: ebookFile?.name || book.epubFilename || book.pdfFilename || `${book.title}.${fileType}`,
@@ -246,7 +250,7 @@ export function useBulkUpload() {
     }
 
     const buildTokenMetadata = createBookTokenMetadataBuilder({
-      image: `ar://${book.coverArweaveId}`,
+      image: getRecordContentUri({ arweaveId: book.coverArweaveId, arweaveLink: book.coverFileLink }),
       title: book.title,
       authorName: book.authorName,
       publisherName: book.publisher,

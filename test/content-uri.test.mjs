@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { getRecordContentUri, hasOpenTierResult, isProtectedTierLink } from '../app/utils/contentUri.ts'
+import { getRecordContentUri, hasOpenTierResult, isBulkCoverUploaded, isBulkEbookUploaded, isProtectedTierLink } from '../app/utils/contentUri.ts'
 
 // Synthetic ids throughout: shape-preserving, from no real book.
 const FILE_LINK = 'https://files.example.test/11111111-1111-4111-8111-111111111111'
@@ -27,4 +27,16 @@ test('only API links under /arweave/v2/link/ are protected-tier links', () => {
   assert.equal(isProtectedTierLink(FILE_LINK), false)
   assert.equal(isProtectedTierLink(''), false)
   assert.equal(isProtectedTierLink(undefined), false)
+})
+
+test('a bulk cover with only a link counts as uploaded', () => {
+  assert.equal(isBulkCoverUploaded({ coverFileLink: FILE_LINK }), true)
+  assert.equal(isBulkCoverUploaded({ coverArweaveId: AR_ID }), true)
+  assert.equal(isBulkCoverUploaded({}), false)
+})
+
+test('a bulk ebook with only a link counts as uploaded', () => {
+  assert.equal(isBulkEbookUploaded({ bookArweaveLink: FILE_LINK }), true)
+  assert.equal(isBulkEbookUploaded({ bookArweaveId: AR_ID }), true)
+  assert.equal(isBulkEbookUploaded({}), false)
 })

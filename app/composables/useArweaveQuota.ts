@@ -1,4 +1,5 @@
 import { estimateBundlrFilePrice, canSponsorArweaveUpload } from '~/utils/arweave'
+import { isBulkCoverUploaded, isBulkEbookUploaded } from '~/utils/contentUri'
 import type { ArweaveEstimate } from '~/types'
 import type { BulkUploadBook } from '~/types/bulk-upload'
 import { BookUploadStatus } from '~/types/bulk-upload'
@@ -51,8 +52,8 @@ export function useArweaveQuota(options: { books: Ref<BulkUploadBook[]> }) {
     const files: File[] = []
     for (const b of options.books.value) {
       if (b.status === BookUploadStatus.COMPLETED) { continue }
-      if (!b.coverArweaveId && b.coverFile) { files.push(b.coverFile) }
-      if (!b.bookArweaveId) {
+      if (!isBulkCoverUploaded(b) && b.coverFile) { files.push(b.coverFile) }
+      if (!isBulkEbookUploaded(b)) {
         const ebook = b.epubFile || b.pdfFile
         if (ebook) { files.push(ebook) }
       }

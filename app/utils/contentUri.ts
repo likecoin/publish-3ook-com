@@ -16,6 +16,16 @@ export function isProtectedTierLink(link?: string): boolean {
   return !!link && link.includes(PROTECTED_LINK_PATH)
 }
 
+// A link is proof enough for resume: a DRM ebook has a protected link and no
+// Arweave ID, and re-uploading it would only burn quota.
+export function isBulkCoverUploaded(book: { coverArweaveId?: string, coverFileLink?: string }): boolean {
+  return !!(book.coverArweaveId || book.coverFileLink)
+}
+
+export function isBulkEbookUploaded(book: { bookArweaveId?: string, bookArweaveLink?: string }): boolean {
+  return !!(book.bookArweaveId || book.bookArweaveLink)
+}
+
 export function hasOpenTierResult(record: UploadResult): boolean {
   return !!record.arweaveId || (!!record.arweaveLink && !isProtectedTierLink(record.arweaveLink))
 }
