@@ -118,6 +118,11 @@ export function useBulkUpload() {
     }
 
     if (!isBulkEbookUploaded(book)) {
+      // A mismatched result is stale; drop it so a failed upload cannot leave
+      // it in the result CSV for the next resume to trust.
+      book.bookArweaveId = undefined
+      book.bookArweaveKey = undefined
+      book.bookArweaveLink = undefined
       const ebookFile = book.epubFile || book.pdfFile
       if (!ebookFile) {
         throw new Error('No ebook file found')

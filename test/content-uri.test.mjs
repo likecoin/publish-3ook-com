@@ -35,10 +35,23 @@ test('a bulk cover with only a link counts as uploaded', () => {
   assert.equal(isBulkCoverUploaded({}), false)
 })
 
-test('a bulk ebook with only a link counts as uploaded', () => {
-  assert.equal(isBulkEbookUploaded({ bookArweaveLink: FILE_LINK }), true)
-  assert.equal(isBulkEbookUploaded({ bookArweaveId: AR_ID }), true)
-  assert.equal(isBulkEbookUploaded({}), false)
+test('a DRM-off ebook counts as uploaded by an open-tier result, never a protected link', () => {
+  assert.equal(isBulkEbookUploaded({ enableDRM: false, bookArweaveLink: FILE_LINK }), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: false, bookArweaveId: AR_ID }), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: false, bookArweaveLink: PROTECTED_LINK }), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: false }), false)
+})
+
+test('a DRM ebook counts as uploaded only by a protected link or a legacy keyed record', () => {
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: PROTECTED_LINK }), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: FILE_LINK }), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveId: AR_ID }), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveId: AR_ID, bookArweaveKey: 'k', bookArweaveLink: `${FILE_LINK}?key=k` }), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true }), false)
+})
+
+test('a keyed legacy record is encrypted, so it is not a DRM-off result', () => {
+  assert.equal(isBulkEbookUploaded({ enableDRM: false, bookArweaveId: AR_ID, bookArweaveKey: 'k' }), false)
 })
 
 test('isHttpsUrl accepts only a well-formed https URL', () => {

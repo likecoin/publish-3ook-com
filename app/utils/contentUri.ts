@@ -22,8 +22,23 @@ export function isBulkCoverUploaded(book: { coverArweaveId?: string, coverFileLi
   return !!(book.coverArweaveId || book.coverFileLink)
 }
 
-export function isBulkEbookUploaded(book: { bookArweaveId?: string, bookArweaveLink?: string }): boolean {
-  return !!(book.bookArweaveId || book.bookArweaveLink)
+type BulkEbookResult = {
+  enableDRM: boolean
+  bookArweaveId?: string
+  bookArweaveKey?: string
+  bookArweaveLink?: string
+}
+
+// The stored result must match the DRM mode, since it becomes the on-chain
+// download URL and cannot be corrected: a public file is never access-controlled
+// by hiding its link. A legacy DRM book was encrypted client-side on Arweave and
+// carries a key, so that record still counts for DRM and never for an open book.
+export function isBulkEbookUploaded(book: BulkEbookResult): boolean {
+  const isKeyed = !!book.bookArweaveKey && !!(book.bookArweaveId || book.bookArweaveLink)
+  if (book.enableDRM) {
+    return isProtectedTierLink(book.bookArweaveLink) || isKeyed
+  }
+  return !isKeyed && hasOpenTierResult({ arweaveId: book.bookArweaveId, arweaveLink: book.bookArweaveLink })
 }
 
 export function hasOpenTierResult(record: UploadResult): boolean {

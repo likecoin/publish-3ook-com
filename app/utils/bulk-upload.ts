@@ -386,8 +386,8 @@ export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedPr
     result.bookArweaveKey = row.book_arweave_key.trim()
   }
 
-  if (row.book_arweave_link && row.book_arweave_link.trim()) {
-    result.bookArweaveLink = row.book_arweave_link.trim()
+  if (isHttpsUrl(row.book_arweave_link)) {
+    result.bookArweaveLink = row.book_arweave_link!.trim()
   }
 
   if (row.book_file_sha256 && SHA256_REGEX.test(row.book_file_sha256.trim())) {
