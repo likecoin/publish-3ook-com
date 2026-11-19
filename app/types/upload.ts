@@ -42,6 +42,7 @@ export interface EpubMetadata {
   tags?: string[]
   epubFileName?: string
   thumbnailIpfsHash?: string | null
+  // The cover's Arweave id or, for GCS-only uploads, its file link.
   thumbnailArweaveId?: string | null
   coverData?: string | null
   tableOfContents?: string
