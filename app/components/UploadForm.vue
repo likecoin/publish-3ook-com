@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import { EBOOK_FILE_TYPES, UPLOAD_ACCEPT_ATTRIBUTE, UPLOADABLE_FILE_TYPES } from '~/constant'
-import { isGeneratedCoverRecord, isManualCoverRecord } from '~/utils/arweave'
+import { isGeneratedCoverRecord, isManualCoverRecord, isRecordUploaded } from '~/utils/arweave'
 
 import type { FileRecord, EpubMetadata } from '~/types'
 
@@ -285,7 +285,7 @@ const {
       (data: EpubMetadata) => data.thumbnailIpfsHash === record.ipfsHash,
     )
     if (metadata) {
-      metadata.thumbnailArweaveId = record.arweaveId
+      metadata.thumbnailArweaveId = record.arweaveId || record.arweaveLink
     }
   },
 })
@@ -461,7 +461,7 @@ const handleRecordUploaded = (record: FileRecord) => {
       (file: EpubMetadata) => file.thumbnailIpfsHash === record.ipfsHash,
     )
     if (metadata) {
-      metadata.thumbnailArweaveId = record.arweaveId
+      metadata.thumbnailArweaveId = record.arweaveId || record.arweaveLink
     }
   }
   emit('arweaveUploaded', { arweaveId: record.arweaveId, arweaveLink: record.arweaveLink })
@@ -478,19 +478,16 @@ const setEbookCoverFromImages = async () => {
     const file = fileRecords.value[i]
     if (!file || !file.fileType?.startsWith('image')) { continue }
 
-    let { arweaveId } = file
-
-    if (!arweaveId && file.fileBlob) {
+    if (!isRecordUploaded(file) && file.fileBlob) {
       // The shared uploader mutates the record in place with the result.
       await uploadFileRecordsToArweave([file], {
         encryptEbook: isEncryptEBookData.value,
       })
-      arweaveId = file.arweaveId
     }
 
-    if (arweaveId) {
+    if (isRecordUploaded(file)) {
       if (metadata && file.ipfsHash === metadata.thumbnailIpfsHash) {
-        metadata.thumbnailArweaveId = arweaveId
+        metadata.thumbnailArweaveId = file.arweaveId || file.arweaveLink
       }
       break
     }

@@ -1,5 +1,6 @@
 import { EBOOK_FILE_TYPES } from '~/constant'
 import { isRecordUploaded, isManualCoverRecord } from '~/utils/arweave'
+import { getEbookContentUri, getRecordContentUri } from '~/utils/contentUri'
 
 // Minimal record shape needed to derive ISCN links; both UploadForm's
 // FileRecord and PublishFileRecord satisfy it.
@@ -11,16 +12,6 @@ export interface IscnLinkSourceRecord {
   arweaveLink?: string
   arweaveKey?: string
   fileSHA256?: string
-}
-
-function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
-  // Encrypted ebooks are only reachable via their keyed link, and GCS-direct
-  // records (no arweaveId at all) via their API link; everything else uses
-  // the plain ar:// id.
-  if (record.arweaveLink && (record.arweaveKey || !record.arweaveId)) {
-    return record.arweaveLink
-  }
-  return `ar://${record.arweaveId}`
 }
 
 // Derives the ISCN downloadable URLs, content fingerprints and cover URL from
@@ -36,7 +27,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
   const downloadableUrls = uploadedRecords
     .filter(r => EBOOK_FILE_TYPES.includes(r.fileType || ''))
     .map(file => ({
-      url: getRecordArweaveUrl(file),
+      url: getEbookContentUri(file),
       type: file.fileType === 'application/epub+zip' ? 'epub' : 'pdf',
       fileName: file.fileName || '',
     }))
@@ -46,7 +37,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
       uploadedRecords
         .flatMap((r) => {
           const isEbook = EBOOK_FILE_TYPES.includes(r.fileType || '')
-          const urls = [isEbook ? getRecordArweaveUrl(r) : `ar://${r.arweaveId}`]
+          const urls = [isEbook ? getEbookContentUri(r) : getRecordContentUri(r)]
           // Plaintext-hash provenance anchor (ADR 0001): anchor the original
           // content for every ebook, since an encrypted book's arweave URL
           // only fingerprints ciphertext.
@@ -60,9 +51,9 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
 
   // Both covers survive a manual replacement, so pick by provenance rather than
   // position: the author's choice outranks the one the EPUB supplied.
-  const coverRecords = records.filter(r => r.fileType?.startsWith('image/') && r.arweaveId)
+  const coverRecords = records.filter(r => r.fileType?.startsWith('image/') && isRecordUploaded(r))
   const coverRecord = coverRecords.find(r => isManualCoverRecord(r)) || coverRecords[0]
-  const coverUrl = coverRecord ? `ar://${coverRecord.arweaveId}` : ''
+  const coverUrl = coverRecord ? getRecordContentUri(coverRecord) : ''
 
   return { downloadableUrls, contentFingerprints, coverUrl }
 }
