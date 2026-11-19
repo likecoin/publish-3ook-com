@@ -1,0 +1,73 @@
+// Lives outside app/ so Nuxt never auto-imports it into the bundle.
+import test from 'node:test'
+import assert from 'node:assert/strict'
+
+import {
+  getPendingOwnershipSyncWallet,
+  isSameWallet,
+  parseOwnershipTransferInput,
+} from '../app/utils/ownership-transfer.ts'
+
+const OWNER = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
+const NEW_OWNER = '0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359'
+
+test('parseOwnershipTransferInput accepts a wallet address and checksums it', () => {
+  assert.deepEqual(parseOwnershipTransferInput(` ${OWNER} `), { type: 'wallet', wallet: OWNER })
+  assert.deepEqual(
+    parseOwnershipTransferInput(OWNER.toLowerCase()),
+    { type: 'wallet', wallet: OWNER },
+  )
+})
+
+test('parseOwnershipTransferInput rejects a malformed or burn address', () => {
+  assert.equal(parseOwnershipTransferInput('0x1234'), null)
+  // One flipped letter breaks the checksum, which is the typo this guards against.
+  assert.equal(parseOwnershipTransferInput(OWNER.replace('aAeb', 'aaeb')), null)
+  assert.equal(parseOwnershipTransferInput('0x0000000000000000000000000000000000000000'), null)
+})
+
+test('parseOwnershipTransferInput normalises a liker ID', () => {
+  assert.deepEqual(parseOwnershipTransferInput('@JustBooks'), { type: 'likerId', likerId: 'justbooks' })
+  assert.deepEqual(parseOwnershipTransferInput('just-books_1'), { type: 'likerId', likerId: 'just-books_1' })
+})
+
+test('parseOwnershipTransferInput rejects an invalid liker ID', () => {
+  assert.equal(parseOwnershipTransferInput(''), null)
+  assert.equal(parseOwnershipTransferInput('@'), null)
+  assert.equal(parseOwnershipTransferInput('just books'), null)
+  assert.equal(parseOwnershipTransferInput('a'.repeat(21)), null)
+})
+
+test('isSameWallet ignores case and rejects missing values', () => {
+  assert.equal(isSameWallet(OWNER, OWNER.toLowerCase()), true)
+  assert.equal(isSameWallet(OWNER, NEW_OWNER), false)
+  assert.equal(isSameWallet(OWNER, undefined), false)
+  assert.equal(isSameWallet('not-a-wallet', 'not-a-wallet'), false)
+})
+
+test('getPendingOwnershipSyncWallet flags a chain transfer the listing missed', () => {
+  assert.equal(getPendingOwnershipSyncWallet({
+    listingOwner: OWNER,
+    chainOwner: NEW_OWNER,
+    sessionWallet: OWNER.toLowerCase(),
+  }), NEW_OWNER)
+})
+
+test('getPendingOwnershipSyncWallet stays quiet when nothing is pending', () => {
+  assert.equal(getPendingOwnershipSyncWallet({
+    listingOwner: OWNER,
+    chainOwner: OWNER,
+    sessionWallet: OWNER,
+  }), null)
+  // Only the wallet the listing names can sync it.
+  assert.equal(getPendingOwnershipSyncWallet({
+    listingOwner: OWNER,
+    chainOwner: NEW_OWNER,
+    sessionWallet: NEW_OWNER,
+  }), null)
+  assert.equal(getPendingOwnershipSyncWallet({
+    listingOwner: OWNER,
+    chainOwner: undefined,
+    sessionWallet: OWNER,
+  }), null)
+})
