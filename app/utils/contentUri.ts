@@ -40,23 +40,31 @@ type BulkEbookResult = {
   bookArweaveLink?: string
 }
 
-// The stored result becomes the on-chain download URL, so it must match the DRM
-// mode: a public file is never access-controlled by hiding its link. A legacy
-// DRM book was encrypted client-side and carries a key plus a keyed link.
+// Encrypted ebooks are only reachable via their keyed link; otherwise the
+// ar:// id outranks the link.
+export function getEbookContentUri(record: { arweaveId?: string, arweaveKey?: string, arweaveLink?: string }): string {
+  if (record.arweaveKey && record.arweaveLink) { return record.arweaveLink }
+  return getRecordContentUri(record)
+}
+
+// A result counts only if the URL it publishes on-chain matches the DRM mode:
+// protected or legacy keyed for DRM, public otherwise. A public file is never
+// access-controlled by hiding its link.
 export function isBulkEbookUploaded(book: BulkEbookResult, trustedOrigins?: TrustedOrigins): boolean {
-  const isEncrypted = !!book.bookArweaveKey && !!(book.bookArweaveId || book.bookArweaveLink)
+  const url = getEbookContentUri({
+    arweaveId: book.bookArweaveId,
+    arweaveKey: book.bookArweaveKey,
+    arweaveLink: book.bookArweaveLink,
+  })
   if (book.enableDRM) {
-    return isProtectedTierLink(book.bookArweaveLink, trustedOrigins) || (isEncrypted && hasKeyedLink(book))
+    return isProtectedTierLink(url, trustedOrigins) || hasKeyedLink(book)
   }
-  return !isEncrypted && hasOpenTierResult(
-    { arweaveId: book.bookArweaveId, arweaveLink: book.bookArweaveLink },
-    trustedOrigins,
-  )
+  return !!url && !book.bookArweaveKey && !isProtectedTierLink(url, trustedOrigins)
 }
 
 function hasKeyedLink(book: BulkEbookResult): boolean {
   try {
-    return !!book.bookArweaveId && new URL(book.bookArweaveLink || '').searchParams.has('key')
+    return !!book.bookArweaveId && !!book.bookArweaveKey && new URL(book.bookArweaveLink || '').searchParams.has('key')
   }
   catch {
     return false

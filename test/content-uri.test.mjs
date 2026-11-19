@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { getRecordContentUri, hasOpenTierResult, isBulkCoverUploaded, isBulkEbookUploaded, isHttpsUrl, isProtectedTierLink } from '../app/utils/contentUri.ts'
+import { getEbookContentUri, getRecordContentUri, hasOpenTierResult, isBulkCoverUploaded, isBulkEbookUploaded, isHttpsUrl, isProtectedTierLink } from '../app/utils/contentUri.ts'
 
 // Synthetic ids throughout: shape-preserving, from no real book.
 const FILE_LINK = 'https://files.example.test/11111111-1111-4111-8111-111111111111'
@@ -80,6 +80,46 @@ test('a DRM ebook counts as uploaded only by a protected link or a legacy keyed 
 
 test('a keyed legacy record is encrypted, so it is not a DRM-off result', () => {
   assert.equal(isBulkEbookUploaded({ enableDRM: false, bookArweaveId: AR_ID, bookArweaveKey: 'k' }), false)
+})
+
+// Every accepted result must publish a URL that matches the DRM mode.
+const KEYED_LINK = `${FILE_LINK}?key=k`
+const combos = []
+for (const hasId of [false, true]) {
+  for (const hasKey of [false, true]) {
+    for (const link of [undefined, FILE_LINK, PROTECTED_LINK, KEYED_LINK]) {
+      combos.push({
+        bookArweaveId: hasId ? AR_ID : undefined,
+        bookArweaveKey: hasKey ? 'k' : undefined,
+        bookArweaveLink: link,
+      })
+    }
+  }
+}
+
+test('an accepted DRM result publishes a protected or keyed link, never a public URL', () => {
+  for (const combo of combos) {
+    const book = { enableDRM: true, ...combo }
+    if (!isBulkEbookUploaded(book, API_ORIGIN)) { continue }
+    const url = getEbookContentUri({ arweaveId: combo.bookArweaveId, arweaveKey: combo.bookArweaveKey, arweaveLink: combo.bookArweaveLink })
+    assert.ok(isProtectedTierLink(url, API_ORIGIN) || (combo.bookArweaveKey && url === combo.bookArweaveLink), JSON.stringify(combo))
+  }
+})
+
+test('an accepted DRM-off result publishes ar:// or a public link, never a protected or keyed one', () => {
+  for (const combo of combos) {
+    const book = { enableDRM: false, ...combo }
+    if (!isBulkEbookUploaded(book, API_ORIGIN)) { continue }
+    const url = getEbookContentUri({ arweaveId: combo.bookArweaveId, arweaveKey: combo.bookArweaveKey, arweaveLink: combo.bookArweaveLink })
+    assert.ok(!combo.bookArweaveKey && !isProtectedTierLink(url, API_ORIGIN) && url, JSON.stringify(combo))
+  }
+})
+
+test('DRM on: a protected link with an unkeyed Arweave id is not uploaded, since ar:// would win', () => {
+  const book = { enableDRM: true, bookArweaveId: AR_ID, bookArweaveLink: PROTECTED_LINK }
+  assert.equal(isBulkEbookUploaded(book, API_ORIGIN), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: PROTECTED_LINK }, API_ORIGIN), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveId: AR_ID, bookArweaveKey: 'k', bookArweaveLink: KEYED_LINK }, API_ORIGIN), true)
 })
 
 test('isHttpsUrl accepts only a well-formed https URL', () => {

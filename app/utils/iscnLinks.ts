@@ -1,6 +1,6 @@
 import { EBOOK_FILE_TYPES } from '~/constant'
 import { isRecordUploaded, isManualCoverRecord } from '~/utils/arweave'
-import { getRecordContentUri } from '~/utils/contentUri'
+import { getEbookContentUri, getRecordContentUri } from '~/utils/contentUri'
 
 // Minimal record shape needed to derive ISCN links; both UploadForm's
 // FileRecord and PublishFileRecord satisfy it.
@@ -12,12 +12,6 @@ export interface IscnLinkSourceRecord {
   arweaveLink?: string
   arweaveKey?: string
   fileSHA256?: string
-}
-
-function getRecordArweaveUrl(record: IscnLinkSourceRecord): string {
-  // Encrypted ebooks are only reachable via their keyed link.
-  if (record.arweaveKey && record.arweaveLink) { return record.arweaveLink }
-  return getRecordContentUri(record)
 }
 
 // Derives the ISCN downloadable URLs, content fingerprints and cover URL from
@@ -33,7 +27,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
   const downloadableUrls = uploadedRecords
     .filter(r => EBOOK_FILE_TYPES.includes(r.fileType || ''))
     .map(file => ({
-      url: getRecordArweaveUrl(file),
+      url: getEbookContentUri(file),
       type: file.fileType === 'application/epub+zip' ? 'epub' : 'pdf',
       fileName: file.fileName || '',
     }))
@@ -43,7 +37,7 @@ export function buildIscnLinksFromFileRecords(records: IscnLinkSourceRecord[]): 
       uploadedRecords
         .flatMap((r) => {
           const isEbook = EBOOK_FILE_TYPES.includes(r.fileType || '')
-          const urls = [isEbook ? getRecordArweaveUrl(r) : getRecordContentUri(r)]
+          const urls = [isEbook ? getEbookContentUri(r) : getRecordContentUri(r)]
           // Plaintext-hash provenance anchor (ADR 0001): anchor the original
           // content for every ebook, since an encrypted book's arweave URL
           // only fingerprints ciphertext.
