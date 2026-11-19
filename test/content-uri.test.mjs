@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { getRecordContentUri, hasOpenTierResult, isBulkCoverUploaded, isBulkEbookUploaded, isProtectedTierLink } from '../app/utils/contentUri.ts'
+import { getRecordContentUri, hasOpenTierResult, isBulkCoverUploaded, isBulkEbookUploaded, isHttpsUrl, isProtectedTierLink } from '../app/utils/contentUri.ts'
 
 // Synthetic ids throughout: shape-preserving, from no real book.
 const FILE_LINK = 'https://files.example.test/11111111-1111-4111-8111-111111111111'
@@ -39,4 +39,12 @@ test('a bulk ebook with only a link counts as uploaded', () => {
   assert.equal(isBulkEbookUploaded({ bookArweaveLink: FILE_LINK }), true)
   assert.equal(isBulkEbookUploaded({ bookArweaveId: AR_ID }), true)
   assert.equal(isBulkEbookUploaded({}), false)
+})
+
+test('isHttpsUrl accepts only a well-formed https URL', () => {
+  assert.equal(isHttpsUrl('https://files.example.test/abc'), true)
+  assert.equal(isHttpsUrl('  https://files.example.test/abc  '), true)
+  for (const bad of ['http://files.example.test/abc', 'ar://abc', 'javascript:alert(1)', 'not a url', '', undefined]) {
+    assert.equal(isHttpsUrl(bad), false, String(bad))
+  }
 })

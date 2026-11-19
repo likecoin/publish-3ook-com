@@ -23,7 +23,7 @@ import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 import { normalizePublicationDate } from '~/utils/publicationDate'
 import { resolveBookCategory } from '~/utils/bookCategory'
-import { isBulkCoverUploaded, isBulkEbookUploaded } from '~/utils/contentUri'
+import { isBulkCoverUploaded, isBulkEbookUploaded, isHttpsUrl } from '~/utils/contentUri'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -374,8 +374,8 @@ export function validateProgressFieldFormats(row: BulkUploadCSVRow): ValidatedPr
     result.coverArweaveId = row.cover_arweave_id
   }
 
-  if (row.cover_file_link && row.cover_file_link.trim()) {
-    result.coverFileLink = row.cover_file_link.trim()
+  if (isHttpsUrl(row.cover_file_link)) {
+    result.coverFileLink = row.cover_file_link!.trim()
   }
 
   if (row.book_arweave_id && ARWEAVE_ID_REGEX.test(row.book_arweave_id)) {

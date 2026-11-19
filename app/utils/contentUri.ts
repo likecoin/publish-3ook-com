@@ -29,3 +29,14 @@ export function isBulkEbookUploaded(book: { bookArweaveId?: string, bookArweaveL
 export function hasOpenTierResult(record: UploadResult): boolean {
   return !!record.arweaveId || (!!record.arweaveLink && !isProtectedTierLink(record.arweaveLink))
 }
+
+// A cover link ends up on-chain and cannot be corrected, so a resumed CSV cell
+// must be a real https URL before it is trusted.
+export function isHttpsUrl(value?: string): boolean {
+  try {
+    return new URL((value || '').trim()).protocol === 'https:'
+  }
+  catch {
+    return false
+  }
+}
