@@ -1,9 +1,18 @@
 import { getApiEndpoints } from '~/constant/api'
 import { EBOOK_FILE_TYPES, OPEN_IMAGE_FILE_TYPES, GENERATED_COVER_SUFFIX } from '~/constant'
 import type { ArweaveEstimate } from '~/types'
-import { hasOpenTierResult } from '~/utils/contentUri'
+import { hasOpenTierResult, isBulkEbookUploaded } from '~/utils/contentUri'
 
 export type UploadTier = 'protected' | 'open'
+
+// Protected links are only ours when they sit on the configured API origin.
+function getTrustedLinkOrigin(): string {
+  return new URL(getApiEndpoints().API_GET_ARWEAVE_V2_LINK).origin
+}
+
+export function isBulkEbookUploadedInApp(book: Parameters<typeof isBulkEbookUploaded>[0]): boolean {
+  return isBulkEbookUploaded(book, getTrustedLinkOrigin())
+}
 
 /**
  * Which storage tier a record belongs in, or null when its type has no tier.
@@ -62,16 +71,15 @@ export function isRecordUploaded(record: { arweaveId?: string, arweaveLink?: str
  * Drops the public Arweave result from a record that now belongs in the
  * protected tier, so isRecordUploaded() stops reporting it as uploaded.
  *
- * arweaveLink goes with the id: it is written alongside every open-tier result,
- * so clearing the id alone would still skip the upload and leave a protected book
- * resolving to its public copy. A GCS-protected record carries a protected-tier
- * link and no id, so the guard leaves it untouched.
+ * arweaveLink goes with the id, or the upload would still be skipped and a
+ * protected book would resolve to its public copy. A GCS-protected record
+ * carries a protected-tier link and no id, so the guard leaves it untouched.
  *
  * ipfsHash stays — only the open path reads it, and keeping it saves re-hashing
  * a 200MB file if the author toggles back.
  */
 export function clearOpenTierResult(record: { arweaveId?: string, arweaveLink?: string }): void {
-  if (!hasOpenTierResult(record)) { return }
+  if (!hasOpenTierResult(record, getTrustedLinkOrigin())) { return }
   record.arweaveId = undefined
   record.arweaveLink = undefined
 }
@@ -215,8 +223,9 @@ export async function uploadEbookToGcsDirect(
  * The browser uploads once, to GCS; the server reads those bytes back, signs the
  * ANS-104 DataItem, uploads to Irys and blocks on the node's receipt before
  * returning — so the client needs no signer, public key or ANS-104 implementation.
- * The server may also keep the file in GCS only, in which case there is no
- * arweaveId and the link is the permanent public URL.
+ *
+ * The server may also keep the file in GCS only: then there is no arweaveId and
+ * the link is the permanent public URL.
  *
  * Always sponsored: the Arweave fee is settled against the publisher's daily
  * quota, never an on-chain payment. A batch the quota cannot cover fails at

@@ -23,7 +23,8 @@ import { BookUploadStatus } from '~/types/bulk-upload'
 import { clampPreviewPercentage } from '~/utils/preview-cut'
 import { normalizePublicationDate } from '~/utils/publicationDate'
 import { resolveBookCategory } from '~/utils/bookCategory'
-import { isBulkCoverUploaded, isBulkEbookUploaded, isHttpsUrl } from '~/utils/contentUri'
+import { isBulkCoverUploaded, isHttpsUrl } from '~/utils/contentUri'
+import { isBulkEbookUploadedInApp } from '~/utils/arweave'
 
 // Filenames are the identity this flow matches on — CSV row against picked
 // file, and the draft-file store's keys — so every comparison must fold them
@@ -35,7 +36,7 @@ export function normalizeFilename(filename: string | undefined): string {
 // Bytes already uploaded: nothing re-uploads them and nothing needs them on
 // disk.
 export function hasArweaveUploads(book: BulkUploadBook): boolean {
-  return isBulkCoverUploaded(book) && isBulkEbookUploaded(book)
+  return isBulkCoverUploaded(book) && isBulkEbookUploadedInApp(book)
 }
 
 // book_description is absent because either description column satisfies the

@@ -6,7 +6,8 @@ import { createBookTokenMetadataBuilder, shouldHideDownload } from '~/utils/iscn
 import { shouldEnableCustomMessagePage } from '~/utils/listing'
 import { detectEbookType } from '~/utils/ebookType'
 import { buildIscnLinksFromFileRecords } from '~/utils/iscnLinks'
-import { getRecordContentUri, isBulkCoverUploaded, isBulkEbookUploaded } from '~/utils/contentUri'
+import { getRecordContentUri, isBulkCoverUploaded } from '~/utils/contentUri'
+import { isBulkEbookUploadedInApp } from '~/utils/arweave'
 import { getApiErrorMessage, isBatchFatalApiError } from '~/utils/apiError'
 import { resolveShortDescription } from '~/utils/description'
 import { MAX_DESCRIPTION_LENGTH } from '~/constant'
@@ -60,7 +61,7 @@ export function useBulkUpload() {
       }
 
       // Step 1: Upload files to Arweave
-      if (!isBulkCoverUploaded(book) || !isBulkEbookUploaded(book)) {
+      if (!isBulkCoverUploaded(book) || !isBulkEbookUploadedInApp(book)) {
         onStatusChange?.(book.id, BookUploadStatus.UPLOADING_FILES)
         await uploadFilesToArweave(book, callbacks)
       }
@@ -117,7 +118,7 @@ export function useBulkUpload() {
       })
     }
 
-    if (!isBulkEbookUploaded(book)) {
+    if (!isBulkEbookUploadedInApp(book)) {
       // A mismatched result is stale; drop it so a failed upload cannot leave
       // it in the result CSV for the next resume to trust.
       book.bookArweaveId = undefined

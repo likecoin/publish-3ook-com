@@ -22,6 +22,34 @@ test('a GCS-only open upload counts as an open-tier result; a protected link doe
   assert.equal(hasOpenTierResult({}), false)
 })
 
+const API_ORIGIN = 'https://api.example.test'
+
+test('a protected link is judged by its parsed pathname, not by raw text', () => {
+  assert.equal(isProtectedTierLink('https://files.example.test/abc#/arweave/v2/link/x'), false)
+  assert.equal(isProtectedTierLink('https://files.example.test/abc?x=/arweave/v2/link/x'), false)
+  assert.equal(isProtectedTierLink('http://api.example.test/arweave/v2/link/abc'), false)
+  assert.equal(isProtectedTierLink('https://api.example.test/arweave/v2/link/'), false)
+  assert.equal(isProtectedTierLink('not a url /arweave/v2/link/abc'), false)
+  assert.equal(isProtectedTierLink(`${PROTECTED_LINK}?key=k`), true)
+})
+
+test('with a trusted origin, a protected link must be on it', () => {
+  assert.equal(isProtectedTierLink('https://files.example.test/arweave/v2/link/abc', API_ORIGIN), false)
+  assert.equal(isProtectedTierLink(PROTECTED_LINK, API_ORIGIN), true)
+  assert.equal(isProtectedTierLink(`${PROTECTED_LINK}?key=k`, API_ORIGIN), true)
+  assert.equal(isProtectedTierLink(PROTECTED_LINK, ['https://other.example.test', API_ORIGIN]), true)
+  assert.equal(hasOpenTierResult({ arweaveLink: PROTECTED_LINK }, API_ORIGIN), false)
+  assert.equal(hasOpenTierResult({ arweaveLink: 'https://files.example.test/arweave/v2/link/abc' }, API_ORIGIN), true)
+})
+
+test('a spoofed protected link does not satisfy a DRM ebook', () => {
+  const spoof = 'https://files.example.test/abc#/arweave/v2/link/x'
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: spoof }), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: PROTECTED_LINK }, API_ORIGIN), true)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveLink: 'https://files.example.test/arweave/v2/link/abc' }, API_ORIGIN), false)
+  assert.equal(isBulkEbookUploaded({ enableDRM: true, bookArweaveId: AR_ID, bookArweaveKey: 'k', bookArweaveLink: FILE_LINK }), false)
+})
+
 test('only API links under /arweave/v2/link/ are protected-tier links', () => {
   assert.equal(isProtectedTierLink(PROTECTED_LINK), true)
   assert.equal(isProtectedTierLink(FILE_LINK), false)
