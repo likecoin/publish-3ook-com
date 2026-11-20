@@ -11,6 +11,9 @@
       v-model="formData"
       v-model:description-full="descriptionFull"
       :prefilled-fields="prefilledFields"
+      :store-sourced-fields="storeSourcedFields"
+      :store-conflicts="storeConflicts"
+      @apply-store-value="(field: StoreMetadataDriftField) => emit('applyStoreValue', field)"
     />
 
     <IscnClassificationFields
@@ -28,6 +31,9 @@
     <IscnIdentifierFields
       v-model="formData"
       :prefilled-fields="prefilledFields"
+      :store-sourced-fields="storeSourcedFields"
+      :store-conflicts="storeConflicts"
+      @apply-store-value="(field: StoreMetadataDriftField) => emit('applyStoreValue', field)"
     />
 
     <IscnPeopleFields
