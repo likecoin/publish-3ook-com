@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 
 import {
   getPendingOwnershipSyncWallet,
+  getReservedNftCount,
+  isNonexistentTokenError,
   isSameWallet,
   parseOwnershipTransferInput,
   pollUntilConfirmed,
@@ -113,4 +115,26 @@ test('pollUntilConfirmed stops when cancelled, even after a passing check', asyn
     isCancelled: () => isCancelled,
   })
   assert.equal(result, 'cancelled')
+})
+
+test('getReservedNftCount reserves #0 only while the wallet holds it', () => {
+  assert.equal(getReservedNftCount(OWNER, OWNER.toLowerCase()), 1)
+  // Moved with the book, or handed over by script before this feature.
+  assert.equal(getReservedNftCount(NEW_OWNER, OWNER), 0)
+  // Burnt, or the read failed.
+  assert.equal(getReservedNftCount(null, OWNER), 0)
+  assert.equal(getReservedNftCount(OWNER, undefined), 0)
+})
+
+test('isNonexistentTokenError finds the revert anywhere in the cause chain', () => {
+  const revert = Object.assign(new Error('reverted'), { data: { errorName: 'ERC721NonexistentToken' } })
+  assert.equal(isNonexistentTokenError(revert), true)
+  assert.equal(isNonexistentTokenError(new Error('call failed', { cause: revert })), true)
+})
+
+test('isNonexistentTokenError leaves other failures unexplained', () => {
+  assert.equal(isNonexistentTokenError(new Error('fetch failed')), false)
+  const otherRevert = Object.assign(new Error('reverted'), { data: { errorName: 'ERC721InvalidOwner' } })
+  assert.equal(isNonexistentTokenError(new Error('call failed', { cause: otherRevert })), false)
+  assert.equal(isNonexistentTokenError(undefined), false)
 })

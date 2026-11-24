@@ -246,14 +246,12 @@ import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
 import { isBookUnlistedDraft } from '~/utils/listing-status'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
-import { isSameWallet, pollUntilConfirmed } from '~/utils/ownership-transfer'
+import { getReservedNftCount, isSameWallet, pollUntilConfirmed } from '~/utils/ownership-transfer'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 import { STOCK_BALANCE_UNKNOWN } from '~/constant'
 
 const { t: $t } = useI18n()
-
-const AUTHOR_RESERVED_NFT_COUNT = 1
 
 const { BOOK3_URL } = useRuntimeConfig().public
 const apiFetch = useLikeCoApiFetch()
@@ -264,7 +262,12 @@ const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
 const { getBalanceOf, getClassOwner } = useNFTContractReader()
 const { showSuccessToast, showErrorToast } = useToastComposable()
-const { syncOwnership, fetchPendingSyncWallet } = useBookOwnershipTransfer()
+const {
+  syncOwnership,
+  fetchPendingSyncWallet,
+  fetchReservedNftHolder,
+  transferReservedNftOrWarn,
+} = useBookOwnershipTransfer()
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
@@ -541,11 +544,23 @@ async function calculateStock() {
     return
   }
   const pendingNFTCount = classListingInfo.value.pendingNFTCount || 0
-  const count = await getBalanceOf(classId.value, sessionWallet.value as string)
+  const wallet = sessionWallet.value
+  const [count, reservedNftHolder] = await Promise.all([
+    getBalanceOf(classId.value, wallet as string),
+    fetchReservedNftHolder(classId.value).catch(() => undefined),
+  ])
+  // A switch of account mid-read leaves the newer calculation to answer.
+  if (wallet !== sessionWallet.value) { return }
+  // Unknown rather than off by one: a failed read cannot say whether #0 is still here.
+  if (reservedNftHolder === undefined) {
+    stockBalance.value = STOCK_BALANCE_UNKNOWN
+    return
+  }
+  const reservedNftCount = getReservedNftCount(reservedNftHolder, wallet)
   const manuallyAssignedNFTCount = prices.value
     .filter(price => !price.isAutoDeliver)
     .reduce((total, price) => total + (price.stock || 0), 0)
-  stockBalance.value = (Number(count) - manuallyAssignedNFTCount - AUTHOR_RESERVED_NFT_COUNT - pendingNFTCount) || 0
+  stockBalance.value = (Number(count) - manuallyAssignedNFTCount - reservedNftCount - pendingNFTCount) || 0
 }
 
 function handleCoverReplaced(coverUrl: string) {
@@ -635,12 +650,20 @@ onBeforeUnmount(() => {
 async function syncPendingOwnership() {
   if (!pendingSyncWallet.value || isSyncingOwnership.value) { return }
   isSyncingOwnership.value = true
+  // Snapshotted: a sign-out or account switch mid-sync resets the recovery state these come from.
+  const checkId = ownershipCheckId
+  const newOwnerWallet = pendingSyncWallet.value
+  const fromWallet = sessionWallet.value
   try {
-    await syncOwnership(classId.value, {
-      newOwnerWallet: pendingSyncWallet.value,
-      txHash: pendingSyncTxHash.value,
+    await syncOwnership(classId.value, { newOwnerWallet, txHash: pendingSyncTxHash.value })
+    if (checkId !== ownershipCheckId) { return }
+    await transferReservedNftOrWarn({
+      classId: classId.value,
+      fromWallet: fromWallet as `0x${string}`,
+      toWallet: newOwnerWallet as `0x${string}`,
     })
-    await handleOwnershipTransferred(pendingSyncWallet.value)
+    if (checkId !== ownershipCheckId) { return }
+    await handleOwnershipTransferred(newOwnerWallet)
   }
   catch (err) {
     showErrorToast(err)

@@ -89,6 +89,7 @@
             <ul class="list-disc pl-4 space-y-1">
               <li v-text="$t('ownership_transfer.consequence_manage')" />
               <li v-text="$t('ownership_transfer.consequence_revenue')" />
+              <li v-text="$t('ownership_transfer.consequence_reserved_nft')" />
               <li v-text="$t('ownership_transfer.consequence_irreversible')" />
             </ul>
           </template>
@@ -149,7 +150,7 @@ const { t: $t } = useI18n()
 const likerStore = useLikerStore()
 const stripeStore = useStripeStore()
 const { showErrorToast } = useToastComposable()
-const { transferOnChain, syncOwnership, fetchPendingSyncWallet } = useBookOwnershipTransfer()
+const { transferOnChain, transferReservedNftOrWarn, syncOwnership, fetchPendingSyncWallet } = useBookOwnershipTransfer()
 
 interface Recipient {
   wallet: `0x${string}`
@@ -164,7 +165,7 @@ const inputError = ref('')
 const isLookingUp = ref(false)
 const recipient = ref<Recipient | null>(null)
 const isAcknowledged = ref(false)
-const step = ref<'signing' | 'confirming' | 'syncing' | null>(null)
+const step = ref<'signing' | 'confirming' | 'syncing' | 'reserved_nft' | null>(null)
 
 // A recipient confirmed for one input must not carry over to an edited one.
 watch(input, () => {
@@ -239,6 +240,12 @@ async function transfer() {
     step.value = 'syncing'
     await syncOwnership(classId, { newOwnerWallet: target.wallet, txHash })
     useLogEvent('book_ownership_transfer_success', { class_id: classId })
+    step.value = 'reserved_nft'
+    await transferReservedNftOrWarn({
+      classId,
+      fromWallet: ownerWallet as `0x${string}`,
+      toWallet: target.wallet,
+    })
     isOpen.value = false
     emit('transferred', target.displayName)
   }
