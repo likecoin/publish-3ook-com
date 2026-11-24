@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { isSameWallet, parseOwnershipTransferInput } from '~/utils/ownership-transfer'
+import { isSameWallet, OwnershipTransferPendingError, parseOwnershipTransferInput } from '~/utils/ownership-transfer'
 
 const { classId, ownerWallet, needsStripeConnect = false } = defineProps<{
   classId: string
@@ -141,6 +141,8 @@ const emit = defineEmits<{
   transferred: [recipient: string]
   // The chain has moved but the listing has not; the page offers the retry.
   syncNeeded: [newOwnerWallet: string, txHash?: `0x${string}`]
+  // Broadcast with no outcome yet; the page waits on the chain before allowing another try.
+  confirmationPending: [newOwnerWallet: string]
 }>()
 
 const { t: $t } = useI18n()
@@ -243,8 +245,11 @@ async function transfer() {
   catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
-    showErrorToast(error)
     isOpen.value = false
+    const isPending = error instanceof OwnershipTransferPendingError
+    if (!isPending) {
+      showErrorToast(error)
+    }
     // A sponsored call can fail after broadcast, so ask the chain, not the error.
     const pendingWallet = await fetchPendingSyncWallet({
       classId,
@@ -253,6 +258,9 @@ async function transfer() {
     }).catch(() => null)
     if (pendingWallet) {
       emit('syncNeeded', pendingWallet, isSameWallet(pendingWallet, target.wallet) ? txHash : undefined)
+    }
+    else if (isPending) {
+      emit('confirmationPending', target.wallet)
     }
   }
   finally {

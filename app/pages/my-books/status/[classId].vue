@@ -31,6 +31,21 @@
           onClick: syncPendingOwnership,
         }]"
       />
+      <UAlert
+        v-else-if="pendingConfirmWallet"
+        color="warning"
+        variant="subtle"
+        icon="i-heroicons-clock"
+        :title="isPendingConfirmTimedOut
+          ? $t('ownership_transfer.pending_timeout_title')
+          : $t('ownership_transfer.pending_title')"
+        :description="isPendingConfirmTimedOut
+          ? $t('ownership_transfer.pending_timeout', { wallet: pendingConfirmWallet })
+          : $t('ownership_transfer.pending_description', { wallet: pendingConfirmWallet })"
+        :actions="isPendingConfirmTimedOut
+          ? [{ label: $t('ownership_transfer.pending_reload'), color: 'warning', onClick: () => reloadNuxtApp() }]
+          : undefined"
+      />
 
       <UProgress
         v-if="isLoading"
@@ -149,12 +164,13 @@
           />
           <!-- Owner only: the contract takes the owner's signature, and a good has no contract. -->
           <BookStatusOwnershipTransferCard
-            v-if="userIsOwner && !isMerch && !pendingSyncWallet && listingWallet === sessionWallet"
+            v-if="canTransferOwnership"
             :class-id="classId"
             :owner-wallet="sessionWallet!"
             :needs-stripe-connect="classListingInfo.connectedWallets?.[ownerWallet!] !== undefined"
             @transferred="handleOwnershipTransferred"
             @sync-needed="handleOwnershipSyncNeeded"
+            @confirmation-pending="handleOwnershipConfirmationPending"
           />
         </div>
 
@@ -230,6 +246,7 @@ import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
 import { isBookUnlistedDraft } from '~/utils/listing-status'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
+import { isSameWallet, pollUntilConfirmed } from '~/utils/ownership-transfer'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 import { STOCK_BALANCE_UNKNOWN } from '~/constant'
@@ -245,7 +262,7 @@ const { updateBookListingSetting, updateEditionPrice, uploadSignImages } = books
 const nftStore = useNftStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
-const { getBalanceOf } = useNFTContractReader()
+const { getBalanceOf, getClassOwner } = useNFTContractReader()
 const { showSuccessToast, showErrorToast } = useToastComposable()
 const { syncOwnership, fetchPendingSyncWallet } = useBookOwnershipTransfer()
 
@@ -543,12 +560,28 @@ function handleFilesReplaced(links: IscnFileLinks) {
 // Set when the contract already names another owner but the listing still names us.
 const pendingSyncWallet = ref<string | null>(null)
 const pendingSyncTxHash = ref<`0x${string}`>()
+// Set while a broadcast transfer has no outcome yet, so a second one cannot start.
+const pendingConfirmWallet = ref<string | null>(null)
+// A timeout proves nothing about the outcome, so the transfer stays held until a reload reads the chain.
+const isPendingConfirmTimedOut = ref(false)
+
+const canTransferOwnership = computed(() => {
+  return (
+    userIsOwner.value
+    && !isMerch.value
+    && !pendingSyncWallet.value
+    && !pendingConfirmWallet.value
+    && listingWallet.value === sessionWallet.value
+  )
+})
 const isSyncingOwnership = ref(false)
 
 // Bumped whenever newer state supersedes a chain read still in flight.
 let ownershipCheckId = 0
 
 async function checkPendingOwnershipSync() {
+  // A late background check must not cancel the poll or sync that already owns the recovery state.
+  if (pendingConfirmWallet.value || pendingSyncWallet.value) { return }
   const checkId = ++ownershipCheckId
   try {
     const wallet = await fetchPendingSyncWallet({
@@ -568,6 +601,8 @@ async function checkPendingOwnershipSync() {
 
 function setPendingOwnershipSync(newOwnerWallet: string | null, txHash?: `0x${string}`) {
   ownershipCheckId += 1
+  pendingConfirmWallet.value = null
+  isPendingConfirmTimedOut.value = false
   pendingSyncWallet.value = newOwnerWallet
   pendingSyncTxHash.value = txHash
 }
@@ -575,6 +610,27 @@ function setPendingOwnershipSync(newOwnerWallet: string | null, txHash?: `0x${st
 function handleOwnershipSyncNeeded(newOwnerWallet: string, txHash?: `0x${string}`) {
   setPendingOwnershipSync(newOwnerWallet, txHash)
 }
+
+async function handleOwnershipConfirmationPending(newOwnerWallet: string) {
+  setPendingOwnershipSync(null)
+  pendingConfirmWallet.value = newOwnerWallet
+  const checkId = ownershipCheckId
+  const result = await pollUntilConfirmed(
+    async () => isSameWallet(await getClassOwner(classId.value), newOwnerWallet),
+    { isCancelled: () => checkId !== ownershipCheckId },
+  )
+  if (result === 'cancelled') { return }
+  if (result === 'timeout') {
+    isPendingConfirmTimedOut.value = true
+    return
+  }
+  setPendingOwnershipSync(newOwnerWallet)
+  await syncPendingOwnership()
+}
+
+onBeforeUnmount(() => {
+  ownershipCheckId += 1
+})
 
 async function syncPendingOwnership() {
   if (!pendingSyncWallet.value || isSyncingOwnership.value) { return }

@@ -6,6 +6,7 @@ import {
   getPendingOwnershipSyncWallet,
   isSameWallet,
   parseOwnershipTransferInput,
+  pollUntilConfirmed,
 } from '../app/utils/ownership-transfer.ts'
 
 const OWNER = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
@@ -70,4 +71,46 @@ test('getPendingOwnershipSyncWallet stays quiet when nothing is pending', () => 
     chainOwner: undefined,
     sessionWallet: OWNER,
   }), null)
+})
+
+// A fake clock: each sleep advances time instead of waiting.
+function fakeTimer() {
+  let time = 0
+  return {
+    now: () => time,
+    sleep: async (ms) => { time += ms },
+  }
+}
+
+test('pollUntilConfirmed resolves once the check passes', async () => {
+  let calls = 0
+  const result = await pollUntilConfirmed(async () => ++calls === 3, { ...fakeTimer(), intervalMs: 10, timeoutMs: 100 })
+  assert.equal(result, 'confirmed')
+  assert.equal(calls, 3)
+})
+
+test('pollUntilConfirmed treats a failed read as not yet confirmed', async () => {
+  let calls = 0
+  const result = await pollUntilConfirmed(async () => {
+    calls += 1
+    if (calls === 1) { throw new Error('rpc down') }
+    return true
+  }, { ...fakeTimer(), intervalMs: 10, timeoutMs: 100 })
+  assert.equal(result, 'confirmed')
+})
+
+test('pollUntilConfirmed times out when the check never passes', async () => {
+  let calls = 0
+  const result = await pollUntilConfirmed(async () => { calls += 1; return false }, { ...fakeTimer(), intervalMs: 10, timeoutMs: 30 })
+  assert.equal(result, 'timeout')
+  assert.equal(calls, 4)
+})
+
+test('pollUntilConfirmed stops when cancelled, even after a passing check', async () => {
+  let isCancelled = false
+  const result = await pollUntilConfirmed(async () => { isCancelled = true; return true }, {
+    ...fakeTimer(),
+    isCancelled: () => isCancelled,
+  })
+  assert.equal(result, 'cancelled')
 })

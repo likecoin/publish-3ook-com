@@ -1,6 +1,7 @@
 import { LIKE_NFT_CLASS_ABI } from '~/contracts/likeNFT'
 import type { ClassListingData } from '~/types'
-import { getPendingOwnershipSyncWallet, isSameWallet } from '~/utils/ownership-transfer'
+import { getPendingOwnershipSyncWallet, isSameWallet, OwnershipTransferPendingError } from '~/utils/ownership-transfer'
+import { SponsoredTransactionBroadcastError } from './useSponsoredTransaction'
 
 // Signing, two confirmations and the sync rarely take this long; a session ending sooner is refused up front.
 const TRANSFER_SESSION_MARGIN_MS = 10 * 60_000
@@ -36,9 +37,19 @@ export function useBookOwnershipTransfer() {
       throw new Error('WALLET_NOT_INITED')
     }
     await assertSufficientBalanceForTransaction({ wallet: walletStore.wallet, ...params })
-    const txHash = await writeContractAsync(params)
+    let txHash: `0x${string}`
+    try {
+      txHash = await writeContractAsync(params)
+    }
+    catch (error) {
+      if (error instanceof SponsoredTransactionBroadcastError) {
+        throw new OwnershipTransferPendingError({ cause: error })
+      }
+      throw error
+    }
     onSubmitted?.()
     const receipt = await waitForTransactionReceipt({ hash: txHash, confirmations: 2 })
+      .catch((error) => { throw new OwnershipTransferPendingError({ cause: error, txHash }) })
     if (receipt.status !== 'success') {
       throw new Error($t('ownership_transfer.error_reverted', { txHash }))
     }

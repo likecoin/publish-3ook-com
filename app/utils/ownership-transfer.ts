@@ -44,3 +44,42 @@ export function getPendingOwnershipSyncWallet({
   if (!chainOwner || !isSameWallet(listingOwner, sessionWallet)) { return null }
   return isSameWallet(chainOwner, sessionWallet) ? null : chainOwner
 }
+
+export const OWNERSHIP_CONFIRM_POLL_INTERVAL_MS = 5_000
+export const OWNERSHIP_CONFIRM_TIMEOUT_MS = 3 * 60_000
+
+// The transaction was broadcast but its outcome never came back, so the chain may yet move.
+export class OwnershipTransferPendingError extends Error {
+  txHash?: `0x${string}`
+  constructor(options: { cause?: unknown, txHash?: `0x${string}` } = {}) {
+    super('Ownership transfer was broadcast but not confirmed')
+    this.name = 'OwnershipTransferPendingError'
+    this.cause = options.cause
+    this.txHash = options.txHash
+  }
+}
+
+// A failed read counts as "not yet": one flaky RPC call must not end the wait early.
+export async function pollUntilConfirmed(check: () => Promise<boolean>, {
+  intervalMs = OWNERSHIP_CONFIRM_POLL_INTERVAL_MS,
+  timeoutMs = OWNERSHIP_CONFIRM_TIMEOUT_MS,
+  isCancelled = () => false,
+  sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)),
+  now = () => Date.now(),
+}: {
+  intervalMs?: number
+  timeoutMs?: number
+  isCancelled?: () => boolean
+  sleep?: (ms: number) => Promise<void>
+  now?: () => number
+} = {}): Promise<'confirmed' | 'timeout' | 'cancelled'> {
+  const deadline = now() + timeoutMs
+  for (;;) {
+    if (isCancelled()) { return 'cancelled' }
+    const isConfirmed = await check().catch(() => false)
+    if (isCancelled()) { return 'cancelled' }
+    if (isConfirmed) { return 'confirmed' }
+    if (now() >= deadline) { return 'timeout' }
+    await sleep(intervalMs)
+  }
+}
