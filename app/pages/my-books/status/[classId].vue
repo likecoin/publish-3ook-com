@@ -147,6 +147,15 @@
             :settings="listingSettings"
             :is-book-unlisted="isBookUnlisted"
           />
+          <!-- Owner only: the contract takes the owner's signature, and a good has no contract. -->
+          <BookStatusOwnershipTransferCard
+            v-if="userIsOwner && !isMerch && !pendingSyncWallet && listingWallet === sessionWallet"
+            :class-id="classId"
+            :owner-wallet="sessionWallet!"
+            :needs-stripe-connect="classListingInfo.connectedWallets?.[ownerWallet!] !== undefined"
+            @transferred="handleOwnershipTransferred"
+            @sync-needed="handleOwnershipSyncNeeded"
+          />
         </div>
 
         <div
@@ -205,15 +214,6 @@
             ref="moderatorWalletsCardRef"
             v-model="listingSettings.moderatorWallets.value"
             :can-edit="userIsOwner"
-          />
-          <!-- Owner only: the contract takes the owner's signature, and a good has no contract. -->
-          <BookStatusOwnershipTransferCard
-            v-if="userIsOwner && !isMerch && !pendingSyncWallet && listingWallet === sessionWallet"
-            :class-id="classId"
-            :owner-wallet="sessionWallet!"
-            :needs-stripe-connect="classListingInfo.connectedWallets?.[ownerWallet!] !== undefined"
-            @transferred="handleOwnershipTransferred"
-            @sync-needed="handleOwnershipSyncNeeded"
           />
         </div>
       </template>
