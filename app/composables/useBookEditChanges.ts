@@ -60,6 +60,7 @@ const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
   isPlusReadingEnabled: 'nft_book_form.plus_reading',
   isPreviewEnabled: 'nft_book_form.free_preview',
   previewPercentage: 'nft_book_form.free_preview',
+  restrictedTerritories: 'nft_book_form.restricted_territories',
   descriptionFull: 'common.description',
   tableOfContents: 'form.table_of_content',
   moderatorWallets: 'form.share_sales_data',
@@ -80,7 +81,7 @@ const SETTINGS_FIELD_TABS: Record<string, BookStatusTab> = {
 // the storefront page.
 const READER_FACING_CHAIN_KEYS = new Set(['contentFingerprints', 'downloadableUrls'])
 const READER_FACING_SETTING_KEYS = new Set(['hideDownload', 'isAudioPlusReadingOnly'])
-const FUTURE_PURCHASE_SETTING_KEYS = new Set(['isPreviewEnabled', 'previewPercentage'])
+const FUTURE_PURCHASE_SETTING_KEYS = new Set(['isPreviewEnabled', 'previewPercentage', 'restrictedTerritories'])
 
 const AUDIENCE_RANK: Record<BookEditChangeAudience, number> = {
   storefront: 0,
