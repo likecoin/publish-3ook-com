@@ -171,6 +171,7 @@
             @transferred="handleOwnershipTransferred"
             @sync-needed="handleOwnershipSyncNeeded"
             @confirmation-pending="handleOwnershipConfirmationPending"
+            @transferring="handleOwnershipTransferring"
           />
         </div>
 
@@ -472,6 +473,7 @@ const soldCount = computed(() => getSoldCount(classListingInfo.value.prices))
 watch(sessionWallet, async (newWallet) => {
   // Recovery state belongs to the session that read it; signing in on this page skips onMounted.
   setPendingOwnershipSync(null)
+  isTransferringOwnership.value = false
   if (newWallet) {
     if (hasLoadedListing.value) {
       // eslint-disable-next-line no-console
@@ -596,7 +598,7 @@ let ownershipCheckId = 0
 
 async function checkPendingOwnershipSync() {
   // A late background check must not cancel the poll or sync that already owns the recovery state.
-  if (pendingConfirmWallet.value || pendingSyncWallet.value) { return }
+  if (isTransferringOwnership.value || pendingConfirmWallet.value || pendingSyncWallet.value) { return }
   const checkId = ++ownershipCheckId
   try {
     const wallet = await fetchPendingSyncWallet({
@@ -620,6 +622,16 @@ function setPendingOwnershipSync(newOwnerWallet: string | null, txHash?: `0x${st
   isPendingConfirmTimedOut.value = false
   pendingSyncWallet.value = newOwnerWallet
   pendingSyncTxHash.value = txHash
+}
+
+// A background check landing mid-transfer would set the sync banner and unmount the card running it.
+const isTransferringOwnership = ref(false)
+
+function handleOwnershipTransferring(isTransferring: boolean) {
+  isTransferringOwnership.value = isTransferring
+  if (isTransferring) {
+    ownershipCheckId += 1
+  }
 }
 
 function handleOwnershipSyncNeeded(newOwnerWallet: string, txHash?: `0x${string}`) {

@@ -144,6 +144,7 @@ const emit = defineEmits<{
   syncNeeded: [newOwnerWallet: string, txHash?: `0x${string}`]
   // Broadcast with no outcome yet; the page waits on the chain before allowing another try.
   confirmationPending: [newOwnerWallet: string]
+  transferring: [isTransferring: boolean]
 }>()
 
 const { t: $t } = useI18n()
@@ -230,6 +231,7 @@ async function transfer() {
   const target = recipient.value
   if (!target || !isAcknowledged.value || step.value) { return }
   let txHash: `0x${string}` | undefined
+  emit('transferring', true)
   try {
     step.value = 'signing'
     txHash = await transferOnChain({
@@ -273,6 +275,7 @@ async function transfer() {
   }
   finally {
     step.value = null
+    emit('transferring', false)
   }
 }
 </script>
