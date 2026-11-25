@@ -168,6 +168,15 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     return data
   }
 
+  // The API only follows the chain: it refuses until `owner()` already names newOwnerWallet.
+  async function transferBookOwnership(classId: string, payload: { newOwnerWallet: string, txHash?: string }) {
+    const data = await apiFetch(`/likernft/book/store/${classId}/ownership`, {
+      method: 'POST',
+      body: payload,
+    })
+    return data
+  }
+
   async function uploadSignImages(payload: FormData, classId: string) {
     const data = await apiFetch(`/likernft/book/store/${classId}/image/upload`, {
       method: 'POST',
@@ -201,5 +210,6 @@ export const useBookstoreApiStore = defineStore('book-api', () => {
     addEditionPrice,
     refreshBookMetadata,
     uploadSignImages,
+    transferBookOwnership,
   }
 })

@@ -25,9 +25,9 @@ export const useLikerStore = defineStore('liker', () => {
     return getLikerInfoById.value(likerId)
   })
 
-  async function fetchLikerInfoById(likerId: string) {
+  async function fetchLikerInfoById(likerId: string, { nocache = false } = {}) {
     try {
-      const result = await useFetchLikerInfoById(likerId)
+      const result = await useFetchLikerInfoById(likerId, { nocache })
       const likerInfo = result
       if (!likerInfo) {
         throw new Error('Missing data in `fetchLikerInfoById`')

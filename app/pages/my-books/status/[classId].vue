@@ -17,6 +17,36 @@
 
       <AppErrorAlert v-model="error" />
 
+      <UAlert
+        v-if="pendingSyncWallet"
+        color="warning"
+        variant="subtle"
+        icon="i-heroicons-arrows-right-left"
+        :title="$t('ownership_transfer.sync_title')"
+        :description="$t('ownership_transfer.sync_description', { wallet: pendingSyncWallet })"
+        :actions="[{
+          label: $t('ownership_transfer.sync_action'),
+          color: 'warning',
+          loading: isSyncingOwnership,
+          onClick: syncPendingOwnership,
+        }]"
+      />
+      <UAlert
+        v-else-if="pendingConfirmWallet"
+        color="warning"
+        variant="subtle"
+        icon="i-heroicons-clock"
+        :title="isPendingConfirmTimedOut
+          ? $t('ownership_transfer.pending_timeout_title')
+          : $t('ownership_transfer.pending_title')"
+        :description="isPendingConfirmTimedOut
+          ? $t('ownership_transfer.pending_timeout', { wallet: pendingConfirmWallet })
+          : $t('ownership_transfer.pending_description', { wallet: pendingConfirmWallet })"
+        :actions="isPendingConfirmTimedOut
+          ? [{ label: $t('ownership_transfer.pending_reload'), color: 'warning', onClick: () => reloadNuxtApp() }]
+          : undefined"
+      />
+
       <UProgress
         v-if="isLoading"
         animation="carousel"
@@ -132,6 +162,17 @@
             :settings="listingSettings"
             :is-book-unlisted="isBookUnlisted"
           />
+          <!-- Owner only: the contract takes the owner's signature, and a good has no contract. -->
+          <BookStatusOwnershipTransferCard
+            v-if="canTransferOwnership"
+            :class-id="classId"
+            :owner-wallet="sessionWallet!"
+            :needs-stripe-connect="classListingInfo.connectedWallets?.[ownerWallet!] !== undefined"
+            @transferred="handleOwnershipTransferred"
+            @sync-needed="handleOwnershipSyncNeeded"
+            @confirmation-pending="handleOwnershipConfirmationPending"
+            @transferring="handleOwnershipTransferring"
+          />
         </div>
 
         <div
@@ -206,13 +247,12 @@ import type { BookEditEditionChange } from '~/composables/useBookEditChanges'
 import { mapListingPriceToFormItem, mapPriceFormItemsToPayload, hasFreeEditionDraft, getSoldCount } from '~/utils/listing'
 import { isBookUnlistedDraft } from '~/utils/listing-status'
 import { getCoverUrlErrorKey, hasContentFingerprint } from '~/utils/iscn'
+import { getReservedNftCount, isSameWallet, pollUntilConfirmed } from '~/utils/ownership-transfer'
 import type { IscnFileLinks, IscnFileLinksContext } from '~/utils/iscnFileLinks'
 import type { StoreMetadataConflict, StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 import { STOCK_BALANCE_UNKNOWN } from '~/constant'
 
 const { t: $t } = useI18n()
-
-const AUTHOR_RESERVED_NFT_COUNT = 1
 
 const { BOOK3_URL } = useRuntimeConfig().public
 const apiFetch = useLikeCoApiFetch()
@@ -221,8 +261,14 @@ const { updateBookListingSetting, updateEditionPrice, uploadSignImages } = books
 const nftStore = useNftStore()
 const { wallet: sessionWallet } = storeToRefs(bookstoreApiStore)
 const { lazyFetchClassMetadataById } = nftStore
-const { getBalanceOf } = useNFTContractReader()
+const { getBalanceOf, getClassOwner } = useNFTContractReader()
 const { showSuccessToast, showErrorToast } = useToastComposable()
+const {
+  syncOwnership,
+  fetchPendingSyncWallet,
+  fetchReservedNftHolder,
+  transferReservedNftOrWarn,
+} = useBookOwnershipTransfer()
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
@@ -245,6 +291,9 @@ const isMerch = computed(() => classListingInfo.value.productType === 'merch')
 // and 書籍資料 fires its chain reads from an immediate watch during setup, so a
 // guard evaluated in that window would still see the default.
 const hasLoadedListing = ref(false)
+// The session the listing was fetched for: a signed-out fetch omits owner-only fields,
+// `connectedWallets` among them, which the transfer's Stripe check reads.
+const listingWallet = ref<string>()
 
 // What BookDetailsSection exposes to the save orchestration.
 interface BookDetailsSectionApi {
@@ -422,8 +471,18 @@ const pendingShipmentCount = computed(() => classListingInfo.value.pendingShipme
 const soldCount = computed(() => getSoldCount(classListingInfo.value.prices))
 
 watch(sessionWallet, async (newWallet) => {
+  // Recovery state belongs to the session that read it; signing in on this page skips onMounted.
+  setPendingOwnershipSync(null)
+  isTransferringOwnership.value = false
   if (newWallet) {
+    if (hasLoadedListing.value) {
+      // eslint-disable-next-line no-console
+      await refreshListingInfo().catch(err => console.error(err))
+    }
     await calculateStock()
+    if (hasLoadedListing.value && userIsOwner.value && !isMerch.value) {
+      checkPendingOwnershipSync()
+    }
   }
   else {
     stockBalance.value = STOCK_BALANCE_UNKNOWN
@@ -451,6 +510,9 @@ onMounted(async () => {
     if (sessionWallet.value) {
       await calculateStock()
     }
+    if (userIsOwner.value && !isMerch.value) {
+      checkPendingOwnershipSync()
+    }
   }
   catch (err) {
     error.value = (err as Error).toString()
@@ -461,10 +523,17 @@ onMounted(async () => {
 })
 
 async function refreshListingInfo() {
-  const classData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId.value}`)
+  let wallet: string | undefined
+  let classData: ClassListingData
+  // A sign-in during the request makes its answer the signed-out one, so ask again.
+  do {
+    wallet = sessionWallet.value
+    classData = await apiFetch<ClassListingData>(`/likernft/book/store/${classId.value}`)
+  } while (wallet !== sessionWallet.value)
   classListingInfo.value = classData
   prices.value = classListingInfo.value.prices
   hasLoadedListing.value = true
+  listingWallet.value = wallet
 }
 
 async function calculateStock() {
@@ -477,11 +546,23 @@ async function calculateStock() {
     return
   }
   const pendingNFTCount = classListingInfo.value.pendingNFTCount || 0
-  const count = await getBalanceOf(classId.value, sessionWallet.value as string)
+  const wallet = sessionWallet.value
+  const [count, reservedNftHolder] = await Promise.all([
+    getBalanceOf(classId.value, wallet as string),
+    fetchReservedNftHolder(classId.value).catch(() => undefined),
+  ])
+  // A switch of account mid-read leaves the newer calculation to answer.
+  if (wallet !== sessionWallet.value) { return }
+  // Unknown rather than off by one: a failed read cannot say whether #0 is still here.
+  if (reservedNftHolder === undefined) {
+    stockBalance.value = STOCK_BALANCE_UNKNOWN
+    return
+  }
+  const reservedNftCount = getReservedNftCount(reservedNftHolder, wallet)
   const manuallyAssignedNFTCount = prices.value
     .filter(price => !price.isAutoDeliver)
     .reduce((total, price) => total + (price.stock || 0), 0)
-  stockBalance.value = (Number(count) - manuallyAssignedNFTCount - AUTHOR_RESERVED_NFT_COUNT - pendingNFTCount) || 0
+  stockBalance.value = (Number(count) - manuallyAssignedNFTCount - reservedNftCount - pendingNFTCount) || 0
 }
 
 function handleCoverReplaced(coverUrl: string) {
@@ -491,6 +572,126 @@ function handleCoverReplaced(coverUrl: string) {
 
 function handleFilesReplaced(links: IscnFileLinks) {
   detailsSectionRef.value?.setFiles(links)
+}
+
+// Set when the contract already names another owner but the listing still names us.
+const pendingSyncWallet = ref<string | null>(null)
+const pendingSyncTxHash = ref<`0x${string}`>()
+// Set while a broadcast transfer has no outcome yet, so a second one cannot start.
+const pendingConfirmWallet = ref<string | null>(null)
+// A timeout proves nothing about the outcome, so the transfer stays held until a reload reads the chain.
+const isPendingConfirmTimedOut = ref(false)
+
+const canTransferOwnership = computed(() => {
+  return (
+    userIsOwner.value
+    && !isMerch.value
+    && !pendingSyncWallet.value
+    && !pendingConfirmWallet.value
+    && listingWallet.value === sessionWallet.value
+  )
+})
+const isSyncingOwnership = ref(false)
+
+// Bumped whenever newer state supersedes a chain read still in flight.
+let ownershipCheckId = 0
+
+async function checkPendingOwnershipSync() {
+  // A late background check must not cancel the poll or sync that already owns the recovery state.
+  if (isTransferringOwnership.value || pendingConfirmWallet.value || pendingSyncWallet.value) { return }
+  const checkId = ++ownershipCheckId
+  try {
+    const wallet = await fetchPendingSyncWallet({
+      classId: classId.value,
+      listingOwner: ownerWallet.value,
+      sessionWallet: sessionWallet.value,
+    })
+    if (checkId === ownershipCheckId) {
+      pendingSyncWallet.value = wallet
+    }
+  }
+  catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err)
+  }
+}
+
+function setPendingOwnershipSync(newOwnerWallet: string | null, txHash?: `0x${string}`) {
+  ownershipCheckId += 1
+  pendingConfirmWallet.value = null
+  isPendingConfirmTimedOut.value = false
+  pendingSyncWallet.value = newOwnerWallet
+  pendingSyncTxHash.value = txHash
+}
+
+// A background check landing mid-transfer would set the sync banner and unmount the card running it.
+const isTransferringOwnership = ref(false)
+
+function handleOwnershipTransferring(isTransferring: boolean) {
+  isTransferringOwnership.value = isTransferring
+  if (isTransferring) {
+    ownershipCheckId += 1
+  }
+}
+
+function handleOwnershipSyncNeeded(newOwnerWallet: string, txHash?: `0x${string}`) {
+  setPendingOwnershipSync(newOwnerWallet, txHash)
+}
+
+async function handleOwnershipConfirmationPending(newOwnerWallet: string) {
+  setPendingOwnershipSync(null)
+  pendingConfirmWallet.value = newOwnerWallet
+  const checkId = ownershipCheckId
+  const result = await pollUntilConfirmed(
+    async () => isSameWallet(await getClassOwner(classId.value), newOwnerWallet),
+    { isCancelled: () => checkId !== ownershipCheckId },
+  )
+  if (result === 'cancelled') { return }
+  if (result === 'timeout') {
+    isPendingConfirmTimedOut.value = true
+    return
+  }
+  setPendingOwnershipSync(newOwnerWallet)
+  await syncPendingOwnership()
+}
+
+onBeforeUnmount(() => {
+  ownershipCheckId += 1
+})
+
+async function syncPendingOwnership() {
+  if (!pendingSyncWallet.value || isSyncingOwnership.value) { return }
+  isSyncingOwnership.value = true
+  // Snapshotted: a sign-out or account switch mid-sync resets the recovery state these come from.
+  const checkId = ownershipCheckId
+  const newOwnerWallet = pendingSyncWallet.value
+  const fromWallet = sessionWallet.value
+  try {
+    await syncOwnership(classId.value, { newOwnerWallet, txHash: pendingSyncTxHash.value })
+    if (checkId !== ownershipCheckId) { return }
+    await transferReservedNftOrWarn({
+      classId: classId.value,
+      fromWallet: fromWallet as `0x${string}`,
+      toWallet: newOwnerWallet as `0x${string}`,
+    })
+    if (checkId !== ownershipCheckId) { return }
+    await handleOwnershipTransferred(newOwnerWallet)
+  }
+  catch (err) {
+    showErrorToast(err)
+  }
+  finally {
+    isSyncingOwnership.value = false
+  }
+}
+
+// Refreshed before leaving: the unsaved-changes guard can cancel the navigation,
+// and the page must not keep offering owner controls to the former owner.
+async function handleOwnershipTransferred(recipient: string) {
+  showSuccessToast($t('ownership_transfer.success', { recipient }), { duration: 5000 })
+  setPendingOwnershipSync(null)
+  await refreshListingInfo().catch(() => {})
+  await navigateTo(localeRoute({ name: 'my-books' }))
 }
 
 function handleReducePendingNft() {
