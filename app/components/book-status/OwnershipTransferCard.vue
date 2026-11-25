@@ -258,11 +258,12 @@ async function transfer() {
       showErrorToast(error)
     }
     // A sponsored call can fail after broadcast, so ask the chain, not the error.
+    // A confirmed hash already proves the move, so a failed read must not drop it.
     const pendingWallet = await fetchPendingSyncWallet({
       classId,
       listingOwner: ownerWallet,
       sessionWallet: ownerWallet,
-    }).catch(() => null)
+    }).catch(() => (txHash ? target.wallet : null))
     if (pendingWallet) {
       emit('syncNeeded', pendingWallet, isSameWallet(pendingWallet, target.wallet) ? txHash : undefined)
     }
