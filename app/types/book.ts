@@ -75,7 +75,12 @@ export interface ClassListingData {
   isbn?: string
   datePublished?: string
   inLanguage?: string
-  thumbnailUrl?: string
+  // HTTPS URL of the original cover; `thumbnails` are resized copies of it.
+  productImageUrl?: string
+  thumbnails?: {
+    small: { url: string, width: number }
+    medium: { url: string, width: number }
+  }
   usageInfo?: string
   moderatorWallets?: string[]
   connectedWallets?: Record<string, number>
@@ -105,7 +110,6 @@ export interface BookRecord {
   classId: string
   name?: string
   title?: string
-  thumbnailUrl?: string
   imageUrl?: string
   author?: string | { name: string }
   minPrice?: number

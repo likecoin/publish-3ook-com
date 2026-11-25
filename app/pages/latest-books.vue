@@ -162,11 +162,10 @@ const selectedTabItemKey = computed(() => selectedTabItemIndex.value || 'latest'
 const bookList = computed(() => selectedTabItemKey.value === 'latest' ? latestBookList.value : bestSellerBookList.value)
 const tableRows = computed(() => bookList.value.map((b) => {
   const className = b.name || b.title
-  const image = b.thumbnailUrl || b.imageUrl
   const author = typeof b.author === 'object' ? b.author.name : b.author
   return {
     className,
-    image: image ? getImageResizeURL(parseImageURLFromMetadata(image)) : undefined,
+    image: getCoverThumbnailURL(b.imageUrl, { width: 300 }) || undefined,
     author,
     priceInUSD: formatPriceUSDLabel(Number(b.minPrice ?? b.prices?.[0]?.price), $t),
     url: `${BOOK3_URL}/store/${b.classId}?from=${channelId.value}&utm_source=bookpress&utm_medium=list_${selectedTabItemKey.value}`,
