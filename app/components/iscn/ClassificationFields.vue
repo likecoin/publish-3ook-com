@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import type { ISCNFormData } from '~/types'
 import type { ISCNPrefillableField } from '~/types/iscn'
+import { buildGenreSuggestPayload } from '~/utils/genreSuggestPayload'
 import { mergeBookKeywords, type StoreMetadataConflict, type StoreMetadataDriftField } from '~/utils/store-metadata-drift'
 
 import { MAX_BOOK_KEYWORDS, BOOK_CATEGORIES, BOOK_CATEGORY_VALUES } from '~/constant/index'
@@ -208,11 +209,14 @@ async function handleSuggestMetadata() {
   useLogEvent('book_metadata_suggest_click')
   try {
     const result = await suggestBookMetadata({
-      title: formData.value.title,
-      description: effectiveDescription.value,
-      language: formData.value.language || undefined,
-      tableOfContents: tableOfContents || undefined,
-      contentExcerpt: contentExcerpt || undefined,
+      ...buildGenreSuggestPayload(
+        {
+          title: formData.value.title,
+          description: effectiveDescription.value,
+          language: formData.value.language,
+        },
+        { tableOfContents, contentExcerpt },
+      ),
       existingKeywords: formData.value.tags,
     })
 
