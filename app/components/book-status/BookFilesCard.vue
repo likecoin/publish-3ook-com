@@ -141,7 +141,7 @@
                 :label="$t('common.download')"
                 :loading="downloadingUrl === file.url"
                 :disabled="!!downloadingUrl"
-                @click="downloadFile(file.url, file.fileName || `${classId}.${file.type}`)"
+                @click="downloadFile(file.url, getEbookFileName(file))"
               />
             </li>
           </ul>
@@ -370,6 +370,14 @@ async function downloadFile(url: string, fileName?: string) {
   finally {
     downloadingUrl.value = ''
   }
+}
+
+// Legacy sameAs metadata splits `name=book.epub` into name and type, so the
+// extension is put back unless the stored name already carries it.
+function getEbookFileName(file: { fileName: string, type: string }): string {
+  const name = file.fileName || classId
+  const extension = file.type ? `.${file.type}` : ''
+  return name.toLowerCase().endsWith(extension.toLowerCase()) ? name : `${name}${extension}`
 }
 
 function getImageExtension(mimeType: string): string {
