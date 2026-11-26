@@ -90,13 +90,13 @@
           </div>
           <div class="flex items-center gap-2">
             <UButton
-              v-if="advisoryOf(record)"
+              v-if="pdfAdvisoryOf(record)"
               variant="ghost"
               color="warning"
               size="xs"
               icon="i-heroicons-exclamation-triangle"
               :aria-expanded="isExpanded(record)"
-              :label="advisoryCopy(record, 'label')"
+              :label="pdfAdvisoryCopy(record, 'label')"
               :trailing-icon="isExpanded(record) ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
               @click="toggleIssues(record)"
             />
@@ -120,37 +120,86 @@
           </div>
         </div>
 
-        <!-- Issues are advisory: the file still publishes. Shown in place rather
-             than in a modal, which stole focus while files were still going in. -->
-        <div
+        <p
           v-if="isExpanded(record)"
-          class="px-3 pb-3 space-y-2 text-sm"
-        >
-          <p
-            class="text-xs text-muted"
-            v-text="advisoryCopy(record, 'notice')"
-          />
+          class="px-3 pb-3 text-xs text-muted"
+          v-text="pdfAdvisoryCopy(record, 'notice')"
+        />
+
+        <!-- Details open in a modal only on 查看詳情;
+             one that popped up by itself stole focus while files were still going in. -->
+        <template v-if="record.hasValidationIssues">
           <div
-            v-if="record.validationErrors"
-            class="text-error"
+            role="status"
+            class="flex flex-wrap items-center justify-between gap-x-2 border-t border-default bg-warning/10 ps-3 pe-2 py-1.5"
           >
-            <p class="font-semibold mb-1">
-              {{ $t('upload_form.epub_validation_errors') }}:
+            <p class="flex items-center gap-2 text-sm font-semibold text-warning-700">
+              <UIcon
+                name="i-heroicons-exclamation-triangle"
+                class="shrink-0 size-5"
+              />
+              {{ $t('upload_form.epub_has_issues') }}
             </p>
-            <pre class="whitespace-pre-wrap text-xs">{{ record.validationErrors }}</pre>
+            <div class="flex items-center gap-2 ms-auto">
+              <span
+                class="text-xs text-toned"
+                v-text="epubIssueSummary(record)"
+              />
+              <UButton
+                variant="ghost"
+                color="neutral"
+                icon="i-heroicons-list-bullet"
+                :label="$t('upload_form.epub_issues_view')"
+                @click="issuesRecord = record"
+              />
+            </div>
           </div>
-          <div
-            v-if="record.validationWarnings"
-            class="text-warning"
-          >
-            <p class="font-semibold mb-1">
-              {{ $t('upload_form.epub_validation_warnings') }}:
-            </p>
-            <pre class="whitespace-pre-wrap text-xs">{{ record.validationWarnings }}</pre>
+          <div class="px-3 py-3 space-y-3 border-t border-default">
+            <p
+              class="text-sm text-muted"
+              v-text="$t('upload_form.epub_validation_notice')"
+            />
           </div>
-        </div>
+        </template>
       </li>
     </ul>
+
+    <UModal
+      :open="!!issuesRecord"
+      :title="$t('upload_form.epub_issues_modal_title')"
+      :description="issuesRecord?.fileName"
+      :ui="{ footer: 'justify-end' }"
+      @update:open="(isOpen: boolean) => { if (!isOpen) issuesRecord = null }"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <section
+            v-for="group of issueGroups"
+            :key="group.heading"
+          >
+            <h3
+              :class="['text-sm font-semibold', group.textClass]"
+              v-text="group.heading"
+            />
+            <ul :class="['mt-1 space-y-1 font-mono text-xs whitespace-pre-wrap break-words', group.textClass]">
+              <li
+                v-for="(item, itemIndex) of group.items"
+                :key="itemIndex"
+                v-text="item"
+              />
+            </ul>
+          </section>
+        </div>
+      </template>
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="outline"
+          :label="$t('common.close')"
+          @click="issuesRecord = null"
+        />
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -195,14 +244,9 @@ const coverEntry = computed(() =>
 // record that has no blob, so two drops of one filename coexist as two rows.
 const collapsed = ref(new Set<FileRecord>())
 
-// Every advisory is non-blocking and they share one row, which shows the first
-// that applies: a record can carry more than one condition, since a scan has no
-// legible text either. Named rather than tested in the template — the label and
-// the body would otherwise each re-derive which of them this is.
-type FileAdvisory = 'epub-validation' | 'pdf-no-text-layer' | 'pdf-garbled-text' | undefined
+type PdfAdvisory = 'pdf-no-text-layer' | 'pdf-garbled-text' | undefined
 
-const advisoryOf = (record: FileRecord): FileAdvisory => {
-  if (record.hasValidationIssues) { return 'epub-validation' }
+const pdfAdvisoryOf = (record: FileRecord): PdfAdvisory => {
   // Ordered: a file with no text layer has no legible text either, and would
   // otherwise be told it is merely garbled.
   if (record.hasSearchableText === false) { return 'pdf-no-text-layer' }
@@ -212,11 +256,7 @@ const advisoryOf = (record: FileRecord): FileAdvisory => {
 
 // The notice key does not follow from the label key, so both are listed. One
 // table, so a further advisory cannot inherit another's copy by omission.
-const ADVISORY_COPY: Record<NonNullable<FileAdvisory>, { label: string, notice: string }> = {
-  'epub-validation': {
-    label: 'upload_form.epub_has_issues',
-    notice: 'upload_form.epub_validation_notice',
-  },
+const PDF_ADVISORY_COPY: Record<NonNullable<PdfAdvisory>, { label: string, notice: string }> = {
   'pdf-no-text-layer': {
     label: 'upload_form.pdf_no_text_layer',
     notice: 'upload_form.pdf_no_text_layer_notice',
@@ -227,15 +267,39 @@ const ADVISORY_COPY: Record<NonNullable<FileAdvisory>, { label: string, notice: 
   },
 }
 
-const advisoryCopy = (record: FileRecord, part: 'label' | 'notice') => {
-  const advisory = advisoryOf(record)
-  return advisory ? $t(ADVISORY_COPY[advisory][part]) : ''
+const pdfAdvisoryCopy = (record: FileRecord, part: 'label' | 'notice') => {
+  const advisory = pdfAdvisoryOf(record)
+  return advisory ? $t(PDF_ADVISORY_COPY[advisory][part]) : ''
 }
 
 const isExpanded = (record: FileRecord) =>
-  !!advisoryOf(record) && !collapsed.value.has(record)
+  !!pdfAdvisoryOf(record) && !collapsed.value.has(record)
 
 function toggleIssues(record: FileRecord) {
   if (!collapsed.value.delete(record)) { collapsed.value.add(record) }
 }
+
+// validateEpub joins one "• " line per message; a message may itself span lines.
+const splitIssues = (text?: string) => text ? text.split(/\n(?=• )/) : []
+
+const epubIssueSummary = (record: FileRecord) => {
+  const errorCount = splitIssues(record.validationErrors).length
+  const warningCount = splitIssues(record.validationWarnings).length
+  const errors = errorCount ? $t('upload_form.epub_error_count', errorCount) : ''
+  const warnings = warningCount ? $t('upload_form.epub_warning_count', warningCount) : ''
+  return errors && warnings
+    ? $t('upload_form.epub_issue_counts', { errors, warnings })
+    : errors || warnings
+}
+
+const issuesRecord = ref<FileRecord | null>(null)
+
+const issueGroups = computed(() => {
+  const errors = splitIssues(issuesRecord.value?.validationErrors)
+  const warnings = splitIssues(issuesRecord.value?.validationWarnings)
+  return [
+    { heading: $t('upload_form.epub_validation_errors', { n: errors.length }), items: errors, textClass: 'text-error-700' },
+    { heading: $t('upload_form.epub_validation_warnings', { n: warnings.length }), items: warnings, textClass: 'text-warning-700' },
+  ].filter(group => group.items.length)
+})
 </script>
