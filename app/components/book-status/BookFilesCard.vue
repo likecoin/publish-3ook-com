@@ -83,6 +83,18 @@
                   :label="$t('status_page.pending_save')"
                 />
               </div>
+              <UButton
+                v-if="canEdit"
+                class="shrink-0"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                icon="i-heroicons-arrow-down-tray"
+                :label="$t('common.download')"
+                :loading="downloadingUrl === coverRow.url"
+                :disabled="!!downloadingUrl"
+                @click="downloadFile(coverRow.url)"
+              />
             </li>
 
             <!-- Keyed by index, like 技術資料's own rows: a URL is editable
@@ -119,6 +131,18 @@
                   />
                 </div>
               </div>
+              <UButton
+                v-if="canEdit"
+                class="shrink-0"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                icon="i-heroicons-arrow-down-tray"
+                :label="$t('common.download')"
+                :loading="downloadingUrl === file.url"
+                :disabled="!!downloadingUrl"
+                @click="downloadFile(file.url, file.fileName || `${classId}.${file.type}`)"
+              />
             </li>
           </ul>
           <p
@@ -195,6 +219,7 @@
 
 <script setup lang="ts">
 import type { FileRecord } from '~/types'
+import { BookFileFetchError } from '~/composables/useBookFileFetch'
 import { getCoverThumbnailURL } from '~/utils'
 import { isManualCoverRecord, isRecordUploaded } from '~/utils/arweave'
 import { getRecordContentUri } from '~/utils/contentUri'
@@ -206,6 +231,8 @@ import { EBOOK_FILE_TYPES } from '~/constant'
 
 const { t: $t } = useI18n()
 const { loadClassMetadataIntoForm } = useNFTClassUpdater()
+const { fetchBookFile } = useBookFileFetch()
+const { showErrorToast } = useToastComposable()
 
 const {
   classId,
@@ -321,6 +348,34 @@ watch(() => classId, async () => {
     isLoading.value = false
   }
 }, { immediate: true })
+
+const downloadingUrl = ref('')
+
+// Fetched rather than linked: <a download> is ignored across origins, and an
+// encrypted file has to be decrypted before it is any use to the author.
+// The cover's stored name is not kept, so it is named after the book.
+async function downloadFile(url: string, fileName?: string) {
+  downloadingUrl.value = url
+  try {
+    const blob = await fetchBookFile(url)
+    const { saveAs } = await import('file-saver')
+    saveAs(blob, fileName || `${classId}-cover.${getImageExtension(blob.type)}`)
+    useLogEvent('book_file_downloaded', { class_id: classId, type: fileName ? 'ebook' : 'cover' })
+  }
+  catch (error) {
+    showErrorToast($t('status_page.download_file_failed'), {
+      description: error instanceof BookFileFetchError ? $t(error.i18nKey) : undefined,
+    })
+  }
+  finally {
+    downloadingUrl.value = ''
+  }
+}
+
+function getImageExtension(mimeType: string): string {
+  const subtype = mimeType.split('/')[1]?.split(/[;+]/)[0]
+  return subtype === 'jpeg' ? 'jpg' : subtype || 'jpg'
+}
 
 // Confirmed before the upload rather than before the save: the bar announces
 // the audience too, but Arweave is where this stops being reversible.
