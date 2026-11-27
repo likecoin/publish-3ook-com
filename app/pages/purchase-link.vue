@@ -428,6 +428,7 @@ const likerStore = useLikerStore()
 const stripeStore = useStripeStore()
 const userStore = useUserStore()
 const { userLikerInfo } = storeToRefs(userStore)
+const { publicLikerId } = usePublicLikerId()
 const route = useRoute()
 const localeRoute = useLocaleRoute()
 const { showErrorToast } = useToastComposable()
@@ -714,8 +715,8 @@ function downloadQRCodesByChannelId(channelId: string) {
 }
 
 function prefillChannelIdIfPossible() {
-  if (!customChannelInput.value && userLikerInfo.value) {
-    customChannelInput.value = convertLikerIdToChannelId(userLikerInfo.value.user)
+  if (!customChannelInput.value && publicLikerId.value) {
+    customChannelInput.value = convertLikerIdToChannelId(publicLikerId.value)
   }
 }
 

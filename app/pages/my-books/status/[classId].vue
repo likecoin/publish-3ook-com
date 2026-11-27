@@ -272,8 +272,7 @@ const {
 
 const route = useRoute()
 const localeRoute = useLocaleRoute()
-const userStore = useUserStore()
-const { userLikerInfo } = storeToRefs(userStore)
+const { publicLikerId } = usePublicLikerId()
 
 const error = ref('')
 const isLoading = ref(false)
@@ -458,8 +457,8 @@ const nftClassName = computed(() => (isMerch.value
   : nftStore.getClassMetadataById(classId.value as string)?.name))
 const affiliationLink = computed(() => {
   const baseUrl = `${BOOK3_URL}/store/${classId.value}`
-  if (userLikerInfo.value?.user) {
-    return `${baseUrl}?from=@${userLikerInfo.value.user}`
+  if (publicLikerId.value) {
+    return `${baseUrl}?from=@${publicLikerId.value}`
   }
   return baseUrl
 })
